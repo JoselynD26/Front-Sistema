@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'detalle_sede_screen.dart';
+import 'form_sede_screen.dart'; // 👈 Asegúrate de crear esta pantalla
 
 class SedeScreen extends StatefulWidget {
   const SedeScreen({super.key});
@@ -39,6 +40,22 @@ class _SedeScreenState extends State<SedeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Selecciona una sede")),
+      
+      // ⬇⬇⬇ AGREGADO: Botón de Crear Sede
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final resultado = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const FormSedeScreen()),
+          );
+          if (resultado == true) {
+            _cargarSedes(); // Recargar sedes al volver
+          }
+        },
+        child: const Icon(Icons.add),
+      ),
+      // ⬆⬆⬆ AGREGADO
+      
       body: cargando
           ? const Center(child: CircularProgressIndicator())
           : GridView.builder(

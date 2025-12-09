@@ -65,16 +65,56 @@ class ApiService {
   // -------------------- GENERIC LIST / CRUD PATTERN --------------------
   // Para endpoints que devuelven listas (GET) -> devolver List<dynamic> o lanzar excepción
   // Para crear/actualizar/eliminar -> devolver bool según status
+  Future<bool> register(String correo, String contrasena, String nombres, String apellidos) async {
+  final url = Uri.parse("$baseUrl/registro-admin/");
+  final body = jsonEncode({
+    "correo": correo,
+    "contrasena": contrasena,
+    "nombres": nombres,
+    "apellidos": apellidos,
+    "rol": "admin"
+  });
 
-  // -------------------- SEDES --------------------
-  Future<List<dynamic>> listarSedes() async {
-    final url = Uri.parse("$baseUrl/sedes/");
-    final headers = await _headers(json: false);
-    final r = await http.get(url, headers: headers);
-    print("[SEDES][GET] ${r.statusCode} -> ${r.body}");
-    if (r.statusCode == 200) return jsonDecode(r.body);
-    throw Exception("Error al listar sedes: ${r.statusCode}");
+  final response = await http.post(url, headers: {
+    "Content-Type": "application/json",
+  }, body: body);
+
+  print("[REGISTER] ${response.statusCode} -> ${response.body}");
+  return _isSuccess(response.statusCode);
+}
+
+ // -------------------- SEDES --------------------
+Future<List<dynamic>> listarSedes() async {
+  final url = Uri.parse("$baseUrl/sedes/");
+  final headers = await _headers(json: false);
+
+  final response = await http.get(url, headers: headers);
+
+  print("[SEDES][GET ALL] ${response.statusCode} -> ${response.body}");
+
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body);
+  } else {
+    throw Exception("Error al listar sedes: ${response.statusCode}");
   }
+}
+
+ Future<void> crearSede(Map<String, dynamic> cuerpo) async {
+  final url = Uri.parse('$baseUrl/sedes/');
+  final headers = await _headers(json: true);
+
+  final response = await http.post(
+    url,
+    headers: headers,
+    body: jsonEncode(cuerpo),
+  );
+
+  print("[SEDES][POST] ${response.statusCode} -> ${response.body}");
+
+  if (response.statusCode != 200 && response.statusCode != 201) {
+    throw Exception("Error al crear sede: ${response.statusCode}");
+  }
+}
 
   // -------------------- CARRERAS (multi-sede) --------------------
   Future<List<dynamic>> listarCarreras() async {

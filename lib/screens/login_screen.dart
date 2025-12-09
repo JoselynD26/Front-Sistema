@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'sede_screen.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -11,7 +12,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _correoController = TextEditingController();
-  final _claveController = TextEditingController();
+  final _contrasenaController = TextEditingController();
   final _apiService = ApiService();
   bool cargando = false;
   String? error;
@@ -24,7 +25,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final success = await _apiService.login(
       _correoController.text.trim(),
-      _claveController.text.trim(),
+      _contrasenaController.text.trim(),
     );
 
     setState(() {
@@ -61,9 +62,9 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 16),
             TextField(
-              controller: _claveController,
+              controller: _contrasenaController,
               decoration: const InputDecoration(
-                labelText: "Clave",
+                labelText: "Contraseña",
                 border: OutlineInputBorder(),
               ),
               obscureText: true,
@@ -76,6 +77,13 @@ class _LoginScreenState extends State<LoginScreen> {
             ElevatedButton(
               onPressed: cargando ? null : _login,
               child: const Text("Ingresar"),
+            ),
+            TextButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => RegisterScreen()),
+              ),
+              child: const Text("¿No tienes cuenta? Regístrate"),
             ),
           ],
         ),

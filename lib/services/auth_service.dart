@@ -6,11 +6,11 @@ class AuthService {
   final String baseUrl = "http://10.0.2.2:8000"; // usa tu IP si pruebas en físico
   final storage = const FlutterSecureStorage();
 
-  Future<bool> login(String correo, String clave) async {
+  Future<bool> login(String correo, String contrasena) async {
     final response = await http.post(
       Uri.parse("$baseUrl/login/"),
       headers: {"Content-Type": "application/json"},
-      body: jsonEncode({"correo": correo, "clave": clave}),
+      body: jsonEncode({"correo": correo, "contrasena": contrasena}),
     );
 
     if (response.statusCode == 200) {
