@@ -6,8 +6,10 @@ import 'screens/escritorio_screen.dart';
 import 'screens/carrera_screen.dart';
 import 'screens/sede_screen.dart';
 import 'screens/detalle_sede_screen.dart';
-import 'screens/docente_screen.dart';   // ✅ nuevo import
-import 'screens/sala_screen.dart';      // ✅ nuevo import
+import 'screens/docente_screen.dart';         // ✅ nuevo import
+import 'screens/sala_screen.dart';            // ✅ nuevo import
+import 'screens/horario_screen.dart';         // ✅ ya lo tienes
+import 'screens/horarios_pdf_screen.dart';    // ✅ nuevo import para PDF
 
 void main() {
   runApp(const GestionAcademicaApp());
@@ -67,6 +69,11 @@ class GestionAcademicaApp extends StatelessWidget {
             final args = settings.arguments as Map<String, dynamic>;
             return MaterialPageRoute(
               builder: (_) => SalasScreen(idSede: args['idSede']),
+            );
+
+          case '/horariosPdf': // ✅ nueva ruta para ver/subir PDFs
+            return MaterialPageRoute(
+              builder: (_) => const HorariosPdfScreen(),
             );
 
           default:

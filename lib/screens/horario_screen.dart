@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
-import 'horario_form.dart'; // formulario para crear/editar
+import 'horario_form.dart';
 
 class HorariosScreen extends StatefulWidget {
   final int idSede;
@@ -63,10 +63,24 @@ class _HorariosScreenState extends State<HorariosScreen> {
     );
   }
 
+  // ✅ NUEVO: abrir pantalla de PDFs
+  void _abrirPdfScreen() {
+    Navigator.pushNamed(context, '/horariosPdf');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Horarios")),
+      appBar: AppBar(
+        title: const Text("Horarios"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf),
+            tooltip: "Ver / Subir PDFs de Horarios",
+            onPressed: _abrirPdfScreen,
+          ),
+        ],
+      ),
       body: cargando
           ? const Center(child: CircularProgressIndicator())
           : horarios.isEmpty
@@ -76,26 +90,19 @@ class _HorariosScreenState extends State<HorariosScreen> {
                   itemBuilder: (context, index) {
                     final h = horarios[index];
 
-                    // Ajusta las claves según lo que devuelva tu backend
-                    final fecha = h["fecha"] ?? "";
-                    final hora = h["hora"] ?? "";
-                    final estado = h["estado"] ?? "";
-                    final materiaId = h["id_materia"] ?? "";
-                    final docenteId = h["id_docente"] ?? "";
-
                     return Card(
                       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       child: ListTile(
                         leading: CircleAvatar(child: Text(h["id"].toString())),
-                        title: Text("Materia ID: $materiaId - Docente ID: $docenteId"),
-                        subtitle: Text("Fecha: $fecha - Hora: $hora"),
+                        title: Text("Materia ID: ${h["id_materia"]} - Docente ID: ${h["id_docente"]}"),
+                        subtitle: Text("Fecha: ${h["fecha"]} - Hora: ${h["hora"]}"),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              estado,
+                              h["estado"],
                               style: TextStyle(
-                                color: estado == "cancelado" ? Colors.red : Colors.green,
+                                color: h["estado"] == "cancelado" ? Colors.red : Colors.green,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),

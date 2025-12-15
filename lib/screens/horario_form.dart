@@ -47,6 +47,7 @@ class _HorarioFormState extends State<HorarioForm> {
       setState(() => mensaje = "Fecha y hora son obligatorias");
       return;
     }
+
     if (_docenteController.text.isEmpty ||
         _materiaController.text.isEmpty ||
         _aulaController.text.isEmpty) {
@@ -94,37 +95,19 @@ class _HorarioFormState extends State<HorarioForm> {
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
-            Text("Sede ID: ${widget.idSede}",
-                style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text("Sede ID: ${widget.idSede}", style: const TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
-            TextField(
-              controller: _fechaController,
-              decoration: const InputDecoration(labelText: "Fecha (YYYY-MM-DD)"),
-            ),
-            TextField(
-              controller: _horaController,
-              decoration: const InputDecoration(labelText: "Hora (HH:MM)"),
-            ),
-            TextField(
-              controller: _estadoController,
-              decoration: const InputDecoration(labelText: "Estado"),
-            ),
-            TextField(
-              controller: _docenteController,
-              decoration: const InputDecoration(labelText: "ID Docente"),
-              keyboardType: TextInputType.number,
-            ),
-            TextField(
-              controller: _materiaController,
-              decoration: const InputDecoration(labelText: "ID Materia"),
-              keyboardType: TextInputType.number,
-            ),
-            TextField(
-              controller: _aulaController,
-              decoration: const InputDecoration(labelText: "ID Aula"),
-              keyboardType: TextInputType.number,
-            ),
+
+            TextField(controller: _fechaController, decoration: const InputDecoration(labelText: "Fecha (YYYY-MM-DD)")),
+            TextField(controller: _horaController, decoration: const InputDecoration(labelText: "Hora (HH:MM)")),
+            TextField(controller: _estadoController, decoration: const InputDecoration(labelText: "Estado")),
+
+            TextField(controller: _docenteController, decoration: const InputDecoration(labelText: "ID Docente"), keyboardType: TextInputType.number),
+            TextField(controller: _materiaController, decoration: const InputDecoration(labelText: "ID Materia"), keyboardType: TextInputType.number),
+            TextField(controller: _aulaController, decoration: const InputDecoration(labelText: "ID Aula"), keyboardType: TextInputType.number),
+
             const SizedBox(height: 20),
+
             if (cargando) const Center(child: CircularProgressIndicator()),
             if (mensaje != null)
               Center(
@@ -136,6 +119,7 @@ class _HorarioFormState extends State<HorarioForm> {
                   ),
                 ),
               ),
+
             ElevatedButton(
               onPressed: cargando ? null : _guardar,
               child: const Text("Guardar"),
