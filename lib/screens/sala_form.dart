@@ -19,6 +19,7 @@ class SalaForm extends StatefulWidget {
 
 class _SalaFormState extends State<SalaForm> {
   final _nombreController = TextEditingController();
+  final _capacidadController = TextEditingController();
   final apiService = ApiService();
   bool cargando = false;
   String? mensaje;
@@ -28,6 +29,9 @@ class _SalaFormState extends State<SalaForm> {
     super.initState();
     if (widget.sala != null) {
       _nombreController.text = widget.sala!['nombre'];
+      _capacidadController.text = widget.sala!['capacidad']?.toString() ?? '20';
+    } else {
+      _capacidadController.text = '20';
     }
   }
 
@@ -41,6 +45,7 @@ class _SalaFormState extends State<SalaForm> {
 
     final datos = {
       "nombre": _nombreController.text.trim(),
+      "capacidad": int.tryParse(_capacidadController.text) ?? 20,
       "sede_id": widget.idSede,
     };
 
@@ -80,6 +85,12 @@ class _SalaFormState extends State<SalaForm> {
             TextField(
               controller: _nombreController,
               decoration: const InputDecoration(labelText: "Nombre de la Sala"),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _capacidadController,
+              decoration: const InputDecoration(labelText: "Capacidad"),
+              keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 20),
             if (cargando) const Center(child: CircularProgressIndicator()),

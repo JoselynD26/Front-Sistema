@@ -6,42 +6,53 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http_parser/http_parser.dart';
 
 class ApiService {
-  // Ajusta si usas otra IP en tu red (emulador vs dispositivo físico)
-  final String baseUrl = "http://127.0.0.1:8000";
+  // Servidor local para web
+  final String baseUrl = "http://localhost:8000";
   final FlutterSecureStorage storage = const FlutterSecureStorage();
 
   // -------------------- AUTH --------------------
   Future<bool> login(String username, String password) async {
-    final url = Uri.parse("$baseUrl/login/");
-    final body = jsonEncode({"correo": username, "contrasena": password});
+    try {
+      final url = Uri.parse("$baseUrl/login/");
+      final body = jsonEncode({"correo": username, "contrasena": password});
 
-    final response = await http.post(url, headers: {
-      "Content-Type": "application/json",
-    }, body: body);
+      print("[LOGIN] Intentando conectar a: $url");
+      print("[LOGIN] Body: $body");
+      
+      final response = await http.post(url, headers: {
+        "Content-Type": "application/json",
+      }, body: body).timeout(Duration(seconds: 30));
 
-    print("[LOGIN] ${response.statusCode} -> ${response.body}");
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final token = data["access_token"];
-      if (token != null) {
-        await storage.write(key: "jwt", value: token);
-        if (data.containsKey("rol")) {
-          await storage.write(key: "rol", value: data["rol"].toString());
+      print("[LOGIN] ${response.statusCode} -> ${response.body}");
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final token = data["access_token"];
+        if (token != null) {
+          await storage.write(key: "jwt", value: token);
+          if (data.containsKey("rol")) {
+            await storage.write(key: "rol", value: data["rol"].toString());
+          }
+          if (data.containsKey("id")) {
+            await storage.write(key: "usuario_id", value: data["id"].toString());
+          }
+          if (data.containsKey("nombres")) {
+            await storage.write(key: "nombres", value: data["nombres"].toString());
+          }
+          if (data.containsKey("apellidos")) {
+            await storage.write(key: "apellidos", value: data["apellidos"].toString());
+          }
+          if (data.containsKey("docente_id")) {
+            await storage.write(key: "docente_id", value: data["docente_id"].toString());
+          }
+          return true;
         }
-        if (data.containsKey("id")) {
-          await storage.write(key: "usuario_id", value: data["id"].toString());
-        }
-        if (data.containsKey("nombres")) {
-          await storage.write(key: "nombres", value: data["nombres"].toString());
-        }
-        if (data.containsKey("apellidos")) {
-          await storage.write(key: "apellidos", value: data["apellidos"].toString());
-        }
-        return true;
       }
+      return false;
+    } catch (e) {
+      print("[LOGIN ERROR] $e");
+      return false;
     }
-    return false;
   }
 
   Future<void> logout() async {
@@ -90,7 +101,7 @@ class ApiService {
     return jsonDecode(res.body);
   }
 
-  Future<bool> aprobarReserva(int id) async {
+  Future<bool> aprobarReservaAntigua(int id) async {
     final url = Uri.parse("$baseUrl/reservas/aprobar/$id");
     final res = await http.post(url);
     return res.statusCode == 200;
@@ -483,7 +494,7 @@ Future<List<dynamic>> listarSedes() async {
     return _isSuccess(r.statusCode);
   }
   Future<List<dynamic>> listarSalasPorSede(int idSede) async {
-    final url = Uri.parse("$baseUrl/salas/sede/$idSede");
+    final url = Uri.parse("$baseUrl/sala-profesores/sede/$idSede");
     final headers = await _headers(json: false);
 
     final r = await http.get(url, headers: headers);
@@ -497,7 +508,7 @@ Future<List<dynamic>> listarSedes() async {
   }
 
   Future<bool> crearSala(Map<String, dynamic> datos) async {
-    final url = Uri.parse("$baseUrl/salas/");
+    final url = Uri.parse("$baseUrl/sala-profesores/");
     final headers = await _headers();
 
     final r = await http.post(url, headers: headers, body: jsonEncode(datos));
@@ -506,7 +517,7 @@ Future<List<dynamic>> listarSedes() async {
   }
 
   Future<bool> actualizarSala(int id, Map<String, dynamic> datos) async {
-    final url = Uri.parse("$baseUrl/salas/$id");
+    final url = Uri.parse("$baseUrl/sala-profesores/$id");
     final headers = await _headers();
 
     final r = await http.put(url, headers: headers, body: jsonEncode(datos));
@@ -515,7 +526,7 @@ Future<List<dynamic>> listarSedes() async {
   }
 
   Future<bool> eliminarSala(int id) async {
-    final url = Uri.parse("$baseUrl/salas/$id");
+    final url = Uri.parse("$baseUrl/sala-profesores/$id");
     final headers = await _headers(json: false);
 
     final r = await http.delete(url, headers: headers);
@@ -729,6 +740,513 @@ Future<List<dynamic>> listarSedes() async {
       return res.statusCode == 200;
     } catch (e) {
       print("[ERROR][ELIMINAR HORARIO] $e");
+      return false;
+    }
+  }
+
+  /// ✅ Cancelar horario
+  Future<bool> cancelarHorario(int id) async {
+    try {
+      final url = Uri.parse("$baseUrl/horarios/$id/cancelar");
+      final res = await http.put(url);
+
+      print("[HORARIOS][CANCELAR $id] ${res.statusCode}");
+      return res.statusCode == 200;
+    } catch (e) {
+      print("[ERROR][CANCELAR HORARIO] $e");
+      return false;
+    }
+  }
+
+  // ==========================================
+  // RESERVA DE AULAS
+  // ==========================================
+
+  /// Obtener aulas disponibles en fecha/hora específica
+  Future<List<dynamic>> obtenerAulasDisponibles(
+    String fecha,
+    String hora,
+    int sedeId,
+  ) async {
+    try {
+      final url = Uri.parse(
+        "$baseUrl/reserva-aulas/aulas-disponibles?fecha=$fecha&hora=$hora&sede_id=$sedeId",
+      );
+      final res = await http.get(url);
+      
+      print("[AULAS DISPONIBLES] ${res.statusCode}");
+      
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body);
+      } else {
+        throw Exception("Error al obtener aulas disponibles: ${res.statusCode}");
+      }
+    } catch (e) {
+      print("[ERROR][AULAS DISPONIBLES] $e");
+      rethrow;
+    }
+  }
+
+  /// Crear nueva reserva
+  Future<bool> crearReservaAula(
+    String fecha,
+    String hora,
+    int aulaId,
+    int docenteId,
+    String motivo,
+  ) async {
+    try {
+      final url = Uri.parse("$baseUrl/reserva-aulas/crear-reserva");
+      final res = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "fecha": fecha,
+          "hora": hora,
+          "aula_id": aulaId,
+          "docente_id": docenteId,
+          "motivo": motivo,
+        }),
+      );
+      
+      print("[CREAR RESERVA AULA] ${res.statusCode}");
+      return res.statusCode == 200;
+    } catch (e) {
+      print("[ERROR][CREAR RESERVA AULA] $e");
+      return false;
+    }
+  }
+
+  /// Crear nueva reserva con rango de horas
+  Future<bool> crearReservaAulaConRango(
+    String fecha,
+    String horaInicio,
+    String horaFin,
+    int aulaId,
+    int docenteId,
+    String motivo,
+  ) async {
+    try {
+      final url = Uri.parse("$baseUrl/reserva-aulas/crear-reserva");
+      final res = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "fecha": fecha,
+          "hora_inicio": horaInicio,
+          "hora_fin": horaFin,
+          "aula_id": aulaId,
+          "docente_id": docenteId,
+          "motivo": motivo,
+        }),
+      );
+      
+      print("[CREAR RESERVA AULA RANGO] ${res.statusCode}");
+      return res.statusCode == 200;
+    } catch (e) {
+      print("[ERROR][CREAR RESERVA AULA RANGO] $e");
+      return false;
+    }
+  }
+
+  /// Obtener mis reservas
+  Future<List<dynamic>> obtenerMisReservas(int docenteId) async {
+    try {
+      final url = Uri.parse("$baseUrl/reserva-aulas/mis-reservas/$docenteId");
+      final res = await http.get(url);
+      
+      print("[MIS RESERVAS] ${res.statusCode}");
+      
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body);
+      } else {
+        throw Exception("Error al obtener reservas: ${res.statusCode}");
+      }
+    } catch (e) {
+      print("[ERROR][MIS RESERVAS] $e");
+      rethrow;
+    }
+  }
+
+  /// Cancelar reserva
+  Future<bool> cancelarReservaAula(int reservaId, int docenteId) async {
+    try {
+      final url = Uri.parse("$baseUrl/reserva-aulas/cancelar-reserva/$reservaId");
+      final res = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"docente_id": docenteId}),
+      );
+      
+      print("[CANCELAR RESERVA] ${res.statusCode}");
+      return res.statusCode == 200;
+    } catch (e) {
+      print("[ERROR][CANCELAR RESERVA] $e");
+      return false;
+    }
+  }
+
+  /// Obtener reservas pendientes (admin)
+  Future<List<dynamic>> obtenerReservasPendientes() async {
+    try {
+      final url = Uri.parse("$baseUrl/reserva-aulas/reservas-pendientes");
+      final res = await http.get(url);
+      
+      print("[RESERVAS PENDIENTES] ${res.statusCode}");
+      
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body);
+      } else {
+        throw Exception("Error al obtener reservas pendientes: ${res.statusCode}");
+      }
+    } catch (e) {
+      print("[ERROR][RESERVAS PENDIENTES] $e");
+      rethrow;
+    }
+  }
+
+  /// Aprobar reserva (admin)
+  Future<bool> aprobarReserva(int reservaId) async {
+    try {
+      final url = Uri.parse("$baseUrl/reserva-aulas/aprobar-reserva/$reservaId");
+      final res = await http.post(url);
+      
+      print("[APROBAR RESERVA] ${res.statusCode}");
+      return res.statusCode == 200;
+    } catch (e) {
+      print("[ERROR][APROBAR RESERVA] $e");
+      return false;
+    }
+  }
+
+  /// Rechazar reserva (admin)
+  Future<bool> rechazarReserva(int reservaId) async {
+    try {
+      final url = Uri.parse("$baseUrl/reserva-aulas/rechazar-reserva/$reservaId");
+      final res = await http.post(url);
+      
+      print("[RECHAZAR RESERVA] ${res.statusCode}");
+      return res.statusCode == 200;
+    } catch (e) {
+      print("[ERROR][RECHAZAR RESERVA] $e");
+      return false;
+    }
+  }
+
+  // ==========================================
+  // PANEL PROFESOR
+  // ==========================================
+
+  /// Obtener materias del profesor
+  Future<List<dynamic>> obtenerMisMaterias(int docenteId) async {
+    try {
+      final url = Uri.parse("$baseUrl/profesor/mis-materias/$docenteId");
+      final res = await http.get(url);
+      
+      print("[MIS MATERIAS] ${res.statusCode}");
+      
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body);
+      } else {
+        throw Exception("Error al obtener materias: ${res.statusCode}");
+      }
+    } catch (e) {
+      print("[ERROR][MIS MATERIAS] $e");
+      rethrow;
+    }
+  }
+
+  /// Obtener horario del profesor
+  Future<List<dynamic>> obtenerMiHorario(int docenteId) async {
+    try {
+      final url = Uri.parse("$baseUrl/profesor/mi-horario/$docenteId");
+      final res = await http.get(url);
+      
+      print("[MI HORARIO] ${res.statusCode}");
+      
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body);
+      } else {
+        throw Exception("Error al obtener horario: ${res.statusCode}");
+      }
+    } catch (e) {
+      print("[ERROR][MI HORARIO] $e");
+      rethrow;
+    }
+  }
+
+  /// Crear horario de clase
+  Future<bool> crearHorarioProfesor(
+    String fecha,
+    String hora,
+    int materiaId,
+    int aulaId,
+    int docenteId,
+  ) async {
+    try {
+      final url = Uri.parse("$baseUrl/profesor/crear-horario");
+      final res = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "fecha": fecha,
+          "hora": hora,
+          "materia_id": materiaId,
+          "aula_id": aulaId,
+          "docente_id": docenteId,
+        }),
+      );
+      
+      print("[CREAR HORARIO PROFESOR] ${res.statusCode}");
+      return res.statusCode == 200;
+    } catch (e) {
+      print("[ERROR][CREAR HORARIO PROFESOR] $e");
+      return false;
+    }
+  }
+
+  /// Actualizar horario
+  Future<bool> actualizarHorarioProfesor(
+    int horarioId,
+    String fecha,
+    String hora,
+    int materiaId,
+    int aulaId,
+    int docenteId,
+  ) async {
+    try {
+      final url = Uri.parse("$baseUrl/profesor/actualizar-horario/$horarioId");
+      final res = await http.put(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "fecha": fecha,
+          "hora": hora,
+          "materia_id": materiaId,
+          "aula_id": aulaId,
+          "docente_id": docenteId,
+        }),
+      );
+      
+      print("[ACTUALIZAR HORARIO PROFESOR] ${res.statusCode}");
+      return res.statusCode == 200;
+    } catch (e) {
+      print("[ERROR][ACTUALIZAR HORARIO PROFESOR] $e");
+      return false;
+    }
+  }
+
+  /// Eliminar horario
+  Future<bool> eliminarHorarioProfesor(int horarioId, int docenteId) async {
+    try {
+      final url = Uri.parse("$baseUrl/profesor/eliminar-horario/$horarioId");
+      final res = await http.delete(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"docente_id": docenteId}),
+      );
+      
+      print("[ELIMINAR HORARIO PROFESOR] ${res.statusCode}");
+      return res.statusCode == 200;
+    } catch (e) {
+      print("[ERROR][ELIMINAR HORARIO PROFESOR] $e");
+      return false;
+    }
+  }
+
+  /// Obtener cursos disponibles
+  Future<List<dynamic>> obtenerCursosDisponibles(int sedeId) async {
+    try {
+      final url = Uri.parse("$baseUrl/profesor/cursos-disponibles/$sedeId");
+      final res = await http.get(url);
+      
+      print("[CURSOS DISPONIBLES] ${res.statusCode}");
+      
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body);
+      } else {
+        throw Exception("Error al obtener cursos: ${res.statusCode}");
+      }
+    } catch (e) {
+      print("[ERROR][CURSOS DISPONIBLES] $e");
+      rethrow;
+    }
+  }
+
+  /// Obtener mi escritorio asignado
+  Future<Map<String, dynamic>> obtenerMiEscritorio(int docenteId) async {
+    try {
+      final url = Uri.parse("$baseUrl/profesor/mi-escritorio/$docenteId");
+      final res = await http.get(url);
+      
+      print("[MI ESCRITORIO] ${res.statusCode}");
+      
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body);
+      } else {
+        throw Exception("Error al obtener escritorio: ${res.statusCode}");
+      }
+    } catch (e) {
+      print("[ERROR][MI ESCRITORIO] $e");
+      rethrow;
+    }
+  }
+
+  /// Obtener escritorios disponibles
+  Future<List<dynamic>> obtenerEscritoriosDisponibles(int sedeId) async {
+    try {
+      final url = Uri.parse("$baseUrl/profesor/escritorios-disponibles/$sedeId");
+      final res = await http.get(url);
+      
+      print("[ESCRITORIOS DISPONIBLES] ${res.statusCode}");
+      
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body);
+      } else {
+        throw Exception("Error al obtener escritorios: ${res.statusCode}");
+      }
+    } catch (e) {
+      print("[ERROR][ESCRITORIOS DISPONIBLES] $e");
+      rethrow;
+    }
+  }
+
+  /// Solicitar asignación de escritorio
+  Future<bool> solicitarEscritorio(int escritorioId, int docenteId, String motivo) async {
+    try {
+      final url = Uri.parse("$baseUrl/profesor/solicitar-escritorio");
+      final res = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "escritorio_id": escritorioId,
+          "docente_id": docenteId,
+          "motivo": motivo,
+        }),
+      );
+      
+      print("[SOLICITAR ESCRITORIO] ${res.statusCode}");
+      return res.statusCode == 200;
+    } catch (e) {
+      print("[ERROR][SOLICITAR ESCRITORIO] $e");
+      return false;
+    }
+  }
+
+  /// Obtener horario de ocupación de aulas
+  Future<List<dynamic>> obtenerHorarioAulas(int sedeId, String fecha) async {
+    try {
+      final url = Uri.parse("$baseUrl/profesor/horario-aulas?sede_id=$sedeId&fecha=$fecha");
+      final res = await http.get(url);
+      
+      print("[HORARIO AULAS] ${res.statusCode}");
+      
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body);
+      } else {
+        throw Exception("Error al obtener horario de aulas: ${res.statusCode}");
+      }
+    } catch (e) {
+      print("[ERROR][HORARIO AULAS] $e");
+      rethrow;
+    }
+  }
+
+  // ==========================================
+  // CROQUIS
+  // ==========================================
+
+  /// Subir croquis de aula (solo admin)
+  Future<bool> subirCroquisAula(int aulaId, String filePath) async {
+    try {
+      final url = Uri.parse("$baseUrl/croquis/aula/$aulaId/croquis");
+      final request = http.MultipartRequest("POST", url);
+      
+      request.files.add(await http.MultipartFile.fromPath('file', filePath));
+      
+      final response = await request.send();
+      print("[SUBIR CROQUIS AULA] ${response.statusCode}");
+      
+      return response.statusCode == 200;
+    } catch (e) {
+      print("[ERROR][SUBIR CROQUIS AULA] $e");
+      return false;
+    }
+  }
+
+  /// Subir croquis de sala (solo admin)
+  Future<bool> subirCroquisSala(int salaId, String filePath) async {
+    try {
+      final url = Uri.parse("$baseUrl/croquis/sala/$salaId/croquis");
+      final request = http.MultipartRequest("POST", url);
+      
+      request.files.add(await http.MultipartFile.fromPath('file', filePath));
+      
+      final response = await request.send();
+      print("[SUBIR CROQUIS SALA] ${response.statusCode}");
+      
+      return response.statusCode == 200;
+    } catch (e) {
+      print("[ERROR][SUBIR CROQUIS SALA] $e");
+      return false;
+    }
+  }
+
+  /// Obtener croquis de aula
+  Future<String?> obtenerCroquisAula(int aulaId) async {
+    try {
+      final url = Uri.parse("$baseUrl/croquis/aula/$aulaId/croquis");
+      final res = await http.get(url);
+      
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        return data['croquis_url'];
+      }
+      return null;
+    } catch (e) {
+      print("[ERROR][OBTENER CROQUIS AULA] $e");
+      return null;
+    }
+  }
+
+  /// Obtener croquis de sala
+  Future<String?> obtenerCroquisSala(int salaId) async {
+    try {
+      final url = Uri.parse("$baseUrl/croquis/sala/$salaId/croquis");
+      final res = await http.get(url);
+      
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        return data['croquis_url'];
+      }
+      return null;
+    } catch (e) {
+      print("[ERROR][OBTENER CROQUIS SALA] $e");
+      return null;
+    }
+  }
+
+  /// Subir croquis de sala para Flutter Web usando bytes
+  Future<bool> subirCroquisSalaWeb(int salaId, Uint8List bytes, String fileName) async {
+    try {
+      final url = Uri.parse("$baseUrl/croquis/sala/$salaId/croquis");
+      final request = http.MultipartRequest("POST", url);
+      
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'file',
+          bytes,
+          filename: fileName,
+          contentType: MediaType('image', fileName.split('.').last),
+        ),
+      );
+      
+      final response = await request.send();
+      print("[SUBIR CROQUIS SALA WEB] ${response.statusCode}");
+      
+      return response.statusCode == 200;
+    } catch (e) {
+      print("[ERROR][SUBIR CROQUIS SALA WEB] $e");
       return false;
     }
   }

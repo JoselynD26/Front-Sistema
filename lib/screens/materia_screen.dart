@@ -50,7 +50,7 @@ class _MateriasScreenState extends State<MateriasScreen> {
   Future<void> _cargarOpciones() async {
     carrerasDisponibles = await _apiService.listarCarreras();
     sedesDisponibles = await _apiService.listarSedes();
-    docentesDisponibles = await _apiService.listarDocentes( widget.idSede);
+    docentesDisponibles = await _apiService.listarDocentesPorSede(widget.idSede);
     setState(() {});
   }
 
@@ -198,9 +198,17 @@ class _MateriasScreenState extends State<MateriasScreen> {
     return DropdownButtonFormField<int>(
       value: null,
       items: opciones.map<DropdownMenuItem<int>>((o) {
+        String displayText;
+        if (o.containsKey("nombres") && o.containsKey("apellidos")) {
+          // Es un docente
+          displayText = "${o["nombres"]} ${o["apellidos"]}";
+        } else {
+          // Es carrera o sede
+          displayText = o["nombre"] ?? "Sin nombre";
+        }
         return DropdownMenuItem<int>(
           value: o["id"],
-          child: Text(o["nombre"] ?? "Sin nombre"),
+          child: Text(displayText),
         );
       }).toList(),
       onChanged: (value) {
@@ -225,8 +233,17 @@ class _MateriasScreenState extends State<MateriasScreen> {
           orElse: () => {"id": id, "nombre": "Desconocido"},
         );
 
+        String displayText;
+        if (item.containsKey("nombres") && item.containsKey("apellidos")) {
+          // Es un docente
+          displayText = "${item["nombres"]} ${item["apellidos"]}";
+        } else {
+          // Es carrera o sede
+          displayText = item["nombre"] ?? "Sin nombre";
+        }
+        
         return Chip(
-          label: Text(item["nombre"] ?? "Sin nombre"),
+          label: Text(displayText),
           onDeleted: () => setStateDialog(() => seleccionados.remove(id)),
         );
       }).toList(),

@@ -14,8 +14,6 @@ class _CarrerasScreenState extends State<CarrerasScreen> {
   List<dynamic> carreras = [];
   bool cargando = true;
 
-  final _nombreController = TextEditingController();
-
   @override
   void initState() {
     super.initState();
@@ -24,134 +22,89 @@ class _CarrerasScreenState extends State<CarrerasScreen> {
 
   Future<void> _cargarCarreras() async {
     try {
-      // ✅ si tu backend ya tiene endpoint por sede, úsalo:
-      // final data = await _apiService.listarCarrerasPorSede(widget.idSede);
       final data = await _apiService.listarCarreras();
       setState(() {
-        // filtrar por sede si backend devuelve todas
-        carreras = data.where((c) => c["id_sede"] == widget.idSede).toList();
+        carreras = data;
         cargando = false;
       });
     } catch (e) {
-      setState(() => cargando = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error al cargar carreras")),
-      );
+      setState(() {
+        carreras = [];
+        cargando = false;
+      });
     }
   }
 
-  Future<void> _eliminarCarrera(int id) async {
-    final ok = await _apiService.eliminarCarrera(id);
-    if (ok) {
-      _cargarCarreras();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Carrera eliminada")),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error al eliminar carrera")),
-      );
-    }
-  }
-
-  void _abrirFormulario({Map<String, dynamic>? carrera}) {
-    if (carrera != null) {
-      _nombreController.text = carrera["nombre"] ?? "";
-    } else {
-      _nombreController.clear();
-    }
+  void _mostrarFormulario() {
+    final nombreController = TextEditingController();
+    final codigoController = TextEditingController();
 
     showDialog(
       context: context,
-      builder: (_) {
-        bool guardando = false;
-        return StatefulBuilder(
-          builder: (context, setStateDialog) {
-            return AlertDialog(
-              title: Text(carrera == null ? "Nueva Carrera" : "Editar Carrera"),
-              content: TextField(
-                controller: _nombreController,
-                decoration: const InputDecoration(labelText: "Nombre"),
+      builder: (context) => AlertDialog(
+        title: Text('Nueva Carrera'),
+        content: SizedBox(
+          height: 150,
+          child: Column(
+            children: [
+              TextField(
+                controller: nombreController,
+                decoration: InputDecoration(labelText: 'Nombre'),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("Cancelar"),
-                ),
-                ElevatedButton(
-                  onPressed: guardando
-                      ? null
-                      : () async {
-                          final datos = {
-                            "nombre": _nombreController.text.trim(),
-                            "id_sede": widget.idSede, // ✅ importante
-                          };
-
-                          setStateDialog(() => guardando = true);
-
-                          bool success;
-                          if (carrera == null) {
-                            success = await _apiService.crearCarrera(datos);
-                          } else {
-                            success = await _apiService.actualizarCarrera(carrera["id"], datos);
-                          }
-
-                          setStateDialog(() => guardando = false);
-
-                          if (success) {
-                            _cargarCarreras();
-                            Navigator.pop(context);
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Error al guardar carrera")),
-                            );
-                          }
-                        },
-                  child: const Text("Guardar"),
-                ),
-              ],
-            );
-          },
-        );
-      },
+              SizedBox(height: 20),
+              TextField(
+                controller: codigoController,
+                decoration: InputDecoration(labelText: 'Código'),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final datos = {
+                "nombre": nombreController.text,
+                "codigo": codigoController.text.isEmpty ? "AUTO" : codigoController.text,
+                "sede_ids": [widget.idSede],
+              };
+              
+              final success = await _apiService.crearCarrera(datos);
+              Navigator.pop(context);
+              
+              if (success) {
+                _cargarCarreras();
+              }
+            },
+            child: Text('Guardar'),
+          ),
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Carreras")),
+      appBar: AppBar(title: Text("Carreras")),
       body: cargando
-          ? const Center(child: CircularProgressIndicator())
-          : DataTable(
-              columns: const [
-                DataColumn(label: Text("ID")),
-                DataColumn(label: Text("Nombre")),
-                DataColumn(label: Text("Acciones")),
-              ],
-              rows: carreras.map((carrera) {
-                return DataRow(cells: [
-                  DataCell(Text(carrera["id"].toString())),
-                  DataCell(Text(carrera["nombre"] ?? "")),
-                  DataCell(Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit, color: Colors.orange),
-                        onPressed: () => _abrirFormulario(carrera: carrera),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _eliminarCarrera(carrera["id"]),
-                      ),
-                    ],
-                  )),
-                ]);
-              }).toList(),
+          ? Center(child: CircularProgressIndicator())
+          : ListView.builder(
+              itemCount: carreras.length,
+              itemBuilder: (context, index) {
+                final carrera = carreras[index];
+                return ListTile(
+                  title: Text(carrera["nombre"] ?? ""),
+                  subtitle: Text("Código: ${carrera["codigo"] ?? "AUTO"}"),
+                );
+              },
             ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.blue,
-        onPressed: () => _abrirFormulario(),
-        child: const Icon(Icons.add, color: Colors.white),
+        onPressed: _mostrarFormulario,
+        child: Icon(Icons.add),
       ),
     );
   }

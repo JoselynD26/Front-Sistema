@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'croquis_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -28,6 +29,16 @@ class HomeScreen extends StatelessWidget {
             title: Text("Carreras"),
             subtitle: Text("Ver listado de carreras"),
             onTap: () => Navigator.pushNamed(context, '/carreras'),
+          ),
+          Divider(),
+          ListTile(
+            leading: Icon(Icons.map),
+            title: Text("Croquis"),
+            subtitle: Text("Gestionar croquis de aulas y salas"),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CroquisScreen()),
+            ),
           ),
           Divider(),
         ],

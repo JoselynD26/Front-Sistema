@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../utils/mouse_tracker_fix.dart';
 
 class EscritorioForm extends StatefulWidget {
   final Map? escritorio;
@@ -17,20 +18,18 @@ class EscritorioForm extends StatefulWidget {
   _EscritorioFormState createState() => _EscritorioFormState();
 }
 
-class _EscritorioFormState extends State<EscritorioForm> {
+class _EscritorioFormState extends State<EscritorioForm> with SafeStateMixin {
   final _codigoController = TextEditingController();
-  final _salaController = TextEditingController();
-  final _carreraController = TextEditingController();
-
   String estado = "libre";
   String jornada = "matutina";
-
+  int? salaSeleccionada;
+  int? carreraSeleccionada;
   int? docenteSeleccionado;
+  List<dynamic> salasDisponibles = [];
+  List<dynamic> carrerasDisponibles = [];
   List<dynamic> docentesDisponibles = [];
-
   final apiService = ApiService();
   bool cargando = false;
-  String? mensaje;
 
   @override
   void initState() {
@@ -39,53 +38,47 @@ class _EscritorioFormState extends State<EscritorioForm> {
       _codigoController.text = widget.escritorio!['codigo'];
       estado = widget.escritorio!['estado'];
       jornada = widget.escritorio!['jornada'];
-      _salaController.text = widget.escritorio!['sala_id'].toString();
-      _carreraController.text = widget.escritorio!['carrera_id'].toString();
+      salaSeleccionada = widget.escritorio!['sala_id'];
+      carreraSeleccionada = widget.escritorio!['carrera_id'];
       docenteSeleccionado = widget.escritorio!['docente_id'];
     }
-    _cargarDocentes();
+    _cargarDatos();
   }
 
-  Future<void> _cargarDocentes() async {
+  Future<void> _cargarDatos() async {
     try {
-      final data = await apiService.listarDocentes(widget.idSede);
-      setState(() {
-        docentesDisponibles = data;
+      final salas = await apiService.listarSalasPorSede(widget.idSede);
+      final carreras = await apiService.listarCarreras();
+      final docentes = await apiService.listarDocentes(widget.idSede);
 
-        // ✅ Validar que el docente seleccionado esté en la lista
-        if (!docentesDisponibles.any((d) => d["id"] == docenteSeleccionado)) {
-          docenteSeleccionado = null;
-        }
+      safeSetState(() {
+        salasDisponibles = salas;
+        carrerasDisponibles = carreras.where((c) => 
+          (c["sede_ids"] as List).contains(widget.idSede)
+        ).toList();
+        docentesDisponibles = docentes;
       });
     } catch (e) {
-      print("Error cargando docentes: $e");
+      print("Error: $e");
     }
   }
 
   Future<void> _guardar() async {
-    if (_codigoController.text.trim().isEmpty ||
-        _salaController.text.trim().isEmpty ||
-        _carreraController.text.trim().isEmpty) {
-      setState(() => mensaje = "Todos los campos son obligatorios");
+    if (_codigoController.text.trim().isEmpty || salaSeleccionada == null || carreraSeleccionada == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Completa todos los campos obligatorios")),
+      );
       return;
     }
 
-    int? salaId = int.tryParse(_salaController.text);
-    int? carreraId = int.tryParse(_carreraController.text);
-
-    if (salaId == null || carreraId == null) {
-      setState(() => mensaje = "IDs deben ser números válidos");
-      return;
-    }
-
-    setState(() => cargando = true);
+    safeSetState(() => cargando = true);
 
     final datos = {
       "codigo": _codigoController.text.trim(),
       "estado": estado,
       "jornada": jornada,
-      "sala_id": salaId,
-      "carrera_id": carreraId,
+      "sala_id": salaSeleccionada,
+      "carrera_id": carreraSeleccionada,
       "docente_id": docenteSeleccionado,
     };
 
@@ -96,90 +89,95 @@ class _EscritorioFormState extends State<EscritorioForm> {
       success = await apiService.actualizarEscritorio(widget.escritorio!['id'], datos);
     }
 
-    setState(() {
-      cargando = false;
-      mensaje = success ? "Guardado con éxito" : "Error al guardar";
-    });
+    safeSetState(() => cargando = false);
 
-    if (success && widget.onSave != null) {
-      widget.onSave!();
+    if (success) {
+      if (widget.onSave != null) widget.onSave!();
       Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Error al guardar escritorio")),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.escritorio == null ? "Nuevo Escritorio" : "Editar Escritorio"),
-      ),
+      appBar: AppBar(title: Text(widget.escritorio == null ? "Nuevo Escritorio" : "Editar Escritorio")),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ListView(
-          children: [
-            TextField(
-              controller: _codigoController,
-              decoration: const InputDecoration(labelText: "Código"),
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              value: estado,
-              items: ["libre", "ocupado"]
-                  .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                  .toList(),
-              onChanged: (value) => setState(() => estado = value!),
-              decoration: const InputDecoration(labelText: "Estado"),
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              value: jornada,
-              items: ["matutina", "vespertina", "nocturna"]
-                  .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                  .toList(),
-              onChanged: (value) => setState(() => jornada = value!),
-              decoration: const InputDecoration(labelText: "Jornada"),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _salaController,
-              decoration: const InputDecoration(labelText: "Sala ID"),
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _carreraController,
-              decoration: const InputDecoration(labelText: "Carrera ID"),
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<int>(
-              value: docentesDisponibles.any((d) => d["id"] == docenteSeleccionado)
-                  ? docenteSeleccionado
-                  : null,
-              items: docentesDisponibles.map((docente) {
-                final nombreCompleto = "${docente["nombres"]} ${docente["apellidos"]}".trim();
-                return DropdownMenuItem<int>(
-                  value: docente["id"],
-                  child: Text(nombreCompleto),
-                );
-              }).toList(),
-              onChanged: (value) => setState(() => docenteSeleccionado = value),
-              decoration: const InputDecoration(labelText: "Docente"),
-            ),
-            const SizedBox(height: 20),
-            if (cargando) const Center(child: CircularProgressIndicator()),
-            if (mensaje != null)
-              Center(
-                child: Text(
-                  mensaje!,
-                  style: const TextStyle(color: Colors.red),
-                ),
+        padding: const EdgeInsets.all(16),
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              TextField(
+                controller: _codigoController,
+                decoration: const InputDecoration(labelText: "Código"),
               ),
-            ElevatedButton(
-              onPressed: cargando ? null : _guardar,
-              child: const Text("Guardar"),
-            ),
-          ],
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: estado,
+                items: ["libre", "ocupado"].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                onChanged: (value) => safeSetState(() => estado = value!),
+                decoration: const InputDecoration(labelText: "Estado"),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: jornada,
+                items: ["matutina", "vespertina", "nocturna"].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                onChanged: (value) => safeSetState(() => jornada = value!),
+                decoration: const InputDecoration(labelText: "Jornada"),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<int>(
+                value: salaSeleccionada,
+                items: salasDisponibles.map((sala) => DropdownMenuItem<int>(value: sala["id"], child: Text(sala["nombre"]))).toList(),
+                onChanged: (value) => safeSetState(() => salaSeleccionada = value),
+                decoration: const InputDecoration(labelText: "Sala"),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<int>(
+                value: carreraSeleccionada,
+                items: carrerasDisponibles.map((carrera) => DropdownMenuItem<int>(value: carrera["id"], child: Text(carrera["nombre"]))).toList(),
+                onChanged: (value) => safeSetState(() => carreraSeleccionada = value),
+                decoration: const InputDecoration(labelText: "Carrera"),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<int>(
+                value: docenteSeleccionado,
+                items: docentesDisponibles.map((docente) => DropdownMenuItem<int>(value: docente["id"], child: Text("${docente["nombres"]} ${docente["apellidos"]}"))).toList(),
+                onChanged: (value) => safeSetState(() => docenteSeleccionado = value),
+                decoration: const InputDecoration(labelText: "Docente (Opcional)"),
+              ),
+              const SizedBox(height: 32),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text("Cancelar"),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: cargando ? null : _guardar,
+                      child: cargando
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text("Guardar"),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

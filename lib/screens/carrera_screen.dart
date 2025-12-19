@@ -16,9 +16,6 @@ class _CarrerasScreenState extends State<CarrerasScreen> {
   List<dynamic> sedes = [];
   bool cargando = true;
 
-  final TextEditingController _nombreController = TextEditingController();
-  List<int> sedeSeleccionadas = [];
-
   @override
   void initState() {
     super.initState();
@@ -32,7 +29,7 @@ class _CarrerasScreenState extends State<CarrerasScreen> {
       setState(() {
         carreras = data
             .where((c) =>
-                (c["sede_ids"] ?? []).contains(widget.idSede)) // filtrar por sede actual
+                (c["sede_ids"] ?? []).contains(widget.idSede))
             .toList();
         cargando = false;
       });
@@ -62,12 +59,14 @@ class _CarrerasScreenState extends State<CarrerasScreen> {
   }
 
   void _abrirFormulario({Map<String, dynamic>? carrera}) {
+    final nombreController = TextEditingController();
+    final codigoController = TextEditingController();
+    List<int> sedeSeleccionadas = [widget.idSede];
+
     if (carrera != null) {
-      _nombreController.text = carrera["nombre"];
-      sedeSeleccionadas = List<int>.from(carrera["sede_ids"]);
-    } else {
-      _nombreController.clear();
-      sedeSeleccionadas = [widget.idSede];
+      nombreController.text = carrera["nombre"] ?? "";
+      codigoController.text = carrera["codigo"] ?? "";
+      sedeSeleccionadas = List<int>.from(carrera["sede_ids"] ?? []);
     }
 
     showDialog(
@@ -77,35 +76,43 @@ class _CarrerasScreenState extends State<CarrerasScreen> {
           builder: (context, setStateDialog) {
             return AlertDialog(
               title: Text(carrera == null ? "Nueva Carrera" : "Editar Carrera"),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: _nombreController,
-                    decoration: const InputDecoration(labelText: "Nombre"),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 6,
-                    children: sedes.map((s) {
-                      final id = s["id"];
-                      final seleccionado = sedeSeleccionadas.contains(id);
-                      return FilterChip(
-                        label: Text(s["nombre"]),
-                        selected: seleccionado,
-                        onSelected: (v) {
-                          setStateDialog(() {
-                            if (v) {
-                              sedeSeleccionadas.add(id);
-                            } else {
-                              sedeSeleccionadas.remove(id);
-                            }
-                          });
-                        },
-                      );
-                    }).toList(),
-                  )
-                ],
+              content: SizedBox(
+                width: 400,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nombreController,
+                      decoration: const InputDecoration(labelText: "Nombre"),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: codigoController,
+                      decoration: const InputDecoration(labelText: "Código (opcional)"),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 6,
+                      children: sedes.map((s) {
+                        final id = s["id"];
+                        final seleccionado = sedeSeleccionadas.contains(id);
+                        return FilterChip(
+                          label: Text(s["nombre"]),
+                          selected: seleccionado,
+                          onSelected: (v) {
+                            setStateDialog(() {
+                              if (v) {
+                                sedeSeleccionadas.add(id);
+                              } else {
+                                sedeSeleccionadas.remove(id);
+                              }
+                            });
+                          },
+                        );
+                      }).toList(),
+                    )
+                  ],
+                ),
               ),
               actions: [
                 TextButton(
@@ -114,7 +121,8 @@ class _CarrerasScreenState extends State<CarrerasScreen> {
                 ElevatedButton(
                   onPressed: () async {
                     final body = {
-                      "nombre": _nombreController.text.trim(),
+                      "nombre": nombreController.text.trim(),
+                      "codigo": codigoController.text.trim().isEmpty ? "AUTO" : codigoController.text.trim(),
                       "sede_ids": sedeSeleccionadas,
                     };
 
@@ -159,6 +167,7 @@ class _CarrerasScreenState extends State<CarrerasScreen> {
                 columns: const [
                   DataColumn(label: Text("ID")),
                   DataColumn(label: Text("Nombre")),
+                  DataColumn(label: Text("Código")),
                   DataColumn(label: Text("Sedes")),
                   DataColumn(label: Text("Acciones")),
                 ],
@@ -166,6 +175,7 @@ class _CarrerasScreenState extends State<CarrerasScreen> {
                   return DataRow(cells: [
                     DataCell(Text(carrera["id"].toString())),
                     DataCell(Text(carrera["nombre"])),
+                    DataCell(Text(carrera["codigo"] ?? "AUTO")),
                     DataCell(Text((carrera["sede_ids"] as List).join(", "))),
                     DataCell(Row(
                       children: [

@@ -19,9 +19,9 @@ dependencies:
   flutter_secure_storage: ^8.0.0
   intl: ^0.18.1
 
-  # ✅ Para subir y ver PDFs
-  file_picker: ^6.1.1
-  syncfusion_flutter_pdfviewer: ^24.1.41
+  # ✅ Para subir y ver PDFs (versiones compatibles)
+  file_picker: ^8.1.2
+  syncfusion_flutter_pdfviewer: ^27.1.48
 
 dev_dependencies:
   flutter_test:
