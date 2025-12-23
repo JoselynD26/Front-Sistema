@@ -12,6 +12,7 @@ import 'sala_screen.dart';
 import 'horario_screen.dart';
 import 'admin_reservas_screen.dart';
 import 'croquis_screen.dart';
+import 'pdf_horarios_screen.dart';
 
 class DetalleSedeScreen extends StatefulWidget {
   final int idSede;
@@ -73,7 +74,9 @@ class _DetalleSedeScreenState extends State<DetalleSedeScreen> {
       case "Reservas":
         return const AdminReservasScreen();
       case "Croquis":
-        return const CroquisScreen();
+        return CroquisScreen(sedeId: widget.idSede, rol: 'admin');
+      case "PDFHorarios":
+        return PdfHorariosScreen(sedeId: widget.idSede, rol: 'admin'); // Aquí deberías obtener el rol real
       default:
         return const Scaffold(
           body: Center(child: Text("Módulo no implementado")),
@@ -104,6 +107,8 @@ class _DetalleSedeScreenState extends State<DetalleSedeScreen> {
         return Icons.pending_actions;
       case "map":
         return Icons.map;
+      case "picture_as_pdf":
+        return Icons.picture_as_pdf;
       default:
         return Icons.extension;
     }

@@ -37,7 +37,7 @@ class HomeScreen extends StatelessWidget {
             subtitle: Text("Gestionar croquis de aulas y salas"),
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const CroquisScreen()),
+              MaterialPageRoute(builder: (context) => const CroquisScreen(sedeId: 1, rol: 'admin')),
             ),
           ),
           Divider(),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../widgets/web_layout.dart';
+import 'pdf_horarios_screen.dart';
+import 'croquis_screen.dart';
 
 class ProfesorDashboard extends StatefulWidget {
   final int docenteId;
@@ -52,116 +54,154 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    const yaviracOrange = Color(0xFFFF6B35);
-    const yaviracBlue = Color(0xFF1E3A8A);
-
     return WebLayout(
-      title: "Panel Profesor - ${widget.nombreProfesor}",
+      title: "Panel Docente",
       child: cargando
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [yaviracBlue, yaviracOrange],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        const CircleAvatar(
-                          radius: 30,
-                          backgroundColor: Colors.white,
-                          child: Icon(Icons.person, size: 30, color: yaviracBlue),
-                        ),
-                        const SizedBox(width: 16),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Bienvenido, ${widget.nombreProfesor}",
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const Text(
-                              "Panel de Gestión Docente",
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const Spacer(),
-                        IconButton(
-                          onPressed: _cerrarSesion,
-                          icon: const Icon(Icons.logout, color: Colors.white),
-                          tooltip: "Cerrar Sesión",
-                        ),
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Modern Header
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(32),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Theme.of(context).primaryColor,
+                        Theme.of(context).primaryColor.withOpacity(0.8),
                       ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                  ),
-                  
-                  const SizedBox(height: 24),
-                  
-                  // Grid de módulos
-                  GridView.count(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: 4,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 1.2,
-                    children: [
-                      _buildModuleCard(
-                        "Mis Materias",
-                        Icons.book,
-                        "${materias.length} materias",
-                        yaviracBlue,
-                        () => _mostrarMaterias(),
-                      ),
-                      _buildModuleCard(
-                        "Mi Horario",
-                        Icons.schedule,
-                        "${horarios.length} clases",
-                        yaviracOrange,
-                        () => _mostrarHorarios(),
-                      ),
-                      _buildModuleCard(
-                        "Mis Reservas",
-                        Icons.event_available,
-                        "${reservas.length} reservas",
-                        yaviracBlue,
-                        () => _mostrarReservas(),
-                      ),
-                      _buildModuleCard(
-                        "Reservar Aula",
-                        Icons.add_circle,
-                        "Nueva reserva",
-                        yaviracOrange,
-                        () => _crearReserva(),
-                      ),
-                      _buildModuleCard(
-                        "Horario Aulas",
-                        Icons.view_timeline,
-                        "Ver ocupación",
-                        yaviracBlue,
-                        () => _verHorarioAulas(),
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Theme.of(context).primaryColor.withOpacity(0.3),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
                       ),
                     ],
                   ),
-                ],
-              ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 40,
+                        backgroundColor: Colors.white.withOpacity(0.2),
+                        child: Text(
+                          widget.nombreProfesor.substring(0, 1).toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 24),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Hola, ${widget.nombreProfesor}",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Text(
+                              "Panel de Gestión Académica",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(height: 40),
+                
+                const Text(
+                  "Accesos Rápidos",
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                
+                // Grid de módulos
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    return GridView.count(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: constraints.maxWidth > 1000 ? 4 : (constraints.maxWidth > 600 ? 3 : 2),
+                      crossAxisSpacing: 24,
+                      mainAxisSpacing: 24,
+                      childAspectRatio: 1.1,
+                      children: [
+                        _buildModuleCard(
+                          "Mis Materias",
+                          Icons.menu_book_rounded,
+                          "${materias.length} asignadas",
+                          const Color(0xFF3B82F6), // Blue
+                          () => _mostrarMaterias(),
+                        ),
+                        _buildModuleCard(
+                          "Mi Horario",
+                          Icons.calendar_month_rounded,
+                          "${horarios.length} clases",
+                          const Color(0xFF10B981), // Emerald
+                          () => _mostrarHorarios(),
+                        ),
+                        _buildModuleCard(
+                          "Mis Reservas",
+                          Icons.bookmark_rounded,
+                          "${reservas.length} activas",
+                          const Color(0xFF8B5CF6), // Violet
+                          () => _mostrarReservas(),
+                        ),
+                        _buildModuleCard(
+                          "Reservar Aula",
+                          Icons.add_circle_outline_rounded,
+                          "Nueva solicitud",
+                          const Color(0xFFF59E0B), // Amber
+                          () => _crearReserva(),
+                        ),
+                        _buildModuleCard(
+                          "Horarios PDF",
+                          Icons.picture_as_pdf_rounded,
+                          "Descargar",
+                          const Color(0xFFEF4444), // Red
+                          () => _verHorarios(),
+                        ),
+                        _buildModuleCard(
+                          "Croquis",
+                          Icons.map_rounded,
+                          "Ubicaciones",
+                          const Color(0xFF6366F1), // Indigo
+                          () => _verCroquis(),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ],
             ),
     );
   }
@@ -173,48 +213,51 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
     Color color,
     VoidCallback onTap,
   ) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            gradient: LinearGradient(
-              colors: [Colors.white, color.withOpacity(0.05)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.grey.shade100),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.shade200,
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: color,
+                  color: color.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: Colors.white, size: 24),
+                child: Icon(icon, color: color, size: 32),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 20),
               Text(
                 title,
-                style: TextStyle(
-                  fontSize: 16,
+                style: const TextStyle(
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: color,
+                  color: Color(0xFF1E293B),
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 8),
               Text(
                 subtitle,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[500],
+                  fontWeight: FontWeight.w500,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -260,67 +303,10 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
   void _mostrarHorarios() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Mi Horario de Clases"),
-        content: SizedBox(
-          width: 500,
-          height: 400,
-          child: ListView.builder(
-            itemCount: horarios.length,
-            itemBuilder: (context, index) {
-              final horario = horarios[index];
-              return Card(
-                child: ListTile(
-                  leading: const Icon(Icons.schedule, color: Color(0xFFFF6B35)),
-                  title: Text(horario["materia_nombre"]),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("Fecha: ${horario["fecha"]}"),
-                      Text("Hora: ${horario["hora"]}"),
-                      Text("Aula: ${horario["aula_nombre"]}"),
-                    ],
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: horario["estado"] == "activo" ? Colors.green : Colors.orange,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          horario["estado"].toUpperCase(),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      if (horario["estado"] == "activo")
-                        IconButton(
-                          icon: const Icon(Icons.cancel, color: Colors.red),
-                          tooltip: "Cancelar clase",
-                          onPressed: () => _cancelarClase(horario["id"]),
-                        ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cerrar"),
-          ),
-        ],
-      ),
+      builder: (context) => _HorarioCalendarioDialog(horarios: horarios),
     );
   }
+
 
   void _mostrarReservas() {
     showDialog(
@@ -401,6 +387,30 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
   void _cerrarSesion() async {
     await _apiService.logout();
     Navigator.pushReplacementNamed(context, '/');
+  }
+
+  void _verHorarios() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PdfHorariosScreen(
+          sedeId: 1, // Ajustar según la sede del docente
+          rol: 'docente',
+        ),
+      ),
+    );
+  }
+
+  void _verCroquis() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CroquisScreen(
+          sedeId: 1, // Ajustar según la sede del docente
+          rol: 'docente',
+        ),
+      ),
+    );
   }
 
   void _verHorarioAulas() {
@@ -632,6 +642,344 @@ class _HorarioAulasDialogState extends State<_HorarioAulasDialog> {
         ),
       ),
     );
+  }
+}
+
+class _HorarioCalendarioDialog extends StatefulWidget {
+  final List<dynamic> horarios;
+  
+  const _HorarioCalendarioDialog({required this.horarios});
+  
+  @override
+  _HorarioCalendarioDialogState createState() => _HorarioCalendarioDialogState();
+}
+
+class _HorarioCalendarioDialogState extends State<_HorarioCalendarioDialog> {
+  DateTime fechaSeleccionada = DateTime.now();
+  
+  @override
+  void initState() {
+    super.initState();
+    _ajustarFechaInicial();
+  }
+  
+  void _ajustarFechaInicial() {
+    // Si hay horarios, usar la fecha del primer horario
+    if (widget.horarios.isNotEmpty) {
+      try {
+        final primerHorario = widget.horarios.first;
+        final fechaHorario = primerHorario['fecha'];
+        
+        if (fechaHorario != null) {
+          DateTime fecha;
+          if (fechaHorario is String) {
+            fecha = DateTime.parse(fechaHorario);
+          } else if (fechaHorario is DateTime) {
+            fecha = fechaHorario;
+          } else {
+            fecha = DateTime.now();
+          }
+          
+          setState(() {
+            fechaSeleccionada = fecha;
+          });
+        }
+      } catch (e) {
+        // Si hay error, mantener fecha actual
+        print('Error ajustando fecha inicial: $e');
+      }
+    }
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      child: Container(
+        width: 900,
+        height: 700,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.schedule, color: Color(0xFFFF6B35), size: 28),
+                const SizedBox(width: 12),
+                const Text(
+                  "Mi Horario de Clases",
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                const Spacer(),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+            const Divider(),
+            const SizedBox(height: 16),
+            
+            // Selector de fecha
+            Row(
+              children: [
+                IconButton(
+                  onPressed: () => _cambiarSemana(-1),
+                  icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF1E3A8A)),
+                  tooltip: 'Semana anterior',
+                ),
+                const Icon(Icons.calendar_today, color: Color(0xFF1E3A8A)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    "Semana del: ${_formatearFecha(fechaSeleccionada)}",
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: _seleccionarFecha,
+                  icon: const Icon(Icons.date_range),
+                  label: const Text("Cambiar"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1E3A8A),
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: () => _cambiarSemana(1),
+                  icon: const Icon(Icons.arrow_forward_ios, color: Color(0xFF1E3A8A)),
+                  tooltip: 'Semana siguiente',
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            
+            Expanded(
+              child: _buildCalendarioSemanal(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  void _cambiarSemana(int direccion) {
+    setState(() {
+      fechaSeleccionada = fechaSeleccionada.add(Duration(days: 7 * direccion));
+    });
+  }
+  
+  Future<void> _seleccionarFecha() async {
+    final fecha = await showDatePicker(
+      context: context,
+      initialDate: fechaSeleccionada,
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    
+    if (fecha != null) {
+      setState(() {
+        fechaSeleccionada = fecha;
+      });
+    }
+  }
+  
+  String _formatearFecha(DateTime fecha) {
+    final lunes = fecha.subtract(Duration(days: fecha.weekday - 1));
+    final viernes = lunes.add(const Duration(days: 4));
+    return "${lunes.day}/${lunes.month} - ${viernes.day}/${viernes.month}/${viernes.year}";
+  }
+  
+  Widget _buildCalendarioSemanal() {
+    const dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+    const horas = [
+      '07:00', '07:30', '08:00', '08:30', '09:00', '09:30', '10:00', '10:30',
+      '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
+      '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30',
+      '19:00', '19:30', '20:00', '20:30', '21:00', '21:30'
+    ];
+
+    return SingleChildScrollView(
+      child: Table(
+        border: TableBorder.all(color: Colors.grey.shade300),
+        columnWidths: const {
+          0: FixedColumnWidth(80),
+          1: FlexColumnWidth(),
+          2: FlexColumnWidth(),
+          3: FlexColumnWidth(),
+          4: FlexColumnWidth(),
+          5: FlexColumnWidth(),
+        },
+        children: [
+          // Header
+          TableRow(
+            decoration: const BoxDecoration(color: Color(0xFF1E3A8A)),
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(8),
+                child: Text(
+                  'Hora',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              ...dias.asMap().entries.map((entry) {
+                final index = entry.key;
+                final dia = entry.value;
+                final fechaDia = _obtenerFechaDia(index);
+                return Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Column(
+                    children: [
+                      Text(
+                        dia,
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ),
+                      Text(
+                        "${fechaDia.day}/${fechaDia.month}",
+                        style: const TextStyle(color: Colors.white70, fontSize: 12),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ],
+          ),
+          // Filas de horarios
+          ...horas.map((hora) => TableRow(
+            children: [
+              Container(
+                height: 40,
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: Colors.grey.shade100),
+                child: Text(
+                  hora,
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              ...dias.asMap().entries.map((entry) {
+                final index = entry.key;
+                final dia = entry.value;
+                final fechaDia = _obtenerFechaDia(index);
+                return _buildCeldaHorario(dia, hora, fechaDia);
+              }).toList(),
+            ],
+          )).toList(),
+        ],
+      ),
+    );
+  }
+  
+  DateTime _obtenerFechaDia(int indiceDia) {
+    final lunes = fechaSeleccionada.subtract(Duration(days: fechaSeleccionada.weekday - 1));
+    return lunes.add(Duration(days: indiceDia));
+  }
+
+  Widget _buildCeldaHorario(String dia, String hora, DateTime fechaDia) {
+    // Buscar si hay un horario para este día, hora y fecha específica
+    final horario = widget.horarios.firstWhere(
+      (h) {
+        final diaCoincide = h['dia']?.toLowerCase() == dia.toLowerCase();
+        final horaCoincide = _estaEnRangoHora(hora, h['hora_inicio'], h['hora_fin']);
+        final fechaCoincide = _esMismaFecha(h['fecha'], fechaDia);
+        
+        return diaCoincide && horaCoincide && fechaCoincide;
+      },
+      orElse: () => null,
+    );
+
+    return Container(
+      height: 40,
+      padding: const EdgeInsets.all(1),
+      child: horario != null
+          ? Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF6B35).withOpacity(0.8),
+                borderRadius: BorderRadius.circular(2),
+              ),
+              padding: const EdgeInsets.all(2),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    horario['materia_nombre'] ?? 'Materia',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 7,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    horario['aula_nombre'] ?? 'Aula',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 6,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if ((horario['curso_nombre'] ?? 'N/A') != 'N/A')
+                    Text(
+                      '${horario['curso_nombre']} ${horario['curso_paralelo']}',
+                      style: const TextStyle(
+                        color: Colors.white60,
+                        fontSize: 6,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
+            )
+          : const SizedBox(),
+    );
+  }
+  
+  bool _esMismaFecha(dynamic fechaHorario, DateTime fechaDia) {
+    if (fechaHorario == null) return false;
+    
+    try {
+      DateTime fechaH;
+      if (fechaHorario is String) {
+        fechaH = DateTime.parse(fechaHorario);
+      } else if (fechaHorario is DateTime) {
+        fechaH = fechaHorario;
+      } else {
+        return false;
+      }
+      
+      return fechaH.year == fechaDia.year &&
+             fechaH.month == fechaDia.month &&
+             fechaH.day == fechaDia.day;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  bool _estaEnRangoHora(String horaActual, String? horaInicio, String? horaFin) {
+    if (horaInicio == null || horaFin == null) return false;
+    
+    try {
+      final actual = _parseHora(horaActual);
+      final inicio = _parseHora(horaInicio);
+      final fin = _parseHora(horaFin);
+      
+      return actual >= inicio && actual < fin;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  int _parseHora(String hora) {
+    final parts = hora.split(':');
+    return int.parse(parts[0]) * 60 + int.parse(parts[1]);
   }
 }
 

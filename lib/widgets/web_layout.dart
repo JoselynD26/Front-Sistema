@@ -49,49 +49,59 @@ class _WebLayoutState extends State<WebLayout> with SafeStateMixin {
   }
 
   Widget _buildWebLayoutContent(BuildContext context) {
-    const yaviracOrange = Color(0xFFFF6B35);
-    const yaviracBlue = Color(0xFF1E3A8A);
-    
-    final backgroundColor = _isDarkMode ? Colors.grey[900] : Colors.grey[50];
-    final cardColor = _isDarkMode ? Colors.grey[800] : Colors.white;
-    final textColor = _isDarkMode ? Colors.white : Colors.black;
+    final backgroundColor = _isDarkMode ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
+    final surfaceColor = _isDarkMode ? const Color(0xFF1E293B) : Colors.white;
+    final textColor = _isDarkMode ? Colors.white : const Color(0xFF1E293B);
     
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
+        backgroundColor: surfaceColor,
+        elevation: 0,
+        titleSpacing: 24,
+        toolbarHeight: 70,
+        shape: Border(bottom: BorderSide(color: Colors.grey.withOpacity(0.1))),
         title: Row(
           children: [
-            const Icon(Icons.school, size: 28),
-            const SizedBox(width: 12),
-            Text(widget.title),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                Icons.school_rounded,
+                size: 24,
+                color: Theme.of(context).primaryColor,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Text(
+              widget.title,
+              style: TextStyle(
+                color: textColor,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
         ),
         actions: [
           IconButton(
             onPressed: _toggleTheme,
-            icon: Icon(_isDarkMode ? Icons.light_mode : Icons.dark_mode),
+            icon: Icon(
+              _isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+              color: textColor.withOpacity(0.7),
+            ),
             tooltip: _isDarkMode ? "Modo Claro" : "Modo Oscuro",
           ),
-          IconButton(
-            onPressed: _logout,
-            icon: const Icon(Icons.logout),
-            tooltip: "Cerrar Sesión",
-          ),
+          const SizedBox(width: 8),
           Container(
-            margin: const EdgeInsets.only(right: 16),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: yaviracOrange.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: yaviracOrange.withOpacity(0.3)),
-            ),
-            child: const Text(
-              'YAVIRAC',
-              style: TextStyle(
-                color: yaviracOrange,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ),
+            margin: const EdgeInsets.only(right: 24),
+            child: IconButton(
+              onPressed: _logout,
+              icon: Icon(Icons.logout_rounded, color: Colors.red[400]),
+              tooltip: "Cerrar Sesión",
             ),
           ),
         ],
@@ -100,43 +110,26 @@ class _WebLayoutState extends State<WebLayout> with SafeStateMixin {
         width: double.infinity,
         height: double.infinity,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(32),
           child: Center(
             child: Container(
-              constraints: const BoxConstraints(maxWidth: 1200),
+              constraints: const BoxConstraints(maxWidth: 1400),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Card(
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        color: cardColor,
+                  widget.child,
+                  const SizedBox(height: 48),
+                  Center(
+                    child: Text(
+                      "Desarrollado por Joselyn Dicao, María Ortiz y Raul Hidalgo",
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: textColor.withOpacity(0.5),
+                        fontWeight: FontWeight.w500,
                       ),
-                      child: widget.child,
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: _isDarkMode ? Colors.grey[700] : Colors.grey[100],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      "Desarrolladoras: Joselyn Dicao y María Ortiz | Colaborador: Raul Hidalgo",
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: _isDarkMode ? Colors.grey.shade300 : Colors.grey,
-                        fontStyle: FontStyle.italic,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -145,16 +138,7 @@ class _WebLayoutState extends State<WebLayout> with SafeStateMixin {
       ),
       floatingActionButton: widget.floatingActionButton != null
           ? Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: yaviracOrange.withOpacity(0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
+              margin: const EdgeInsets.only(bottom: 16, right: 16),
               child: widget.floatingActionButton,
             )
           : null,

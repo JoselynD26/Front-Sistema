@@ -3,7 +3,14 @@ import 'package:file_picker/file_picker.dart';
 import '../services/api_service.dart';
 
 class CroquisScreen extends StatefulWidget {
-  const CroquisScreen({Key? key}) : super(key: key);
+  final int sedeId;
+  final String rol;
+  
+  const CroquisScreen({
+    Key? key,
+    required this.sedeId,
+    required this.rol,
+  }) : super(key: key);
 
   @override
   State<CroquisScreen> createState() => _CroquisScreenState();
@@ -129,7 +136,7 @@ class _CroquisScreenState extends State<CroquisScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Croquis de Salas de Profesores'),
+        title: Text(widget.rol == 'admin' ? 'Croquis de Salas de Profesores' : 'Croquis'),
       ),
       body: salas.isEmpty
           ? const Center(
@@ -156,11 +163,12 @@ class _CroquisScreenState extends State<CroquisScreen> {
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        IconButton(
-                          icon: const Icon(Icons.upload_file, color: Colors.blue),
-                          onPressed: () => _subirCroquisSala(sala['id']),
-                          tooltip: 'Subir croquis',
-                        ),
+                        if (widget.rol == 'admin')
+                          IconButton(
+                            icon: const Icon(Icons.upload_file, color: Colors.blue),
+                            onPressed: () => _subirCroquisSala(sala['id']),
+                            tooltip: 'Subir croquis',
+                          ),
                         IconButton(
                           icon: const Icon(Icons.visibility, color: Colors.green),
                           onPressed: () => _verCroquisSala(sala['id']),

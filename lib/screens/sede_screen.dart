@@ -95,20 +95,16 @@ class _SedeScreenState extends State<SedeScreen> with SafeStateMixin {
   }
 
   Widget _buildSedesGrid() {
-    const yaviracOrange = Color(0xFFFF6B35);
-    const yaviracBlue = Color(0xFF1E3A8A);
-    
     return Center(
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 800),
+        constraints: const BoxConstraints(maxWidth: 1000),
         child: Wrap(
           alignment: WrapAlignment.center,
-          spacing: 20,
-          runSpacing: 20,
+          spacing: 32,
+          runSpacing: 32,
           children: sedes.map((sede) {
-            return SizedBox(
-              width: 280,
-              height: 180,
+            return MouseRegion(
+              cursor: SystemMouseCursors.click,
               child: GestureDetector(
                 onTap: () {
                   Navigator.push(
@@ -121,78 +117,68 @@ class _SedeScreenState extends State<SedeScreen> with SafeStateMixin {
                     ),
                   );
                 },
-                child: Card(
-                  elevation: 6,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Colors.white,
-                          yaviracOrange.withOpacity(0.05),
-                        ],
+                child: Container(
+                  width: 300,
+                  height: 220,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: Colors.grey.shade100),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.shade200,
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: yaviracBlue,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: yaviracBlue.withOpacity(0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.school,
-                            size: 30,
-                            color: Colors.white,
-                          ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).primaryColor.withOpacity(0.1),
+                          shape: BoxShape.circle,
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          sede["nombre"],
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: yaviracBlue,
+                        child: Icon(
+                          Icons.business_rounded,
+                          size: 40,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        sede["nombre"],
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1E293B),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.secondary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          sede["ubicacion"] ?? "Campus Principal",
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Theme.of(context).colorScheme.secondary,
+                            fontWeight: FontWeight.w600,
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: yaviracOrange.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            sede["ubicacion"] ?? "Campus Principal",
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: yaviracOrange,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),

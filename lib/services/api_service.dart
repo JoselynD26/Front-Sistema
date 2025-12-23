@@ -1153,6 +1153,91 @@ Future<List<dynamic>> listarSedes() async {
   }
 
   // ==========================================
+  // PDF HORARIOS
+  // ==========================================
+
+  /// Listar PDFs de horarios por sede
+  Future<List<dynamic>> listarPdfHorarios(int sedeId) async {
+    try {
+      final url = Uri.parse("$baseUrl/pdf-horarios/listar/$sedeId");
+      final headers = await _headers(json: false);
+      final res = await http.get(url, headers: headers);
+      
+      print("[PDF HORARIOS][LISTAR] ${res.statusCode}");
+      
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body);
+      } else {
+        throw Exception("Error al listar PDFs: ${res.statusCode}");
+      }
+    } catch (e) {
+      print("[ERROR][LISTAR PDF HORARIOS] $e");
+      rethrow;
+    }
+  }
+
+  /// Obtener PDF de horario como bytes
+  Future<Uint8List?> obtenerPdfHorario(int sedeId, String tipo) async {
+    try {
+      final url = Uri.parse("$baseUrl/pdf-horarios/ver/$sedeId/$tipo");
+      final headers = await _headers(json: false);
+      
+      final response = await http.get(url, headers: headers);
+      
+      if (response.statusCode == 200) {
+        print("PDF horario recibido: ${response.bodyBytes.length} bytes");
+        return response.bodyBytes;
+      } else {
+        print("[ERROR][OBTENER PDF HORARIO] ${response.statusCode}");
+        return null;
+      }
+    } catch (e) {
+      print("[ERROR][OBTENER PDF HORARIO] $e");
+      return null;
+    }
+  }
+
+  /// Eliminar PDF de horario
+  Future<bool> eliminarPdfHorario(int sedeId, String tipo) async {
+    try {
+      final url = Uri.parse("$baseUrl/pdf-horarios/eliminar/$sedeId/$tipo");
+      final headers = await _headers(json: false);
+      final res = await http.delete(url, headers: headers);
+      
+      print("[ELIMINAR PDF HORARIO] ${res.statusCode}");
+      return res.statusCode == 200;
+    } catch (e) {
+      print("[ERROR][ELIMINAR PDF HORARIO] $e");
+      return false;
+    }
+  }
+
+  /// Subir PDF de horario con 4 parámetros
+  Future<bool> subirPdfHorarioCompleto(int sedeId, String tipo, Uint8List bytes, String fileName) async {
+    try {
+      final url = Uri.parse("$baseUrl/pdf-horarios/subir/$sedeId/$tipo");
+      final request = http.MultipartRequest("POST", url);
+      
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'file',
+          bytes,
+          filename: fileName,
+          contentType: MediaType('application', 'pdf'),
+        ),
+      );
+      
+      final response = await request.send();
+      print("[SUBIR PDF HORARIO] ${response.statusCode}");
+      
+      return response.statusCode == 200;
+    } catch (e) {
+      print("[ERROR][SUBIR PDF HORARIO] $e");
+      return false;
+    }
+  }
+
+  // ==========================================
   // CROQUIS
   // ==========================================
 
