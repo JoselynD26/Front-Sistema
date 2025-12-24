@@ -3,7 +3,6 @@ import '../services/api_service.dart';
 
 class CarrerasScreen extends StatefulWidget {
   final int idSede;
-
   const CarrerasScreen({super.key, required this.idSede});
 
   @override
@@ -33,166 +32,194 @@ class _CarrerasScreenState extends State<CarrerasScreen> {
             .toList();
         cargando = false;
       });
-    } catch (e) {
+    } catch (_) {
       setState(() => cargando = false);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Error cargando carreras")));
     }
   }
 
   Future<void> _cargarSedes() async {
-    try {
-      sedes = await _apiService.listarSedes();
-      setState(() {});
-    } catch (e) {
-      print("Error cargando sedes: $e");
-    }
+    sedes = await _apiService.listarSedes();
+    setState(() {});
   }
 
   Future<void> _eliminarCarrera(int id) async {
-    final ok = await _apiService.eliminarCarrera(id);
-    if (ok) {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Eliminar carrera"),
+        content: const Text("¿Estás seguro de eliminar esta carrera?"),
+        actions: [
+          TextButton(
+            child: const Text("Cancelar"),
+            onPressed: () => Navigator.pop(context, false),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text("Eliminar"),
+            onPressed: () => Navigator.pop(context, true),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar == true) {
+      await _apiService.eliminarCarrera(id);
       _cargarCarreras();
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Carrera eliminada")));
     }
   }
 
   void _abrirFormulario({Map<String, dynamic>? carrera}) {
-    final nombreController = TextEditingController();
-    final codigoController = TextEditingController();
-    List<int> sedeSeleccionadas = [widget.idSede];
+    final nombreController =
+        TextEditingController(text: carrera?["nombre"] ?? "");
+    final codigoController =
+        TextEditingController(text: carrera?["codigo"] ?? "");
 
-    if (carrera != null) {
-      nombreController.text = carrera["nombre"] ?? "";
-      codigoController.text = carrera["codigo"] ?? "";
-      sedeSeleccionadas = List<int>.from(carrera["sede_ids"] ?? []);
-    }
+    List<int> sedesSeleccionadas =
+        List<int>.from(carrera?["sede_ids"] ?? [widget.idSede]);
 
     showDialog(
       context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setStateDialog) {
-            return AlertDialog(
-              title: Text(carrera == null ? "Nueva Carrera" : "Editar Carrera"),
-              content: SizedBox(
-                width: 400,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: nombreController,
-                      decoration: const InputDecoration(labelText: "Nombre"),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: codigoController,
-                      decoration: const InputDecoration(labelText: "Código (opcional)"),
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 6,
-                      children: sedes.map((s) {
-                        final id = s["id"];
-                        final seleccionado = sedeSeleccionadas.contains(id);
-                        return FilterChip(
-                          label: Text(s["nombre"]),
-                          selected: seleccionado,
-                          onSelected: (v) {
-                            setStateDialog(() {
-                              if (v) {
-                                sedeSeleccionadas.add(id);
-                              } else {
-                                sedeSeleccionadas.remove(id);
-                              }
-                            });
-                          },
-                        );
-                      }).toList(),
-                    )
-                  ],
+      builder: (_) => StatefulBuilder(
+        builder: (context, setStateDialog) => AlertDialog(
+          title: Text(carrera == null ? "Nueva Carrera" : "Editar Carrera"),
+          content: SizedBox(
+            width: 400,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nombreController,
+                  decoration: const InputDecoration(
+                    labelText: "Nombre",
+                    prefixIcon: Icon(Icons.school),
+                  ),
                 ),
-              ),
-              actions: [
-                TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text("Cancelar")),
-                ElevatedButton(
-                  onPressed: () async {
-                    final body = {
-                      "nombre": nombreController.text.trim(),
-                      "codigo": codigoController.text.trim().isEmpty ? "AUTO" : codigoController.text.trim(),
-                      "sede_ids": sedeSeleccionadas,
-                    };
-
-                    bool ok;
-                    if (carrera == null) {
-                      ok = await _apiService.crearCarrera(body);
-                    } else {
-                      ok = await _apiService.actualizarCarrera(carrera["id"], body);
-                    }
-
-                    if (ok) {
-                      Navigator.pop(context);
-                      _cargarCarreras();
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Error al guardar")),
-                      );
-                    }
-                  },
-                  child: const Text("Guardar"),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: codigoController,
+                  decoration: const InputDecoration(
+                    labelText: "Código",
+                    prefixIcon: Icon(Icons.code),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    "Sedes",
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  children: sedes.map((s) {
+                    final id = s["id"];
+                    return FilterChip(
+                      label: Text(s["nombre"]),
+                      selected: sedesSeleccionadas.contains(id),
+                      onSelected: (v) {
+                        setStateDialog(() {
+                          v
+                              ? sedesSeleccionadas.add(id)
+                              : sedesSeleccionadas.remove(id);
+                        });
+                      },
+                    );
+                  }).toList(),
                 )
               ],
-            );
-          },
-        );
-      },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancelar"),
+            ),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.save),
+              label: const Text("Guardar"),
+              onPressed: () async {
+                final body = {
+                  "nombre": nombreController.text.trim(),
+                  "codigo": codigoController.text.trim().isEmpty
+                      ? "AUTO"
+                      : codigoController.text.trim(),
+                  "sede_ids": sedesSeleccionadas,
+                };
+
+                carrera == null
+                    ? await _apiService.crearCarrera(body)
+                    : await _apiService.actualizarCarrera(
+                        carrera["id"], body);
+
+                Navigator.pop(context);
+                _cargarCarreras();
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Carreras")),
-      floatingActionButton: FloatingActionButton(
+      appBar: AppBar(
+        title: const Text("Carreras"),
+        centerTitle: true,
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        icon: const Icon(Icons.add),
+        label: const Text("Nueva Carrera"),
         onPressed: () => _abrirFormulario(),
-        child: const Icon(Icons.add),
       ),
       body: cargando
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              child: DataTable(
-                columns: const [
-                  DataColumn(label: Text("ID")),
-                  DataColumn(label: Text("Nombre")),
-                  DataColumn(label: Text("Código")),
-                  DataColumn(label: Text("Sedes")),
-                  DataColumn(label: Text("Acciones")),
-                ],
-                rows: carreras.map((carrera) {
-                  return DataRow(cells: [
-                    DataCell(Text(carrera["id"].toString())),
-                    DataCell(Text(carrera["nombre"])),
-                    DataCell(Text(carrera["codigo"] ?? "AUTO")),
-                    DataCell(Text((carrera["sede_ids"] as List).join(", "))),
-                    DataCell(Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit, color: Colors.orange),
-                          onPressed: () => _abrirFormulario(carrera: carrera),
+          : carreras.isEmpty
+              ? const Center(child: Text("No hay carreras registradas"))
+              : ListView.builder(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: carreras.length,
+                  itemBuilder: (context, i) {
+                    final c = carreras[i];
+                    return Card(
+                      elevation: 3,
+                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          child: Text(c["nombre"][0]),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () => _eliminarCarrera(carrera["id"]),
+                        title: Text(
+                          c["nombre"],
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold),
                         ),
-                      ],
-                    )),
-                  ]);
-                }).toList(),
-              ),
-            ),
+                        subtitle: Text(
+                          "Código: ${c["codigo"] ?? "AUTO"}",
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit,
+                                  color: Colors.orange),
+                              onPressed: () =>
+                                  _abrirFormulario(carrera: c),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete,
+                                  color: Colors.red),
+                              onPressed: () =>
+                                  _eliminarCarrera(c["id"]),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
     );
   }
 }

@@ -428,6 +428,8 @@ Future<List<dynamic>> listarSedes() async {
     }
   }
 
+
+
 // -------------------- DOCENTES --------------------
 
   Future<List<dynamic>> listarDocentesPorSede(int idSede) async {
@@ -621,10 +623,71 @@ Future<List<dynamic>> listarSedes() async {
       return null;
     }
   }
+  Future<Map<String, dynamic>?> obtenerMiCroquis(int docenteId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/profesor/mi-croquis/$docenteId'),
+      headers: await _headers(),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+
+    return null;
+  }
+
 
   // --------------------------------------------------
   // 🗓️ HORARIOS - CRUD
   // --------------------------------------------------
+  Future<bool> crearHorarioAdmin({
+    required int docenteId,
+    required int cursoId,
+    required int materiaId,
+    required int aulaId,
+    required String dia,
+    required String horaInicio,
+    required String horaFin,
+  }) async {
+    final url = Uri.parse('$baseUrl/horario-docente/admin');
+
+    final response = await http.post(
+      url,
+      headers: await _headers(),
+      body: jsonEncode({
+        'docente_id': docenteId,
+        'curso_id': cursoId,
+        'materia_id': materiaId,
+        'aula_id': aulaId,
+        'dia': dia,
+        'hora_inicio': horaInicio,
+        'hora_fin': horaFin,
+      }),
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return true;
+    } else {
+      print("Error crear horario: ${response.body}");
+      return false;
+    }
+  }
+
+  Future<List<dynamic>> obtenerHorarioDocente(int docenteId) async {
+    final url = Uri.parse('$baseUrl/horario-docente/docente/$docenteId');
+
+    final response = await http.get(
+      url,
+      headers: await _headers(),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception("Error al obtener horario del docente");
+    }
+  }
+
 
   /// ✅ Crear horario
   Future<bool> crearHorario(Map<String, dynamic> datos) async {
@@ -1151,6 +1214,7 @@ Future<List<dynamic>> listarSedes() async {
       rethrow;
     }
   }
+
 
   // ==========================================
   // PDF HORARIOS

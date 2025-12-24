@@ -2,128 +2,149 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'horario_form.dart';
 
-class HorariosScreen extends StatefulWidget {
+class HorarioScreen extends StatefulWidget {
   final int idSede;
-  const HorariosScreen({super.key, required this.idSede});
+  const HorarioScreen({super.key, required this.idSede});
 
   @override
-  _HorariosScreenState createState() => _HorariosScreenState();
+  State<HorarioScreen> createState() => _HorarioScreenState();
 }
 
-class _HorariosScreenState extends State<HorariosScreen> {
-  final _apiService = ApiService();
-  List<dynamic> horarios = [];
+class _HorarioScreenState extends State<HorarioScreen> {
+  final ApiService _apiService = ApiService();
+  List<dynamic> clases = [];
   bool cargando = true;
 
   @override
   void initState() {
     super.initState();
-    _cargarHorarios();
+    _cargarClases();
   }
 
-  Future<void> _cargarHorarios() async {
+  Future<void> _cargarClases() async {
     try {
       final data = await _apiService.listarHorariosPorSede(widget.idSede);
       setState(() {
-        horarios = data;
+        clases = data;
         cargando = false;
       });
     } catch (e) {
       setState(() => cargando = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error al cargar horarios: $e")),
+        SnackBar(content: Text("Error al cargar clases: $e")),
       );
     }
   }
 
-  Future<void> _eliminarHorario(int id) async {
+  Future<void> _eliminarClase(int id) async {
     final ok = await _apiService.eliminarHorario(id);
     if (ok) {
-      _cargarHorarios();
+      _cargarClases();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Horario eliminado")),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error al eliminar horario")),
+        const SnackBar(content: Text("Clase eliminada")),
       );
     }
   }
 
-  void _abrirFormulario({Map<String, dynamic>? horario}) {
+  void _abrirFormulario({Map<String, dynamic>? clase}) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => HorarioForm(
-          horario: horario,
+          horario: clase,
           idSede: widget.idSede,
-          onSave: _cargarHorarios,
+          onSave: _cargarClases,
         ),
       ),
     );
   }
 
-  // ✅ NUEVO: abrir pantalla de PDFs
-  void _abrirPdfScreen() {
-    Navigator.pushNamed(context, '/horariosPdf');
+  // 🔥 AGRUPAR CLASES POR DOCENTE
+  Map<int, List<dynamic>> _agruparPorDocente(List<dynamic> clases) {
+    final Map<int, List<dynamic>> resultado = {};
+
+    for (var c in clases) {
+      final int idDocente = c["id_docente"];
+      resultado.putIfAbsent(idDocente, () => []);
+      resultado[idDocente]!.add(c);
+    }
+
+    return resultado;
   }
 
   @override
   Widget build(BuildContext context) {
+    if (cargando) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (clases.isEmpty) {
+      return const Scaffold(
+        body: Center(child: Text("No hay clases registradas")),
+      );
+    }
+
+    final clasesPorDocente = _agruparPorDocente(clases);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Horarios"),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.picture_as_pdf),
-            tooltip: "Ver / Subir PDFs de Horarios",
-            onPressed: _abrirPdfScreen,
-          ),
-        ],
+        title: const Text("Clases por Docente"),
       ),
-      body: cargando
-          ? const Center(child: CircularProgressIndicator())
-          : horarios.isEmpty
-              ? const Center(child: Text("No hay horarios registrados"))
-              : ListView.builder(
-                  itemCount: horarios.length,
-                  itemBuilder: (context, index) {
-                    final h = horarios[index];
+      body: ListView(
+        children: clasesPorDocente.entries.map((entry) {
+          final idDocente = entry.key;
+          final listaClases = entry.value;
 
-                    return Card(
-                      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      child: ListTile(
-                        leading: CircleAvatar(child: Text(h["id"].toString())),
-                        title: Text("Materia ID: ${h["id_materia"]} - Docente ID: ${h["id_docente"]}"),
-                        subtitle: Text("Fecha: ${h["fecha"]} - Hora: ${h["hora"]}"),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              h["estado"],
-                              style: TextStyle(
-                                color: h["estado"] == "cancelado" ? Colors.red : Colors.green,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.orange),
-                              onPressed: () => _abrirFormulario(horario: h),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => _eliminarHorario(h["id"]),
-                            ),
-                          ],
+          return Card(
+            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: ExpansionTile(
+              leading: const Icon(Icons.person),
+              title: Text("Docente ID: $idDocente"),
+              subtitle: Text("Clases: ${listaClases.length}"),
+              children: listaClases.map((c) {
+                return ListTile(
+                  title: Text("Materia ID: ${c["id_materia"]}"),
+                  subtitle: Text(
+                    "📅 ${c["fecha"]}\n⏰ ${c["hora_inicio"]} - ${c["hora_fin"]}",
+                  ),
+                  trailing: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        c["estado"],
+                        style: TextStyle(
+                          color: c["estado"] == "cancelado"
+                              ? Colors.red
+                              : Colors.green,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    );
-                  },
-                ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit, color: Colors.orange),
+                            onPressed: () => _abrirFormulario(clase: c),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () => _eliminarClase(c["id"]),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          );
+        }).toList(),
+      ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.blue,
         onPressed: () => _abrirFormulario(),
-        child: const Icon(Icons.add, color: Colors.white),
+        child: const Icon(Icons.add),
       ),
     );
   }

@@ -3,6 +3,7 @@ import '../services/api_service.dart';
 import '../widgets/web_layout.dart';
 import 'pdf_horarios_screen.dart';
 import 'croquis_screen.dart';
+import 'docente_croquis_screen.dart';
 
 class ProfesorDashboard extends StatefulWidget {
   final int docenteId;
@@ -405,13 +406,23 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CroquisScreen(
-          sedeId: 1, // Ajustar según la sede del docente
-          rol: 'docente',
+        builder: (context) => DocenteCroquisScreen(
+          docenteId: widget.docenteId,
         ),
       ),
     );
   }
+  void _verMiCroquis() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DocenteCroquisScreen(
+          docenteId: widget.docenteId,
+        ),
+      ),
+    );
+  }
+
 
   void _verHorarioAulas() {
     showDialog(

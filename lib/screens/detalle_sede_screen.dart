@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../services/api_service.dart';
 import '../widgets/web_layout.dart';
+
 import 'carrera_screen.dart';
 import 'aula_screen.dart';
 import 'escritorio_screen.dart';
@@ -9,7 +10,7 @@ import 'docente_screen.dart';
 import 'curso_screen.dart';
 import 'materia_screen.dart';
 import 'sala_screen.dart';
-import 'horario_screen.dart';
+import 'horario_screen.dart'; 
 import 'admin_reservas_screen.dart';
 import 'croquis_screen.dart';
 import 'pdf_horarios_screen.dart';
@@ -48,7 +49,7 @@ class _DetalleSedeScreenState extends State<DetalleSedeScreen> {
       });
     } catch (e) {
       setState(() => cargando = false);
-      print("Error cargando módulos: $e");
+      debugPrint("Error cargando módulos: $e");
     }
   }
 
@@ -69,14 +70,17 @@ class _DetalleSedeScreenState extends State<DetalleSedeScreen> {
         return SalasScreen(idSede: widget.idSede);
       case "Materias":
         return MateriasScreen(idSede: widget.idSede);
+
+     
       case "Horarios":
-        return HorariosScreen(idSede: widget.idSede);
+        return HorarioScreen(idSede: widget.idSede);
+
       case "Reservas":
         return const AdminReservasScreen();
       case "Croquis":
         return CroquisScreen(sedeId: widget.idSede, rol: 'admin');
       case "PDFHorarios":
-        return PdfHorariosScreen(sedeId: widget.idSede, rol: 'admin'); // Aquí deberías obtener el rol real
+        return PdfHorariosScreen(sedeId: widget.idSede, rol: 'admin');
       default:
         return const Scaffold(
           body: Center(child: Text("Módulo no implementado")),
@@ -94,15 +98,15 @@ class _DetalleSedeScreenState extends State<DetalleSedeScreen> {
       case "desktop_windows":
         return Icons.desktop_windows;
       case "person":
-        return Icons.person; // ✅ ícono para docentes
+        return Icons.person;
       case "class":
         return Icons.class_;
       case "book":
-        return Icons.book;   // ✅ ícono para materias
+        return Icons.book;
       case "business":
-        return Icons.business; // ✅ ícono para salas
+        return Icons.business;
       case "schedule":
-        return Icons.schedule;
+        return Icons.schedule; // sigue igual
       case "pending_actions":
         return Icons.pending_actions;
       case "map":
@@ -160,7 +164,7 @@ class _DetalleSedeScreenState extends State<DetalleSedeScreen> {
   Widget _buildModulosGrid() {
     const yaviracOrange = Color(0xFFFF6B35);
     const yaviracBlue = Color(0xFF1E3A8A);
-    
+
     return Center(
       child: Container(
         constraints: const BoxConstraints(maxWidth: 1000),
@@ -198,7 +202,7 @@ class _DetalleSedeScreenState extends State<DetalleSedeScreen> {
                       end: Alignment.bottomRight,
                       colors: [
                         Colors.white,
-                        yaviracOrange.withOpacity(0.05),
+                        const Color.fromARGB(255, 197, 150, 132).withOpacity(0.05),
                       ],
                     ),
                   ),
