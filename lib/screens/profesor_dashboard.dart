@@ -4,6 +4,7 @@ import '../widgets/web_layout.dart';
 import 'pdf_horarios_screen.dart';
 import 'croquis_screen.dart';
 import 'docente_croquis_screen.dart';
+import 'croquis_plaza_screen.dart';
 
 class ProfesorDashboard extends StatefulWidget {
   final int docenteId;
@@ -102,13 +103,18 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            "Hola, ${widget.nombreProfesor}",
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: -0.5,
+                          GestureDetector(
+                            onTap: _editarPerfil,
+                            child: Text(
+                              "Hola, ${widget.nombreProfesor}",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: -0.5,
+                                decoration: TextDecoration.underline,
+                                decorationColor: Colors.white70,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -135,13 +141,23 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
                 
                 const SizedBox(height: 40),
                 
-                const Text(
-                  "Accesos Rápidos",
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1E293B),
-                  ),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.grid_view_rounded,
+                      size: 28,
+                      color: const Color(0xFF1E293B),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      "Accesos Rápidos",
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 24),
                 
@@ -152,10 +168,18 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       crossAxisCount: constraints.maxWidth > 1000 ? 4 : (constraints.maxWidth > 600 ? 3 : 2),
-                      crossAxisSpacing: 24,
-                      mainAxisSpacing: 24,
-                      childAspectRatio: 1.1,
+                      crossAxisSpacing: 32,
+                      mainAxisSpacing: 32,
+                      childAspectRatio: 1.2,
                       children: [
+                        _buildModuleCard(
+                        "Croquis Institucional",
+                        Icons.map_rounded,
+                        "Ubicación general",
+                        const Color(0xFF6366F1),
+                        () => _verCroquisPlazas(),
+                      ),
+
                         _buildModuleCard(
                           "Mis Materias",
                           Icons.menu_book_rounded,
@@ -192,10 +216,10 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
                           () => _verHorarios(),
                         ),
                         _buildModuleCard(
-                          "Croquis",
-                          Icons.map_rounded,
-                          "Ubicaciones",
-                          const Color(0xFF6366F1), // Indigo
+                          "Sala de Profesores",
+                          Icons.desk,
+                          "Mi escritorio",
+                          const Color(0xFF10B981),
                           () => _verCroquis(),
                         ),
                       ],
@@ -218,16 +242,29 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
         onTap: onTap,
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.grey.shade100),
+            gradient: LinearGradient(
+              colors: [
+                color.withOpacity(0.1),
+                color.withOpacity(0.05),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: color.withOpacity(0.2), width: 1.5),
             boxShadow: [
               BoxShadow(
-                color: Colors.grey.shade200,
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+                color: color.withOpacity(0.3),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
+              ),
+              BoxShadow(
+                color: Colors.white.withOpacity(0.8),
+                blurRadius: 15,
+                offset: const Offset(0, -8),
               ),
             ],
           ),
@@ -235,29 +272,38 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  gradient: LinearGradient(
+                    colors: [color, color.withOpacity(0.8)],
+                  ),
                   shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withOpacity(0.4),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-                child: Icon(icon, color: color, size: 32),
+                child: Icon(icon, color: Colors.white, size: 32),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               Text(
                 title,
                 style: const TextStyle(
-                  fontSize: 18,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF1E293B),
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Text(
                 subtitle,
                 style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[500],
+                  fontSize: 12,
+                  color: Colors.grey[600],
                   fontWeight: FontWeight.w500,
                 ),
                 textAlign: TextAlign.center,
@@ -265,6 +311,16 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _editarPerfil() {
+    showDialog(
+      context: context,
+      builder: (context) => _EditarPerfilDialog(
+        docenteId: widget.docenteId,
+        nombreActual: widget.nombreProfesor,
       ),
     );
   }
@@ -342,7 +398,16 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
                   trailing: reserva["estado"] == "pendiente"
                       ? IconButton(
                           icon: const Icon(Icons.cancel, color: Colors.red),
-                          onPressed: () => _cancelarReserva(reserva["id"]),
+                          onPressed: () async {
+                            final success = await _apiService.cancelarReservaAula(reserva["id"], widget.docenteId);
+                            if (success) {
+                              Navigator.pop(context); // Cerrar el diálogo
+                              _cargarDatos();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("Reserva cancelada")),
+                              );
+                            }
+                          },
                         )
                       : null,
                 ),
@@ -375,16 +440,6 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
 
 
 
-  void _cancelarReserva(int reservaId) async {
-    final success = await _apiService.cancelarReservaAula(reservaId, widget.docenteId);
-    if (success) {
-      _cargarDatos();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Reserva cancelada")),
-      );
-    }
-  }
-
   void _cerrarSesion() async {
     await _apiService.logout();
     Navigator.pushReplacementNamed(context, '/');
@@ -396,6 +451,17 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
       MaterialPageRoute(
         builder: (context) => PdfHorariosScreen(
           sedeId: 1, // Ajustar según la sede del docente
+          rol: 'docente',
+        ),
+      ),
+    );
+  }
+  void _verCroquisPlazas() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CroquisPlazaScreen(
+          sedeId: 1, // o la sede real del docente
           rol: 'docente',
         ),
       ),
@@ -1412,6 +1478,173 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Error al crear reserva")),
+        );
+      }
+    } catch (e) {
+      setState(() => cargando = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e")),
+      );
+    }
+  }
+}
+
+class _EditarPerfilDialog extends StatefulWidget {
+  final int docenteId;
+  final String nombreActual;
+
+  const _EditarPerfilDialog({
+    required this.docenteId,
+    required this.nombreActual,
+  });
+
+  @override
+  _EditarPerfilDialogState createState() => _EditarPerfilDialogState();
+}
+
+class _EditarPerfilDialogState extends State<_EditarPerfilDialog> {
+  final _apiService = ApiService();
+  final _nombreController = TextEditingController();
+  final _newPassController = TextEditingController();
+  final _confirmPassController = TextEditingController();
+  bool cargando = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nombreController.text = widget.nombreActual;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      child: Container(
+        width: 500,
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.person, color: Color(0xFF1E3A8A), size: 28),
+                const SizedBox(width: 12),
+                const Text(
+                  "Editar Perfil",
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                const Spacer(),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+            const Divider(),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _nombreController,
+              decoration: const InputDecoration(
+                labelText: "Nombre",
+                prefixIcon: Icon(Icons.person),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              "Cambiar Contraseña (opcional)",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _newPassController,
+              decoration: const InputDecoration(
+                labelText: "Nueva Contraseña",
+                prefixIcon: Icon(Icons.lock_outline),
+                border: OutlineInputBorder(),
+              ),
+              obscureText: true,
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _confirmPassController,
+              decoration: const InputDecoration(
+                labelText: "Confirmar Nueva Contraseña",
+                prefixIcon: Icon(Icons.lock_outline),
+                border: OutlineInputBorder(),
+              ),
+              obscureText: true,
+            ),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Cancelar"),
+                ),
+                const SizedBox(width: 16),
+                ElevatedButton.icon(
+                  onPressed: cargando ? null : _guardarCambios,
+                  icon: cargando
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.save),
+                  label: Text(cargando ? "Guardando..." : "Guardar"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1E3A8A),
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _guardarCambios() async {
+    if (_nombreController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("El nombre no puede estar vacío")),
+      );
+      return;
+    }
+
+    if (_newPassController.text.isNotEmpty) {
+      if (_newPassController.text != _confirmPassController.text) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Las contraseñas no coinciden")),
+        );
+        return;
+      }
+    }
+
+    setState(() => cargando = true);
+
+    try {
+      // Actualizar nombre
+      final successNombre = await _apiService.actualizarDocente(widget.docenteId, {"nombres": _nombreController.text});
+
+      bool successPass = true;
+      if (_newPassController.text.isNotEmpty) {
+        successPass = await _apiService.actualizarContrasenaDocente(widget.docenteId, _newPassController.text);
+      }
+
+      setState(() => cargando = false);
+
+      if (successNombre && successPass) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Perfil actualizado exitosamente")),
+        );
+        // Aquí podrías recargar los datos si es necesario
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Error al actualizar perfil")),
         );
       }
     } catch (e) {

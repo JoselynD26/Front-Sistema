@@ -14,6 +14,7 @@ import 'horario_screen.dart';
 import 'admin_reservas_screen.dart';
 import 'croquis_screen.dart';
 import 'pdf_horarios_screen.dart';
+import 'croquis_plaza_screen.dart';
 
 class DetalleSedeScreen extends StatefulWidget {
   final int idSede;
@@ -77,8 +78,14 @@ class _DetalleSedeScreenState extends State<DetalleSedeScreen> {
 
       case "Reservas":
         return const AdminReservasScreen();
-      case "Croquis":
+      case "Croquis por Sala":
         return CroquisScreen(sedeId: widget.idSede, rol: 'admin');
+      case "Croquis Institucionales":
+        return CroquisPlazaScreen(
+          sedeId: widget.idSede,
+          rol: 'admin',
+      );
+
       case "PDFHorarios":
         return PdfHorariosScreen(sedeId: widget.idSede, rol: 'admin');
       default:

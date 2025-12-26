@@ -134,7 +134,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     const SizedBox(height: 16),
                     const Text(
-                      'YAVIRAC\nRegistro de\nAdministrador',
+                      'Sistema de gestión Yavirac\nRegistro de\nAdministrador',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 24,

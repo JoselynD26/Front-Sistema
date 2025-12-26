@@ -136,7 +136,7 @@ class _CroquisScreenState extends State<CroquisScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.rol == 'admin' ? 'Croquis de Salas de Profesores' : 'Croquis'),
+        title: Text(widget.rol == 'admin' ? 'Croquis de Salas de Profesores' : 'Croquis por Sala'),
       ),
       body: salas.isEmpty
           ? const Center(

@@ -79,7 +79,7 @@ class _SedeScreenState extends State<SedeScreen> with SafeStateMixin {
                     color: Color(0xFF1E3A8A),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Text(
                   "Elige la sede donde realizarás la gestión académica",
                   style: TextStyle(
@@ -101,7 +101,7 @@ class _SedeScreenState extends State<SedeScreen> with SafeStateMixin {
         child: Wrap(
           alignment: WrapAlignment.center,
           spacing: 32,
-          runSpacing: 32,
+          runSpacing: 39,
           children: sedes.map((sede) {
             return MouseRegion(
               cursor: SystemMouseCursors.click,
@@ -118,7 +118,7 @@ class _SedeScreenState extends State<SedeScreen> with SafeStateMixin {
                   );
                 },
                 child: Container(
-                  width: 300,
+                  width: 350,
                   height: 220,
                   decoration: BoxDecoration(
                     color: Colors.white,

@@ -931,16 +931,21 @@ Future<List<dynamic>> listarSedes() async {
     }
   }
 
-  /// Cancelar reserva
+/// Cancelar reserva
   Future<bool> cancelarReservaAula(int reservaId, int docenteId) async {
     try {
-      final url = Uri.parse("$baseUrl/reserva-aulas/cancelar-reserva/$reservaId");
+      final url = Uri.parse(
+        "$baseUrl/reserva-aulas/cancelar-reserva/$reservaId"
+      );
+
       final res = await http.post(
         url,
         headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"docente_id": docenteId}),
+        body: jsonEncode({
+          "docente_id": docenteId,
+        }),
       );
-      
+        
       print("[CANCELAR RESERVA] ${res.statusCode}");
       return res.statusCode == 200;
     } catch (e) {
@@ -1399,4 +1404,108 @@ Future<List<dynamic>> listarSedes() async {
       return false;
     }
   }
-}  
+
+  /// 🔹 LISTAR PLAZAS POR SEDE
+  Future<List<dynamic>> listarPlazasPorSede(int sedeId) async {
+    final res = await http.get(
+      Uri.parse('$baseUrl/plazas/sede/$sedeId'),
+      headers: await _headers(),
+    );
+
+    if (res.statusCode == 200) {
+      return jsonDecode(res.body);
+    } else {
+      throw Exception('Error al listar plazas');
+    }
+  }
+
+  /// 🔹 SUBIR CROQUIS PLAZA
+  Future<bool> subirCroquisPlazaWeb(
+    int plazaId,
+    List<int> bytes,
+    String filename,
+  ) async {
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl/plazas/$plazaId/croquis'),
+    );
+
+    request.headers.addAll(await _headers(json: false));
+    request.files.add(
+      http.MultipartFile.fromBytes('file', bytes, filename: filename),
+    );
+
+    final response = await request.send();
+    return response.statusCode == 200;
+  }
+
+  /// 🔹 OBTENER CROQUIS PLAZA
+  Future<String?> obtenerCroquisPlaza(int plazaId) async {
+    final res = await http.get(
+      Uri.parse('$baseUrl/plazas/$plazaId/croquis'),
+      headers: await _headers(),
+    );
+
+    if (res.statusCode == 200) {
+      final data = jsonDecode(res.body);
+      return data['croquis_url'];
+    }
+    return null;
+  } 
+  /// 🔹 CREAR PLAZA
+  Future<bool> crearPlaza(String nombre, int sedeId) async {
+    final res = await http.post(
+      Uri.parse('$baseUrl/plazas/'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'nombre': nombre,
+        'sede_id': sedeId,
+      }),
+    );
+
+    return res.statusCode == 200 || res.statusCode == 201;
+  }
+
+  /// 🔹 EDITAR PLAZA (CORREGIDO)
+  Future<bool> editarPlaza(
+    int plazaId,
+    String nombre,
+    int sedeId,
+  ) async {
+    final res = await http.put(
+      Uri.parse('$baseUrl/plazas/$plazaId'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'nombre': nombre,
+        'sede_id': sedeId, // ✅ OBLIGATORIO
+      }),
+    );
+
+    return res.statusCode == 200;
+  }
+
+
+  /// 🔹 ELIMINAR PLAZA
+  Future<bool> eliminarPlaza(int plazaId) async {
+    final res = await http.delete(
+      Uri.parse('$baseUrl/plazas/$plazaId'),
+      headers: await _headers(),
+    );
+
+    return res.statusCode == 200;
+  }
+  Future<List<String>> obtenerCroquisDocente(int docenteId) async {
+    final res = await http.get(
+      Uri.parse('$baseUrl/docentes/$docenteId/croquis'),
+      headers: await _headers(),
+    );
+
+    if (res.statusCode == 200) {
+      final data = jsonDecode(res.body) as List;
+      return data.map((e) => e['croquis_url'] as String).toList();
+    } else {
+      throw Exception('Error al obtener croquis');
+    }
+  }
+ 
+}

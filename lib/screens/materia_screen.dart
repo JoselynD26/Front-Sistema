@@ -6,76 +6,75 @@ class MateriasScreen extends StatefulWidget {
   const MateriasScreen({super.key, required this.idSede});
 
   @override
-  _MateriasScreenState createState() => _MateriasScreenState();
+  State<MateriasScreen> createState() => _MateriasScreenState();
 }
 
 class _MateriasScreenState extends State<MateriasScreen> {
-  final _apiService = ApiService();
+  final ApiService _apiService = ApiService();
 
   List<dynamic> materias = [];
+  List<dynamic> carrerasDisponibles = [];
+  List<dynamic> docentesDisponibles = [];
+
   bool cargando = true;
 
   final _nombreController = TextEditingController();
-
-  List<dynamic> carrerasDisponibles = [];
-  List<dynamic> sedesDisponibles = [];
-  List<dynamic> docentesDisponibles = [];
+  final _codigoController = TextEditingController();
 
   List<int> carrerasSeleccionadas = [];
-  List<int> sedesSeleccionadas = [];
   List<int> docentesSeleccionados = [];
 
   @override
   void initState() {
     super.initState();
-    _cargarMaterias();
-    _cargarOpciones();
+    _cargarTodo();
   }
 
-  Future<void> _cargarMaterias() async {
+  Future<void> _cargarTodo() async {
     try {
-      final data = await _apiService.listarMateriasPorSede(widget.idSede);
+      final materiasData =
+          await _apiService.listarMateriasPorSede(widget.idSede);
+      carrerasDisponibles = await _apiService.listarCarreras();
+      docentesDisponibles =
+          await _apiService.listarDocentesPorSede(widget.idSede);
+
       setState(() {
-        materias = data;
+        materias = materiasData;
         cargando = false;
       });
     } catch (e) {
       setState(() => cargando = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error al cargar materias")),
-      );
     }
   }
 
-  Future<void> _cargarOpciones() async {
-    carrerasDisponibles = await _apiService.listarCarreras();
-    sedesDisponibles = await _apiService.listarSedes();
-    docentesDisponibles = await _apiService.listarDocentesPorSede(widget.idSede);
-    setState(() {});
-  }
-
+  // =======================
+  // 🗑️ ELIMINAR
+  // =======================
   Future<void> _eliminarMateria(int id) async {
     final ok = await _apiService.eliminarMateria(id);
-    if (ok) {
-      _cargarMaterias();
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Materia eliminada")));
-    } else {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Error al eliminar")));
-    }
+    if (ok) _cargarTodo();
   }
 
+  // =======================
+  // 🟢 FORMULARIO
+  // =======================
   void _abrirFormulario({Map<String, dynamic>? materia}) {
     if (materia != null) {
       _nombreController.text = materia["nombre"] ?? "";
-      carrerasSeleccionadas = List<int>.from(materia["carrera_ids"] ?? []);
-      sedesSeleccionadas = List<int>.from(materia["sede_ids"] ?? []);
-      docentesSeleccionados = List<int>.from(materia["docente_ids"] ?? []);
+      _codigoController.text = materia["codigo"] ?? "";
+
+      // 🔥 AQUI ESTA LA CLAVE
+      carrerasSeleccionadas = List<int>.from(
+        (materia["carreras"] ?? []).map((c) => c["id"]),
+      );
+
+      docentesSeleccionados = List<int>.from(
+        (materia["docentes"] ?? []).map((d) => d["id"]),
+      );
     } else {
       _nombreController.clear();
+      _codigoController.clear();
       carrerasSeleccionadas = [];
-      sedesSeleccionadas = [widget.idSede];
       docentesSeleccionados = [];
     }
 
@@ -87,53 +86,35 @@ class _MateriasScreenState extends State<MateriasScreen> {
         return StatefulBuilder(
           builder: (context, setStateDialog) {
             return AlertDialog(
-              title: Text(materia == null ? "Nueva Materia" : "Editar Materia"),
+              title: Text(
+                  materia == null ? "Nueva Materia" : "Editar Materia"),
               content: SingleChildScrollView(
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     TextField(
                       controller: _nombreController,
-                      decoration: const InputDecoration(labelText: "Nombre"),
+                      decoration:
+                          const InputDecoration(labelText: "Nombre"),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _codigoController,
+                      decoration:
+                          const InputDecoration(labelText: "Código"),
                     ),
 
-                    const SizedBox(height: 12),
-                    _buildDropdown(
-                      "Carreras",
-                      carrerasDisponibles,
-                      carrerasSeleccionadas,
-                      setStateDialog,
-                    ),
-                    _buildChips(
-                      carrerasDisponibles,
-                      carrerasSeleccionadas,
-                      setStateDialog,
-                    ),
+                    const SizedBox(height: 16),
+                    const Text("Carreras",
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    _dropdownCarreras(setStateDialog),
+                    _chipsCarreras(setStateDialog),
 
-                    const SizedBox(height: 12),
-                    _buildDropdown(
-                      "Sedes",
-                      sedesDisponibles,
-                      sedesSeleccionadas,
-                      setStateDialog,
-                    ),
-                    _buildChips(
-                      sedesDisponibles,
-                      sedesSeleccionadas,
-                      setStateDialog,
-                    ),
-
-                    const SizedBox(height: 12),
-                    _buildDropdown(
-                      "Docentes",
-                      docentesDisponibles,
-                      docentesSeleccionados,
-                      setStateDialog,
-                    ),
-                    _buildChips(
-                      docentesDisponibles,
-                      docentesSeleccionados,
-                      setStateDialog,
-                    ),
+                    const SizedBox(height: 16),
+                    const Text("Docentes",
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    _dropdownDocentes(setStateDialog),
+                    _chipsDocentes(setStateDialog),
                   ],
                 ),
               ),
@@ -146,33 +127,39 @@ class _MateriasScreenState extends State<MateriasScreen> {
                   onPressed: guardando
                       ? null
                       : () async {
+                          if (carrerasSeleccionadas.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                    "Selecciona al menos una carrera"),
+                              ),
+                            );
+                            return;
+                          }
+
                           final datos = {
                             "nombre": _nombreController.text.trim(),
+                            "codigo": _codigoController.text.trim(),
                             "carrera_ids": carrerasSeleccionadas,
-                            "sede_ids": sedesSeleccionadas,
                             "docente_ids": docentesSeleccionados,
+                            "sede_ids": [widget.idSede],
                           };
 
                           setStateDialog(() => guardando = true);
 
-                          bool success;
+                          bool ok;
                           if (materia == null) {
-                            success = await _apiService.crearMateria(datos);
+                            ok = await _apiService.crearMateria(datos);
                           } else {
-                            success = await _apiService.actualizarMateria(
+                            ok = await _apiService.actualizarMateria(
                                 materia["id"], datos);
                           }
 
                           setStateDialog(() => guardando = false);
 
-                          if (success) {
-                            _cargarMaterias();
+                          if (ok) {
+                            _cargarTodo();
                             Navigator.pop(context);
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text("Error al guardar materia")),
-                            );
                           }
                         },
                   child: const Text("Guardar"),
@@ -185,108 +172,127 @@ class _MateriasScreenState extends State<MateriasScreen> {
     );
   }
 
-  // -----------------------
-  // COMPONENTES
-  // -----------------------
-
-  Widget _buildDropdown(
-    String label,
-    List<dynamic> opciones,
-    List<int> seleccionados,
-    void Function(void Function()) setStateDialog,
-  ) {
+  // =======================
+  // DROPDOWNS + CHIPS
+  // =======================
+  Widget _dropdownCarreras(void Function(void Function()) setStateDialog) {
     return DropdownButtonFormField<int>(
-      value: null,
-      items: opciones.map<DropdownMenuItem<int>>((o) {
-        String displayText;
-        if (o.containsKey("nombres") && o.containsKey("apellidos")) {
-          // Es un docente
-          displayText = "${o["nombres"]} ${o["apellidos"]}";
-        } else {
-          // Es carrera o sede
-          displayText = o["nombre"] ?? "Sin nombre";
-        }
-        return DropdownMenuItem<int>(
-          value: o["id"],
-          child: Text(displayText),
-        );
-      }).toList(),
-      onChanged: (value) {
-        if (value != null && !seleccionados.contains(value)) {
-          setStateDialog(() => seleccionados.add(value));
+      hint: const Text("Seleccionar carrera"),
+      items: carrerasDisponibles
+          .map<DropdownMenuItem<int>>((c) => DropdownMenuItem<int>(
+                value: c["id"],
+                child: Text(c["nombre"]),
+              ))
+          .toList(),
+      onChanged: (v) {
+        if (v != null && !carrerasSeleccionadas.contains(v)) {
+          setStateDialog(() => carrerasSeleccionadas.add(v));
         }
       },
-      decoration: InputDecoration(labelText: label),
     );
   }
 
-  Widget _buildChips(
-    List<dynamic> opciones,
-    List<int> seleccionados,
-    void Function(void Function()) setStateDialog,
-  ) {
+  Widget _dropdownDocentes(void Function(void Function()) setStateDialog) {
+    return DropdownButtonFormField<int>(
+      hint: const Text("Seleccionar docente"),
+      items: docentesDisponibles
+          .map<DropdownMenuItem<int>>((d) => DropdownMenuItem<int>(
+                value: d["id"],
+                child: Text("${d["nombres"]} ${d["apellidos"]}"),
+              ))
+          .toList(),
+      onChanged: (v) {
+        if (v != null && !docentesSeleccionados.contains(v)) {
+          setStateDialog(() => docentesSeleccionados.add(v));
+        }
+      },
+    );
+  }
+
+  Widget _chipsCarreras(void Function(void Function()) setStateDialog) {
     return Wrap(
       spacing: 6,
-      children: seleccionados.map((id) {
-        final item = opciones.firstWhere(
-          (o) => o["id"] == id,
-          orElse: () => {"id": id, "nombre": "Desconocido"},
-        );
-
-        String displayText;
-        if (item.containsKey("nombres") && item.containsKey("apellidos")) {
-          // Es un docente
-          displayText = "${item["nombres"]} ${item["apellidos"]}";
-        } else {
-          // Es carrera o sede
-          displayText = item["nombre"] ?? "Sin nombre";
-        }
-        
+      children: carrerasSeleccionadas.map((id) {
+        final c =
+            carrerasDisponibles.firstWhere((x) => x["id"] == id);
         return Chip(
-          label: Text(displayText),
-          onDeleted: () => setStateDialog(() => seleccionados.remove(id)),
+          label: Text(c["nombre"]),
+          onDeleted: () =>
+              setStateDialog(() => carrerasSeleccionadas.remove(id)),
         );
       }).toList(),
     );
   }
 
+  Widget _chipsDocentes(void Function(void Function()) setStateDialog) {
+    return Wrap(
+      spacing: 6,
+      children: docentesSeleccionados.map((id) {
+        final d =
+            docentesDisponibles.firstWhere((x) => x["id"] == id);
+        return Chip(
+          label: Text("${d["nombres"]} ${d["apellidos"]}"),
+          onDeleted: () =>
+              setStateDialog(() => docentesSeleccionados.remove(id)),
+        );
+      }).toList(),
+    );
+  }
+
+  // =======================
+  // UI
+  // =======================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Materias")),
       body: cargando
           ? const Center(child: CircularProgressIndicator())
-          : DataTable(
-              columns: const [
-                DataColumn(label: Text("ID")),
-                DataColumn(label: Text("Nombre")),
-                DataColumn(label: Text("Acciones")),
-              ],
-              rows: materias.map((materia) {
-                return DataRow(cells: [
-                  DataCell(Text(materia["id"].toString())),
-                  DataCell(Text(materia["nombre"] ?? "")),
-                  DataCell(
-                    Row(
+          : SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: DataTable(
+                columns: const [
+                  DataColumn(label: Text("Código")),
+                  DataColumn(label: Text("Materia")),
+                  DataColumn(label: Text("Carreras")),
+                  DataColumn(label: Text("Docentes")),
+                  DataColumn(label: Text("Acciones")),
+                ],
+                rows: materias.map((m) {
+                  return DataRow(cells: [
+                    DataCell(Text(m["codigo"] ?? "")),
+                    DataCell(Text(m["nombre"] ?? "")),
+                    DataCell(Text(
+                      (m["carreras"] as List)
+                          .map((c) => c["nombre"])
+                          .join(", "),
+                    )),
+                    DataCell(Text(
+                      (m["docentes"] as List)
+                          .map((d) =>
+                              "${d["nombres"]} ${d["apellidos"]}")
+                          .join(", "),
+                    )),
+                    DataCell(Row(
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.edit, color: Colors.orange),
-                          onPressed: () => _abrirFormulario(materia: materia),
+                          icon:
+                              const Icon(Icons.edit, color: Colors.orange),
+                          onPressed: () => _abrirFormulario(materia: m),
                         ),
                         IconButton(
                           icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () => _eliminarMateria(materia["id"]),
+                          onPressed: () => _eliminarMateria(m["id"]),
                         ),
                       ],
-                    ),
-                  ),
-                ]);
-              }).toList(),
+                    )),
+                  ]);
+                }).toList(),
+              ),
             ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.blue,
-        child: const Icon(Icons.add, color: Colors.white),
         onPressed: () => _abrirFormulario(),
+        child: const Icon(Icons.add),
       ),
     );
   }
