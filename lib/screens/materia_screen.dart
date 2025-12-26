@@ -19,7 +19,6 @@ class _MateriasScreenState extends State<MateriasScreen> {
   bool cargando = true;
 
   final _nombreController = TextEditingController();
-  final _codigoController = TextEditingController();
 
   List<int> carrerasSeleccionadas = [];
   List<int> docentesSeleccionados = [];
@@ -61,8 +60,7 @@ class _MateriasScreenState extends State<MateriasScreen> {
   void _abrirFormulario({Map<String, dynamic>? materia}) {
     if (materia != null) {
       _nombreController.text = materia["nombre"] ?? "";
-      _codigoController.text = materia["codigo"] ?? "";
-
+      
       // 🔥 AQUI ESTA LA CLAVE
       carrerasSeleccionadas = List<int>.from(
         (materia["carreras"] ?? []).map((c) => c["id"]),
@@ -73,7 +71,6 @@ class _MateriasScreenState extends State<MateriasScreen> {
       );
     } else {
       _nombreController.clear();
-      _codigoController.clear();
       carrerasSeleccionadas = [];
       docentesSeleccionados = [];
     }
@@ -97,12 +94,7 @@ class _MateriasScreenState extends State<MateriasScreen> {
                       decoration:
                           const InputDecoration(labelText: "Nombre"),
                     ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _codigoController,
-                      decoration:
-                          const InputDecoration(labelText: "Código"),
-                    ),
+                    
 
                     const SizedBox(height: 16),
                     const Text("Carreras",
@@ -139,7 +131,6 @@ class _MateriasScreenState extends State<MateriasScreen> {
 
                           final datos = {
                             "nombre": _nombreController.text.trim(),
-                            "codigo": _codigoController.text.trim(),
                             "carrera_ids": carrerasSeleccionadas,
                             "docente_ids": docentesSeleccionados,
                             "sede_ids": [widget.idSede],
@@ -252,7 +243,6 @@ class _MateriasScreenState extends State<MateriasScreen> {
               scrollDirection: Axis.horizontal,
               child: DataTable(
                 columns: const [
-                  DataColumn(label: Text("Código")),
                   DataColumn(label: Text("Materia")),
                   DataColumn(label: Text("Carreras")),
                   DataColumn(label: Text("Docentes")),
@@ -260,7 +250,6 @@ class _MateriasScreenState extends State<MateriasScreen> {
                 ],
                 rows: materias.map((m) {
                   return DataRow(cells: [
-                    DataCell(Text(m["codigo"] ?? "")),
                     DataCell(Text(m["nombre"] ?? "")),
                     DataCell(Text(
                       (m["carreras"] as List)
