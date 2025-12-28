@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../widgets/admin_crud_layout.dart';
+import '../widgets/admin_table.dart';
+import 'docente_form_screen.dart';
 
 class DocentesScreen extends StatefulWidget {
   final int idSede;
@@ -12,8 +15,10 @@ class DocentesScreen extends StatefulWidget {
 class _DocentesScreenState extends State<DocentesScreen> {
   final _apiService = ApiService();
   List<dynamic> docentes = [];
+  List<dynamic> filteredDocentes = [];
   List<int> docentesSinCuenta = [];
   bool cargando = true;
+  final _searchController = TextEditingController();
 
   final _cedulaController = TextEditingController();
   final _correoController = TextEditingController();
@@ -35,7 +40,34 @@ class _DocentesScreenState extends State<DocentesScreen> {
 
       setState(() {
         docentes = data;
+        
+        // Orden alfabético por Apellido (trim para ignorar espacios)
+        docentes.sort((a, b) {
+           final apeA = (a["apellidos"] ?? "").toString().trim().toLowerCase();
+           final apeB = (b["apellidos"] ?? "").toString().trim().toLowerCase();
+           final cmp = apeA.compareTo(apeB);
+           if (cmp != 0) return cmp;
+           
+           final nomA = (a["nombres"] ?? "").toString().trim().toLowerCase();
+           final nomB = (b["nombres"] ?? "").toString().trim().toLowerCase();
+           return nomA.compareTo(nomB);
+        });
+        
         docentesSinCuenta = sinCuenta.map<int>((d) => d["id"]).toList();
+        
+        // Filtrar directamente aquí para evitar doble setState y asegurar consistencia
+        final query = _searchController.text.toLowerCase().trim();
+        if (query.isEmpty) {
+          filteredDocentes = List.from(docentes);
+        } else {
+          filteredDocentes = docentes.where((d) {
+            final nom = (d["nombres"] ?? "").toString().toLowerCase();
+            final ape = (d["apellidos"] ?? "").toString().toLowerCase();
+            final ced = (d["cedula"] ?? "").toString().toLowerCase();
+            return nom.contains(query) || ape.contains(query) || ced.contains(query);
+          }).toList();
+        }
+        
         cargando = false;
       });
     } catch (e) {
@@ -60,104 +92,43 @@ class _DocentesScreenState extends State<DocentesScreen> {
     }
   }
 
+  void _filterDocentes() {
+    final query = _searchController.text.toLowerCase().trim();
+    setState(() {
+      if (query.isEmpty) {
+        filteredDocentes = List.from(docentes);
+      } else {
+        filteredDocentes = docentes.where((d) {
+          final nom = (d["nombres"] ?? "").toString().toLowerCase();
+          final ape = (d["apellidos"] ?? "").toString().toLowerCase();
+          final ced = (d["cedula"] ?? "").toString().toLowerCase();
+          return nom.contains(query) || ape.contains(query) || ced.contains(query);
+        }).toList();
+      }
+    });
+  }
+
   // ✅ FORMULARIO PARA CREAR / EDITAR DOCENTE
-  void _abrirFormulario({Map<String, dynamic>? docente}) {
-    if (docente != null) {
-      _cedulaController.text = docente["cedula"] ?? "";
-      _correoController.text = docente["correo"] ?? "";
-      _apellidosController.text = docente["apellidos"] ?? "";
-      _nombresController.text = docente["nombres"] ?? "";
-      _regimen = docente["regimen"];
-      _observacion = docente["observacion"];
-    } else {
-      _cedulaController.clear();
-      _correoController.clear();
-      _apellidosController.clear();
-      _nombresController.clear();
-      _regimen = null;
-      _observacion = null;
-    }
-
-    showDialog(
-      context: context,
-      builder: (_) {
-        bool guardando = false;
-        return StatefulBuilder(
-          builder: (context, setStateDialog) {
-            return AlertDialog(
-              title: Text(docente == null ? "Nuevo Docente" : "Editar Docente"),
-              content: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    TextField(controller: _cedulaController, decoration: const InputDecoration(labelText: "Cédula")),
-                    TextField(controller: _correoController, decoration: const InputDecoration(labelText: "Correo")),
-                    TextField(controller: _apellidosController, decoration: const InputDecoration(labelText: "Apellidos")),
-                    TextField(controller: _nombresController, decoration: const InputDecoration(labelText: "Nombres")),
-                    DropdownButtonFormField<String>(
-                      value: _regimen,
-                      items: const [
-                        DropdownMenuItem(value: "LOES", child: Text("LOES")),
-                        DropdownMenuItem(value: "Codigo de trabajo", child: Text("Código de trabajo")),
-                      ],
-                      onChanged: (val) => setStateDialog(() => _regimen = val),
-                      decoration: const InputDecoration(labelText: "Régimen"),
-                    ),
-                    DropdownButtonFormField<String>(
-                      value: _observacion,
-                      items: const [
-                        DropdownMenuItem(value: "Medio tiempo", child: Text("Medio tiempo")),
-                        DropdownMenuItem(value: "Tiempo completo", child: Text("Tiempo completo")),
-                      ],
-                      onChanged: (val) => setStateDialog(() => _observacion = val),
-                      decoration: const InputDecoration(labelText: "Observación"),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancelar")),
-                ElevatedButton(
-                  onPressed: guardando
-                      ? null
-                      : () async {
-                          final datos = {
-                            "cedula": _cedulaController.text.trim(),
-                            "correo": _correoController.text.trim(),
-                            "apellidos": _apellidosController.text.trim(),
-                            "nombres": _nombresController.text.trim(),
-                            "regimen": _regimen,
-                            "observacion": _observacion,
-                            "sede_id": widget.idSede,
-                          };
-
-                          setStateDialog(() => guardando = true);
-
-                          bool success;
-                          if (docente == null) {
-                            success = await _apiService.crearDocente(datos);
-                          } else {
-                            success = await _apiService.actualizarDocente(docente["id"], datos);
-                          }
-
-                          setStateDialog(() => guardando = false);
-
-                          if (success) {
-                            _cargarDocentes();
-                            Navigator.pop(context);
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Error al guardar docente")),
-                            );
-                          }
-                        },
-                  child: const Text("Guardar"),
-                ),
-              ],
-            );
-          },
-        );
-      },
+  void _abrirFormulario({Map<String, dynamic>? docente}) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DocenteFormScreen(
+          idSede: widget.idSede,
+          docente: docente,
+        ),
+      ),
     );
+
+    if (result == true) {
+      _cargarDocentes();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(docente == null ? "Docente creado" : "Docente actualizado"),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
   }
 
   // ✅ FORMULARIO PARA CREAR CUENTA DOCENTE (CON MOSTRAR/OCULTAR)
@@ -342,61 +313,89 @@ class _DocentesScreenState extends State<DocentesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Docentes")),
-      body: cargando
-          ? const Center(child: CircularProgressIndicator())
-          : DataTable(
-              columns: const [
-                DataColumn(label: Text("ID")),
-                DataColumn(label: Text("Cédula")),
-                DataColumn(label: Text("Nombres")),
-                DataColumn(label: Text("Apellidos")),
-                DataColumn(label: Text("Correo")),
-                DataColumn(label: Text("Acciones")),
-              ],
-              rows: docentes.map((docente) {
-                final tieneCuenta = !docentesSinCuenta.contains(docente["id"]);
+    return AdminCRUDLayout(
+      title: "Docentes (${docentes.length})",
+      subtitle: "Administración de personal docente",
+      idSede: widget.idSede,
+      onAdd: () => _abrirFormulario(),
+      filters: TextField(
+        controller: _searchController,
+        onChanged: (_) => _filterDocentes(),
+        decoration: InputDecoration(
+          hintText: "Buscar por nombre, apellido o cédula...",
+          prefixIcon: const Icon(Icons.search),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          filled: true,
+          fillColor: Colors.white,
+        ),
+      ),
+      child: AdminTable(
+        isLoading: cargando,
+        columns: const [
+          DataColumn(label: Text("Cédula")),
+          DataColumn(label: Text("Nombres")),
+          DataColumn(label: Text("Correo")),
+          DataColumn(label: Text("Cuenta")),
+          DataColumn(label: Text("Acciones")),
+        ],
+        rows: (filteredDocentes ?? []).map((docente) {
+          final tieneCuenta = !docentesSinCuenta.contains(docente["id"]);
 
-                return DataRow(cells: [
-                  DataCell(Text(docente["id"].toString())),
-                  DataCell(Text(docente["cedula"] ?? "")),
-                  DataCell(Text(docente["nombres"] ?? "")),
-                  DataCell(Text(docente["apellidos"] ?? "")),
-                  DataCell(Text(docente["correo"] ?? "")),
-                  DataCell(Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit, color: Colors.orange),
-                        onPressed: () => _abrirFormulario(docente: docente),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _eliminarDocente(docente["id"]),
-                      ),
-
-                      if (tieneCuenta) ...[
-                        const Icon(Icons.verified_user, color: Colors.green),
-                        IconButton(
-                          icon: const Icon(Icons.lock_reset, color: Colors.purple),
-                          tooltip: "Cambiar contraseña",
-                          onPressed: () => _abrirFormularioContrasena(docente),
-                        ),
-                      ] else
-                        IconButton(
-                          icon: const Icon(Icons.person_add, color: Colors.blue),
-                          tooltip: "Crear cuenta docente",
-                          onPressed: () => _abrirFormularioCuenta(docente),
-                        ),
-                    ],
-                  )),
-                ]);
-              }).toList(),
+          return DataRow(cells: [
+            DataCell(Text(docente["cedula"] ?? "", style: const TextStyle(fontWeight: FontWeight.bold))),
+            DataCell(Text("${docente["apellidos"] ?? ""} ${docente["nombres"] ?? ""}")),
+            DataCell(Text(docente["correo"] ?? "")),
+            DataCell(
+              tieneCuenta 
+              ? Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.green.withOpacity(0.5)),
+                  ),
+                  child: const Text("ACTIVA", style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
+                )
+              : Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange.withOpacity(0.5)),
+                  ),
+                  child: const Text("PENDIENTE", style: TextStyle(color: Colors.orange, fontSize: 10, fontWeight: FontWeight.bold)),
+                ),
             ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.blue,
-        onPressed: () => _abrirFormulario(),
-        child: const Icon(Icons.add, color: Colors.white),
+            DataCell(Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined, color: Colors.blue),
+                  onPressed: () => _abrirFormulario(docente: docente),
+                  tooltip: "Editar",
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  onPressed: () => _eliminarDocente(docente["id"]),
+                  tooltip: "Eliminar",
+                ),
+                const SizedBox(width: 8),
+                if (tieneCuenta) 
+                  IconButton(
+                    icon: const Icon(Icons.lock_reset, color: Colors.purple),
+                    tooltip: "Cambiar contraseña",
+                    onPressed: () => _abrirFormularioContrasena(docente),
+                  )
+                else
+                  IconButton(
+                    icon: const Icon(Icons.person_add_alt, color: Colors.deepPurple),
+                    tooltip: "Crear cuenta docente",
+                    onPressed: () => _abrirFormularioCuenta(docente),
+                  ),
+              ],
+            )),
+          ]);
+        }).toList(),
       ),
     );
   }

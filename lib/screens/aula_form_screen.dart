@@ -1,90 +1,187 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../widgets/admin_form_layout.dart';
 
 class AulaFormScreen extends StatefulWidget {
   final int idSede;
   final Map<String, dynamic>? aula;
-  final VoidCallback onSave;
 
   const AulaFormScreen({
     super.key,
     required this.idSede,
     this.aula,
-    required this.onSave,
   });
 
   @override
-  _AulaFormScreenState createState() => _AulaFormScreenState();
+  State<AulaFormScreen> createState() => _AulaFormScreenState();
 }
 
 class _AulaFormScreenState extends State<AulaFormScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _apiService = ApiService();
-  final _nombreController = TextEditingController();
-  final _numeroController = TextEditingController();
-  final _capacidadController = TextEditingController();
-  final _descripcionController = TextEditingController();
+  
+  late TextEditingController _nombreCtrl;
+  late TextEditingController _numeroCtrl;
+  late TextEditingController _capacidadCtrl;
+  late TextEditingController _descripcionCtrl;
+
   bool cargando = false;
-  String? mensaje;
+  final Color _primaryColor = const Color(0xFFF59E0B); // Amber 500
 
   @override
   void initState() {
     super.initState();
-    if (widget.aula != null) {
-      _nombreController.text = widget.aula!["nombre"] ?? "";
-      _numeroController.text = widget.aula!["numero"] ?? "";
-      _capacidadController.text = widget.aula!["capacidad"]?.toString() ?? "";
-      _descripcionController.text = widget.aula!["descripcion"] ?? "";
-    }
+    _nombreCtrl = TextEditingController(text: widget.aula?["nombre"] ?? "");
+    _numeroCtrl = TextEditingController(text: widget.aula?["numero"] ?? "");
+    _capacidadCtrl = TextEditingController(text: widget.aula?["capacidad"]?.toString() ?? "");
+    _descripcionCtrl = TextEditingController(text: widget.aula?["descripcion"] ?? "");
+  }
+
+  @override
+  void dispose() {
+    _nombreCtrl.dispose();
+    _numeroCtrl.dispose();
+    _capacidadCtrl.dispose();
+    _descripcionCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _guardar() async {
+    if (!_formKey.currentState!.validate()) return;
+
     setState(() => cargando = true);
 
     final datos = {
-      "nombre": _nombreController.text.trim(),
-      "numero": _numeroController.text.trim(),
-      "capacidad": int.tryParse(_capacidadController.text) ?? 0,
-      "descripcion": _descripcionController.text.trim(),
-      "id_sede": widget.idSede, // ✅ importante para que el backend acepte
+      "nombre": _nombreCtrl.text.trim(),
+      "numero": _numeroCtrl.text.trim(),
+      "capacidad": int.tryParse(_capacidadCtrl.text) ?? 0,
+      "descripcion": _descripcionCtrl.text.trim(),
+      "id_sede": widget.idSede,
     };
 
     bool success;
-    if (widget.aula == null) {
-      success = await _apiService.crearAula(datos);
-    } else {
-      success = await _apiService.actualizarAula(widget.aula!["id"], datos);
-    }
+    try {
+      if (widget.aula == null) {
+        success = await _apiService.crearAula(datos);
+      } else {
+        success = await _apiService.actualizarAula(widget.aula!["id"], datos);
+      }
 
-    setState(() {
-      cargando = false;
-      mensaje = success ? "Guardado con éxito" : "Error al guardar";
-    });
-
-    if (success) {
-      widget.onSave(); // ✅ refresca la tabla en AulasScreen
-      Navigator.pop(context); // ✅ cierra el diálogo
+      if (mounted) {
+        if (success) {
+          Navigator.pop(context, true);
+        } else {
+          setState(() => cargando = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Error al guardar aula"), backgroundColor: Colors.redAccent),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => cargando = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e"), backgroundColor: Colors.redAccent),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(widget.aula == null ? "Nueva Aula" : "Editar Aula"),
-      content: SingleChildScrollView(
-        child: Column(
-          children: [
-            TextField(controller: _nombreController, decoration: const InputDecoration(labelText: "Nombre")),
-            TextField(controller: _numeroController, decoration: const InputDecoration(labelText: "Número")),
-            TextField(controller: _capacidadController, decoration: const InputDecoration(labelText: "Capacidad"), keyboardType: TextInputType.number),
-            TextField(controller: _descripcionController, decoration: const InputDecoration(labelText: "Descripción")),
-            const SizedBox(height: 16),
-            if (mensaje != null) Text(mensaje!, style: const TextStyle(color: Colors.green)),
-          ],
+    final esEdicion = widget.aula != null;
+
+    return AdminFormLayout(
+      title: esEdicion ? "Editar Aula" : "Nueva Aula",
+      subtitle: "Configure los detalles del espacio físico y capacidad para la gestión de horarios.",
+      icon: Icons.meeting_room_rounded,
+      primaryColor: _primaryColor,
+      isLoading: cargando,
+      children: [
+        Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _numeroCtrl,
+                      decoration: premiumInputDecoration(
+                        label: "Número / Código",
+                        hint: "Ej. 101",
+                        icon: Icons.pin_invoke,
+                        primaryColor: _primaryColor,
+                      ),
+                      validator: (v) => v!.trim().isEmpty ? "Requerido" : null,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _capacidadCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: premiumInputDecoration(
+                        label: "Capacidad",
+                        hint: "Ej. 40",
+                        icon: Icons.groups_rounded,
+                        primaryColor: _primaryColor,
+                      ),
+                      validator: (v) => v!.trim().isEmpty ? "Requerido" : null,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              TextFormField(
+                controller: _nombreCtrl,
+                decoration: premiumInputDecoration(
+                  label: "Nombre (Opcional)",
+                  hint: "Ej. Aula Magna",
+                  icon: Icons.class_rounded,
+                  primaryColor: _primaryColor,
+                ),
+              ),
+              const SizedBox(height: 24),
+              TextFormField(
+                controller: _descripcionCtrl,
+                maxLines: 3,
+                decoration: premiumInputDecoration(
+                  label: "Descripción",
+                  hint: "Detalles adicionales sobre el aula...",
+                  icon: Icons.description_rounded,
+                  primaryColor: _primaryColor,
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
+      ],
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancelar")),
-        ElevatedButton(onPressed: cargando ? null : _guardar, child: const Text("Guardar")),
+        ElevatedButton(
+          onPressed: cargando ? null : _guardar,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _primaryColor,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            elevation: 8,
+            shadowColor: _primaryColor.withOpacity(0.4),
+          ),
+          child: Text(
+            esEdicion ? "GUARDAR CAMBIOS" : "CREAR AULA",
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1),
+          ),
+        ),
+        const SizedBox(height: 16),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.grey.shade600,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+          ),
+          child: const Text("Cancelar y volver"),
+        ),
       ],
     );
   }

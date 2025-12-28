@@ -42,8 +42,14 @@ class _LoginScreenState extends State<LoginScreen> with SafeStateMixin {
       final nombres = await _apiService.storage.read(key: "nombres");
       final apellidos = await _apiService.storage.read(key: "apellidos");
       final docenteId = await _apiService.storage.read(key: "docente_id");
+      final email = await _apiService.storage.read(key: "email");
       
-      print("DEBUG - Rol: $rol, Nombres: $nombres, Apellidos: $apellidos, DocenteId: $docenteId");
+      debugPrint("LOGIN_SCREEN: Just logged in!");
+      debugPrint(" - Rol: $rol");
+      debugPrint(" - Nombres: $nombres");
+      debugPrint(" - Apellidos: $apellidos");
+      debugPrint(" - Email: $email");
+      debugPrint(" - DocenteId: $docenteId");
       
       if (rol == "admin") {
         Navigator.pushReplacement(

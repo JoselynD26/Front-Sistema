@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../widgets/admin_crud_layout.dart';
+import '../widgets/admin_table.dart';
+import 'carrera_form.dart';
 
 class CarrerasScreen extends StatefulWidget {
   final int idSede;
@@ -12,13 +15,11 @@ class CarrerasScreen extends StatefulWidget {
 class _CarrerasScreenState extends State<CarrerasScreen> {
   final ApiService _apiService = ApiService();
   List<dynamic> carreras = [];
-  List<dynamic> sedes = [];
   bool cargando = true;
 
   @override
   void initState() {
     super.initState();
-    _cargarSedes();
     _cargarCarreras();
   }
 
@@ -30,16 +31,15 @@ class _CarrerasScreenState extends State<CarrerasScreen> {
             .where((c) =>
                 (c["sede_ids"] ?? []).contains(widget.idSede))
             .toList();
+        
+        // Orden alfabético por nombre
+        carreras.sort((a, b) => (a["nombre"] ?? "").toString().toLowerCase().compareTo((b["nombre"] ?? "").toString().toLowerCase()));
+
         cargando = false;
       });
     } catch (_) {
       setState(() => cargando = false);
     }
-  }
-
-  Future<void> _cargarSedes() async {
-    sedes = await _apiService.listarSedes();
-    setState(() {});
   }
 
   Future<void> _eliminarCarrera(int id) async {
@@ -68,158 +68,66 @@ class _CarrerasScreenState extends State<CarrerasScreen> {
     }
   }
 
-  void _abrirFormulario({Map<String, dynamic>? carrera}) {
-    final nombreController =
-        TextEditingController(text: carrera?["nombre"] ?? "");
-    final codigoController =
-        TextEditingController(text: carrera?["codigo"] ?? "");
-
-    List<int> sedesSeleccionadas =
-        List<int>.from(carrera?["sede_ids"] ?? [widget.idSede]);
-
-    showDialog(
-      context: context,
-      builder: (_) => StatefulBuilder(
-        builder: (context, setStateDialog) => AlertDialog(
-          title: Text(carrera == null ? "Nueva Carrera" : "Editar Carrera"),
-          content: SizedBox(
-            width: 400,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nombreController,
-                  decoration: const InputDecoration(
-                    labelText: "Nombre",
-                    prefixIcon: Icon(Icons.school),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: codigoController,
-                  decoration: const InputDecoration(
-                    labelText: "Código",
-                    prefixIcon: Icon(Icons.code),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    "Sedes",
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 6,
-                  children: sedes.map((s) {
-                    final id = s["id"];
-                    return FilterChip(
-                      label: Text(s["nombre"]),
-                      selected: sedesSeleccionadas.contains(id),
-                      onSelected: (v) {
-                        setStateDialog(() {
-                          v
-                              ? sedesSeleccionadas.add(id)
-                              : sedesSeleccionadas.remove(id);
-                        });
-                      },
-                    );
-                  }).toList(),
-                )
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancelar"),
-            ),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.save),
-              label: const Text("Guardar"),
-              onPressed: () async {
-                final body = {
-                  "nombre": nombreController.text.trim(),
-                  "codigo": codigoController.text.trim().isEmpty
-                      ? "AUTO"
-                      : codigoController.text.trim(),
-                  "sede_ids": sedesSeleccionadas,
-                };
-
-                carrera == null
-                    ? await _apiService.crearCarrera(body)
-                    : await _apiService.actualizarCarrera(
-                        carrera["id"], body);
-
-                Navigator.pop(context);
-                _cargarCarreras();
-              },
-            ),
-          ],
+  void _abrirFormulario({Map<String, dynamic>? carrera}) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CarreraFormScreen(
+          idSede: widget.idSede,
+          carrera: carrera,
         ),
       ),
     );
+
+    if (result == true) {
+      _cargarCarreras();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(carrera == null ? "Carrera creada" : "Carrera actualizada"),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Carreras"),
-        centerTitle: true,
+    return AdminCRUDLayout(
+      title: "Carreras",
+      subtitle: "Gestiona las carreras de esta sede",
+      idSede: widget.idSede,
+      onAdd: () => _abrirFormulario(),
+      child: AdminTable(
+        isLoading: cargando,
+        columns: const [
+          DataColumn(label: Text("Código")),
+          DataColumn(label: Text("Nombre")),
+          DataColumn(label: Text("Acciones")),
+        ],
+        rows: carreras.map((c) {
+          return DataRow(cells: [
+            DataCell(Text(c["codigo"] ?? "AUTO", style: const TextStyle(fontWeight: FontWeight.bold))),
+            DataCell(Text(c["nombre"])),
+            DataCell(
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, color: Colors.blue),
+                    onPressed: () => _abrirFormulario(carrera: c),
+                    tooltip: "Editar",
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                    onPressed: () => _eliminarCarrera(c["id"]),
+                    tooltip: "Eliminar",
+                  ),
+                ],
+              ),
+            ),
+          ]);
+        }).toList(),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        icon: const Icon(Icons.add),
-        label: const Text("Nueva Carrera"),
-        onPressed: () => _abrirFormulario(),
-      ),
-      body: cargando
-          ? const Center(child: CircularProgressIndicator())
-          : carreras.isEmpty
-              ? const Center(child: Text("No hay carreras registradas"))
-              : ListView.builder(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: carreras.length,
-                  itemBuilder: (context, i) {
-                    final c = carreras[i];
-                    return Card(
-                      elevation: 3,
-                      margin: const EdgeInsets.symmetric(vertical: 8),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          child: Text(c["nombre"][0]),
-                        ),
-                        title: Text(
-                          c["nombre"],
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Text(
-                          "Código: ${c["codigo"] ?? "AUTO"}",
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit,
-                                  color: Colors.orange),
-                              onPressed: () =>
-                                  _abrirFormulario(carrera: c),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete,
-                                  color: Colors.red),
-                              onPressed: () =>
-                                  _eliminarCarrera(c["id"]),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
     );
   }
 }

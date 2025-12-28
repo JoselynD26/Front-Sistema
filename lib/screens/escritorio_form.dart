@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../widgets/admin_form_layout.dart';
 import '../utils/mouse_tracker_fix.dart';
 
 class EscritorioForm extends StatefulWidget {
@@ -30,6 +31,7 @@ class _EscritorioFormState extends State<EscritorioForm> with SafeStateMixin {
   List<dynamic> docentesDisponibles = [];
   final apiService = ApiService();
   bool cargando = false;
+  final Color _primaryColor = const Color(0xFF06B6D4); // Cyan 500
 
   @override
   void initState() {
@@ -103,83 +105,123 @@ class _EscritorioFormState extends State<EscritorioForm> with SafeStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(widget.escritorio == null ? "Nuevo Escritorio" : "Editar Escritorio")),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              TextField(
-                controller: _codigoController,
-                decoration: const InputDecoration(labelText: "Código"),
+    final bool isEdit = widget.escritorio != null;
+
+    return AdminFormLayout(
+      title: isEdit ? "Editar Escritorio" : "Nuevo Escritorio",
+      subtitle: "Asigne códigos y configure la disponibilidad de los espacios de trabajo.",
+      icon: Icons.desk_rounded,
+      primaryColor: _primaryColor,
+      isLoading: cargando,
+      children: [
+        Column(
+          children: [
+            TextField(
+              controller: _codigoController,
+              decoration: premiumInputDecoration(
+                label: "Código del Escritorio",
+                hint: "Ej. ESC-001",
+                icon: Icons.qr_code_rounded,
+                primaryColor: _primaryColor,
               ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: estado,
-                items: ["libre", "ocupado"].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                onChanged: (value) => safeSetState(() => estado = value!),
-                decoration: const InputDecoration(labelText: "Estado"),
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: jornada,
-                items: ["matutina", "vespertina", "nocturna"].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                onChanged: (value) => safeSetState(() => jornada = value!),
-                decoration: const InputDecoration(labelText: "Jornada"),
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<int>(
-                value: salaSeleccionada,
-                items: salasDisponibles.map((sala) => DropdownMenuItem<int>(value: sala["id"], child: Text(sala["nombre"]))).toList(),
-                onChanged: (value) => safeSetState(() => salaSeleccionada = value),
-                decoration: const InputDecoration(labelText: "Sala"),
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<int>(
-                value: carreraSeleccionada,
-                items: carrerasDisponibles.map((carrera) => DropdownMenuItem<int>(value: carrera["id"], child: Text(carrera["nombre"]))).toList(),
-                onChanged: (value) => safeSetState(() => carreraSeleccionada = value),
-                decoration: const InputDecoration(labelText: "Carrera"),
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<int>(
-                value: docenteSeleccionado,
-                items: docentesDisponibles.map((docente) => DropdownMenuItem<int>(value: docente["id"], child: Text("${docente["nombres"]} ${docente["apellidos"]}"))).toList(),
-                onChanged: (value) => safeSetState(() => docenteSeleccionado = value),
-                decoration: const InputDecoration(labelText: "Docente (Opcional)"),
-              ),
-              const SizedBox(height: 32),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text("Cancelar"),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: estado,
+                    items: ["libre", "ocupado"].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                    onChanged: (value) => safeSetState(() => estado = value!),
+                    decoration: premiumInputDecoration(
+                      label: "Estado",
+                      hint: "Seleccione...",
+                      icon: Icons.info_outline_rounded,
+                      primaryColor: _primaryColor,
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: cargando ? null : _guardar,
-                      child: cargando
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Text("Guardar"),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: jornada,
+                    items: ["matutina", "vespertina", "nocturna"].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                    onChanged: (value) => safeSetState(() => jornada = value!),
+                    decoration: premiumInputDecoration(
+                      label: "Jornada",
+                      hint: "Seleccione...",
+                      icon: Icons.schedule_rounded,
+                      primaryColor: _primaryColor,
                     ),
                   ),
-                ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            DropdownButtonFormField<int>(
+              value: salaSeleccionada,
+              items: salasDisponibles.map((sala) => DropdownMenuItem<int>(value: sala["id"], child: Text(sala["nombre"]))).toList(),
+              onChanged: (value) => safeSetState(() => salaSeleccionada = value),
+              decoration: premiumInputDecoration(
+                label: "Sala Destino",
+                hint: "Seleccione la sala...",
+                icon: Icons.meeting_room_rounded,
+                primaryColor: _primaryColor,
               ),
-            ],
+            ),
+            const SizedBox(height: 24),
+            DropdownButtonFormField<int>(
+              value: carreraSeleccionada,
+              items: carrerasDisponibles.map((carrera) => DropdownMenuItem<int>(value: carrera["id"], child: Text(carrera["nombre"]))).toList(),
+              onChanged: (value) => safeSetState(() => carreraSeleccionada = value),
+              decoration: premiumInputDecoration(
+                label: "Carrera Asignada",
+                hint: "Seleccione la carrera...",
+                icon: Icons.school_rounded,
+                primaryColor: _primaryColor,
+              ),
+            ),
+            const SizedBox(height: 24),
+            DropdownButtonFormField<int>(
+              value: docenteSeleccionado,
+              items: docentesDisponibles.map((docente) => DropdownMenuItem<int>(value: docente["id"], child: Text("${docente["apellidos"]} ${docente["nombres"]}"))).toList(),
+              onChanged: (value) => safeSetState(() => docenteSeleccionado = value),
+              decoration: premiumInputDecoration(
+                label: "Docente (Opcional)",
+                hint: "Seleccione el docente...",
+                icon: Icons.person_rounded,
+                primaryColor: _primaryColor,
+              ),
+            ),
+          ],
+        ),
+      ],
+      actions: [
+        ElevatedButton(
+          onPressed: cargando ? null : _guardar,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _primaryColor,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            elevation: 8,
+            shadowColor: _primaryColor.withOpacity(0.4),
+          ),
+          child: Text(
+            isEdit ? "GUARDAR CAMBIOS" : "CREAR ESCRITORIO",
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1),
           ),
         ),
-      ),
+        const SizedBox(height: 16),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.grey.shade600,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+          ),
+          child: const Text("Cancelar y volver"),
+        ),
+      ],
     );
   }
 }

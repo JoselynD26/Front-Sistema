@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../services/api_service.dart';
+import '../widgets/admin_crud_layout.dart';
+import '../widgets/croquis_viewer_dialog.dart';
 
 class CroquisScreen extends StatefulWidget {
   final int sedeId;
@@ -19,7 +21,9 @@ class CroquisScreen extends StatefulWidget {
 class _CroquisScreenState extends State<CroquisScreen> {
   final ApiService _api = ApiService();
   List<dynamic> salas = [];
+  List<dynamic> filteredSalas = [];
   bool isLoading = true;
+  String searchQuery = "";
 
   @override
   void initState() {
@@ -29,14 +33,12 @@ class _CroquisScreenState extends State<CroquisScreen> {
 
   Future<void> _cargarSalas() async {
     try {
-      // Cargar todas las salas de profesores de todas las sedes
       final sedesData = await _api.listarSedes();
       List<dynamic> todasSalas = [];
       
       for (var sede in sedesData) {
         try {
           final salasData = await _api.listarSalasPorSede(sede['id']);
-          // Agregar información de la sede a cada sala
           for (var sala in salasData) {
             sala['sede_nombre'] = sede['nombre'];
           }
@@ -46,8 +48,12 @@ class _CroquisScreenState extends State<CroquisScreen> {
         }
       }
       
+      // Ordenar salas por nombre
+      todasSalas.sort((a, b) => (a["nombre"] ?? "").toString().toLowerCase().compareTo((b["nombre"] ?? "").toString().toLowerCase()));
+
       setState(() {
         salas = todasSalas;
+        filteredSalas = todasSalas;
         isLoading = false;
       });
     } catch (e) {
@@ -56,10 +62,21 @@ class _CroquisScreenState extends State<CroquisScreen> {
     }
   }
 
+  void _filterSalas(String query) {
+    setState(() {
+      searchQuery = query;
+      filteredSalas = salas.where((sala) {
+        final nombre = (sala['nombre'] ?? "").toString().toLowerCase();
+        final sede = (sala['sede_nombre'] ?? "").toString().toLowerCase();
+        return nombre.contains(query.toLowerCase()) || sede.contains(query.toLowerCase());
+      }).toList();
+    });
+  }
+
   Future<void> _subirCroquisSala(int salaId) async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['jpg', 'jpeg', 'png', 'svg', 'pdf'],
+      allowedExtensions: ['jpg', 'jpeg', 'png', 'svg'],
     );
 
     if (result != null) {
@@ -83,103 +100,241 @@ class _CroquisScreenState extends State<CroquisScreen> {
     }
   }
 
-  Future<void> _verCroquisSala(int salaId) async {
+  Future<void> _verCroquisSala(dynamic sala) async {
+    final salaId = sala['id'];
     final croquisUrl = await _api.obtenerCroquisSala(salaId);
     
     if (croquisUrl != null && croquisUrl.isNotEmpty) {
-      // Si la URL ya es completa (de Supabase), usarla directamente
       final imageUrl = croquisUrl.startsWith('http') ? croquisUrl : '${_api.baseUrl}$croquisUrl';
       
       showDialog(
         context: context,
-        builder: (context) => Dialog(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AppBar(
-                title: const Text('Croquis de la Sala'),
-                automaticallyImplyLeading: false,
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              Expanded(
-                child: Image.network(
-                  imageUrl,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Center(child: Text('Error al cargar imagen'));
-                  },
-                ),
-              ),
-            ],
-          ),
+        builder: (context) => CroquisViewerDialog(
+          imageUrl: imageUrl, 
+          title: "Croquis - ${sala['nombre']}",
         ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No hay croquis disponible')),
+        const SnackBar(content: Text('No hay croquis disponible para esta sala')),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.rol == 'admin' ? 'Croquis de Salas de Profesores' : 'Croquis por Sala'),
-      ),
-      body: salas.isEmpty
-          ? const Center(
-              child: Text(
-                'No hay salas disponibles',
-                style: TextStyle(fontSize: 16),
+    final bool isAdmin = widget.rol.toLowerCase() == 'admin';
+    
+    return AdminCRUDLayout(
+      title: isAdmin ? "Croquis de Salas" : "Croquis Disponibles",
+      subtitle: "Gestión visual de los mapas de ubicación de las salas",
+      idSede: widget.sedeId,
+      child: Column(
+        children: [
+          // Search Bar
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              onChanged: _filterSalas,
+              decoration: InputDecoration(
+                hintText: "Buscar por sala o sede...",
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade200),
+                ),
               ),
+            ),
+          ),
+          
+          if (isLoading)
+            const Padding(
+              padding: EdgeInsets.all(48.0),
+              child: Center(child: CircularProgressIndicator()),
             )
-          : ListView.builder(
-              itemCount: salas.length,
+          else if (filteredSalas.isEmpty)
+            _buildEmptyState()
+          else
+            GridView.builder(
+              padding: const EdgeInsets.all(16),
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 350,
+                childAspectRatio: 0.85,
+                crossAxisSpacing: 20,
+                mainAxisSpacing: 20,
+              ),
+              itemCount: filteredSalas.length,
               itemBuilder: (context, index) {
-                final sala = salas[index];
-                return Card(
-                  margin: const EdgeInsets.all(8),
-                  child: ListTile(
-                    title: Text(sala['nombre'] ?? 'Sin nombre'),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Capacidad: ${sala['capacidad']}'),
-                        Text('Sede: ${sala['sede_nombre'] ?? 'Sin sede'}'),
-                      ],
+                final sala = filteredSalas[index];
+                return _buildSalaCard(sala);
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.search_off, size: 64, color: Colors.grey.shade400),
+          const SizedBox(height: 16),
+          Text(
+            searchQuery.isEmpty ? "No hay salas registradas" : "No se encontraron salas que coincidan",
+            style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSalaCard(dynamic sala) {
+    final hasCroquis = sala['croquis_url'] != null;
+    
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => _verCroquisSala(sala),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Preview Image Area
+            Expanded(
+              flex: 4,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Container(
+                    color: Colors.grey.shade100,
+                    child: hasCroquis
+                      ? Image.network(
+                          sala['croquis_url'].startsWith('http') 
+                              ? sala['croquis_url'] 
+                              : '${_api.baseUrl}${sala['croquis_url']}',
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _buildPlaceholder(),
+                        )
+                      : _buildPlaceholder(),
+                  ),
+                  // Badge for status
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: hasCroquis ? Colors.green.withOpacity(0.9) : Colors.orange.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        hasCroquis ? "CON MAPA" : "SIN MAPA",
+                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                      ),
                     ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
+                  ),
+                ],
+              ),
+            ),
+            
+            // Info Area
+            Expanded(
+              flex: 3,
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      sala['nombre'] ?? "Sala sin nombre",
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
                       children: [
-                        if (widget.rol == 'admin')
-                          IconButton(
-                            icon: const Icon(Icons.upload_file, color: Colors.blue),
-                            onPressed: () => _subirCroquisSala(sala['id']),
-                            tooltip: 'Subir croquis',
+                        const Icon(Icons.business, size: 14, color: Colors.grey),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            sala['sede_nombre'] ?? "Sede no especificada",
+                            style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        IconButton(
-                          icon: const Icon(Icons.visibility, color: Colors.green),
-                          onPressed: () => _verCroquisSala(sala['id']),
-                          tooltip: 'Ver croquis',
                         ),
                       ],
                     ),
-                  ),
-                );
-              },
+                    const Spacer(),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.people_outline, size: 14, color: Colors.blue),
+                            const SizedBox(width: 4),
+                            Text(
+                              "${sala['capacidad'] ?? 0} cap.",
+                              style: const TextStyle(fontSize: 12, color: Colors.blue, fontWeight: FontWeight.w500),
+                            ),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            if (widget.rol.toLowerCase() == 'admin')
+                              IconButton(
+                                icon: const Icon(Icons.cloud_upload_outlined, color: Colors.blue, size: 20),
+                                onPressed: () => _subirCroquisSala(sala['id']),
+                                tooltip: 'Subir nuevo croquis',
+                                constraints: const BoxConstraints(),
+                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                              ),
+                            IconButton(
+                              icon: const Icon(Icons.visibility_outlined, color: Colors.green, size: 20),
+                              onPressed: () => _verCroquisSala(sala),
+                              tooltip: 'Ver pantalla completa',
+                              constraints: const BoxConstraints(),
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlaceholder() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.map_outlined, size: 48, color: Colors.grey.shade300),
+          const SizedBox(height: 8),
+          Text(
+            "Sin croquis",
+            style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+          ),
+        ],
+      ),
     );
   }
 }

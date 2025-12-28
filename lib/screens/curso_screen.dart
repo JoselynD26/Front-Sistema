@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../widgets/admin_crud_layout.dart';
+import '../widgets/admin_table.dart';
+import 'curso_form_screen.dart';
 
 class CursosScreen extends StatefulWidget {
   final int idSede;
@@ -12,47 +15,77 @@ class CursosScreen extends StatefulWidget {
 class _CursosScreenState extends State<CursosScreen> {
   final _apiService = ApiService();
   List<dynamic> cursos = [];
+  Map<int, String> carrerasMap = {};
   bool cargando = true;
-
-  final _nombreController = TextEditingController();
-  final _nivelController = TextEditingController();
-  final _paraleloController = TextEditingController();
-  String _jornadaSeleccionada = "Matutina";
-  int? _carreraSeleccionada;
-  List<dynamic> carrerasDisponibles = [];
 
   @override
   void initState() {
     super.initState();
     _cargarCursos();
-    _cargarCarreras();
-  }
-
-  Future<void> _cargarCarreras() async {
-    try {
-      final data = await _apiService.listarCarreras();
-      setState(() {
-        carrerasDisponibles = data.where((c) => 
-          (c["sede_ids"] as List).contains(widget.idSede)
-        ).toList();
-      });
-    } catch (e) {
-      print("Error cargando carreras: $e");
-    }
   }
 
   Future<void> _cargarCursos() async {
     try {
-      final data = await _apiService.listarCursosPorSede(widget.idSede);
+      final res = await Future.wait([
+        _apiService.listarCursosPorSede(widget.idSede),
+        _apiService.listarCarreras(),
+      ]);
+      
+      final data = res[0] as List;
+      final carrs = res[1] as List;
+
+      final Map<int, String> cMap = {};
+      for (var c in carrs) {
+        if (c["id"] != null) cMap[c["id"]] = c["nombre"] ?? "N/A";
+      }
+
       setState(() {
         cursos = data;
+        carrerasMap = cMap;
+        
+        // Orden: Carrera → Nivel → Jornada (Matutina, Vespertina, Nocturna) → Paralelo → Nombre
+        cursos.sort((a, b) {
+          final nomCarreraA = carrerasMap[a["carrera_id"]]?.toLowerCase() ?? "";
+          final nomCarreraB = carrerasMap[b["carrera_id"]]?.toLowerCase() ?? "";
+          final cmpCarrera = nomCarreraA.compareTo(nomCarreraB);
+          if (cmpCarrera != 0) return cmpCarrera;
+
+          // Comparar nivel
+          final nivelA = (a["nivel"] ?? "").toString().toLowerCase();
+          final nivelB = (b["nivel"] ?? "").toString().toLowerCase();
+          final cmpNivel = nivelA.compareTo(nivelB);
+          if (cmpNivel != 0) return cmpNivel;
+
+          // Comparar jornada con orden personalizado
+          final jornadaA = (a["jornada"] ?? "").toString().toLowerCase();
+          final jornadaB = (b["jornada"] ?? "").toString().toLowerCase();
+          
+          int getJornadaPrioridad(String jornada) {
+            if (jornada.contains("matutina")) return 1;
+            if (jornada.contains("vespertina")) return 2;
+            if (jornada.contains("nocturna")) return 3;
+            return 4; // Otras jornadas al final
+          }
+          
+          final cmpJornada = getJornadaPrioridad(jornadaA).compareTo(getJornadaPrioridad(jornadaB));
+          if (cmpJornada != 0) return cmpJornada;
+
+          // Comparar paralelo (A, B, C, etc.)
+          final paraleloA = (a["paralelo"] ?? "").toString().toLowerCase();
+          final paraleloB = (b["paralelo"] ?? "").toString().toLowerCase();
+          final cmpParalelo = paraleloA.compareTo(paraleloB);
+          if (cmpParalelo != 0) return cmpParalelo;
+
+          // Finalmente por nombre
+          final nomA = (a["nombre"] ?? "").toString().toLowerCase();
+          final nomB = (b["nombre"] ?? "").toString().toLowerCase();
+          return nomA.compareTo(nomB);
+        });
+
         cargando = false;
       });
     } catch (e) {
-      setState(() => cargando = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error al cargar cursos")),
-      );
+      if (mounted) setState(() => cargando = false);
     }
   }
 
@@ -60,187 +93,203 @@ class _CursosScreenState extends State<CursosScreen> {
     final ok = await _apiService.eliminarCurso(id);
     if (ok) {
       _cargarCursos();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Curso eliminado")),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error al eliminar curso")),
-      );
     }
   }
 
-  void _abrirFormulario({Map<String, dynamic>? curso}) {
-    if (curso != null) {
-      _nombreController.text = curso["nombre"] ?? "";
-      _nivelController.text = curso["nivel"] ?? "";
-      _paraleloController.text = curso["paralelo"] ?? "";
-      _jornadaSeleccionada = curso["jornada"] ?? "Matutina";
-      _carreraSeleccionada = curso["carrera_id"];
-    } else {
-      _nombreController.clear();
-      _nivelController.clear();
-      _paraleloController.clear();
-      _jornadaSeleccionada = "Matutina";
-      _carreraSeleccionada = null;
-    }
-
-    showDialog(
-      context: context,
-      builder: (_) {
-        bool guardando = false;
-        return StatefulBuilder(
-          builder: (context, setStateDialog) {
-            return AlertDialog(
-              title: Text(curso == null ? "Nuevo Curso" : "Editar Curso"),
-              content: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: _nombreController,
-                      decoration: const InputDecoration(labelText: "Nombre del Curso"),
-                    ),
-                    TextField(
-                      controller: _nivelController,
-                      decoration: const InputDecoration(labelText: "Nivel"),
-                    ),
-                    TextField(
-                      controller: _paraleloController,
-                      decoration: const InputDecoration(labelText: "Paralelo"),
-                    ),
-                    DropdownButtonFormField<int>(
-                      value: _carreraSeleccionada,
-                      items: carrerasDisponibles.map((carrera) => 
-                        DropdownMenuItem<int>(
-                          value: carrera["id"],
-                          child: Text(carrera["nombre"]),
-                        )
-                      ).toList(),
-                      onChanged: (value) => setStateDialog(() => _carreraSeleccionada = value),
-                      decoration: const InputDecoration(labelText: "Carrera"),
-                    ),
-                    DropdownButtonFormField<String>(
-                      value: _jornadaSeleccionada,
-                      items: const [
-                        DropdownMenuItem(value: "Matutina", child: Text("Matutina")),
-                        DropdownMenuItem(value: "Vespertina", child: Text("Vespertina")),
-                        DropdownMenuItem(value: "Nocturna", child: Text("Nocturna")),
-                      ],
-                      onChanged: (value) => setStateDialog(() => _jornadaSeleccionada = value!),
-                      decoration: const InputDecoration(labelText: "Jornada"),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("Cancelar"),
-                ),
-                ElevatedButton(
-                  onPressed: guardando
-                      ? null
-                      : () async {
-                          if (_nombreController.text.trim().isEmpty || _carreraSeleccionada == null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Completa todos los campos obligatorios")),
-                            );
-                            return;
-                          }
-
-                          final datos = {
-                            "nombre": _nombreController.text.trim(),
-                            "nivel": _nivelController.text.trim(),
-                            "paralelo": _paraleloController.text.trim(),
-                            "carrera_id": _carreraSeleccionada,
-                            "jornada": _jornadaSeleccionada,
-                            "id_sede": widget.idSede,
-                          };
-
-                          setStateDialog(() => guardando = true);
-
-                          bool success;
-                          if (curso == null) {
-                            success = await _apiService.crearCurso(datos);
-                          } else {
-                            success = await _apiService.actualizarCurso(curso["id"], datos);
-                          }
-
-                          setStateDialog(() => guardando = false);
-
-                          if (success) {
-                            _cargarCursos();
-                            Navigator.pop(context);
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Error al guardar curso")),
-                            );
-                          }
-                        },
-                  child: guardando
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Text("Guardar"),
-                ),
-              ],
-            );
-          },
-        );
-      },
+  void _abrirFormulario({Map<String, dynamic>? curso}) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CursoFormScreen(
+          idSede: widget.idSede,
+          curso: curso,
+        ),
+      ),
     );
+
+    if (result == true) {
+      _cargarCursos();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Cursos")),
-      body: cargando
+    // Agrupar cursos por carrera
+    Map<String, List<dynamic>> cursosPorCarrera = {};
+    for (var curso in cursos) {
+      final carreraNombre = carrerasMap[curso["carrera_id"]] ?? "Sin Carrera";
+      if (!cursosPorCarrera.containsKey(carreraNombre)) {
+        cursosPorCarrera[carreraNombre] = [];
+      }
+      cursosPorCarrera[carreraNombre]!.add(curso);
+    }
+
+    // Ordenar las carreras alfabéticamente
+    final carrerasOrdenadas = cursosPorCarrera.keys.toList()..sort();
+
+    return AdminCRUDLayout(
+      title: "Cursos",
+      subtitle: "Gestión de paralelos y niveles",
+      idSede: widget.idSede,
+      onAdd: () => _abrirFormulario(),
+      child: cargando
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                columns: const [
-                  DataColumn(label: Text("ID")),
-                  DataColumn(label: Text("Nombre")),
-                  DataColumn(label: Text("Nivel")),
-                  DataColumn(label: Text("Paralelo")),
-                  DataColumn(label: Text("Jornada")),
-                  DataColumn(label: Text("Acciones")),
-                ],
-                rows: cursos.map((curso) {
-                  return DataRow(cells: [
-                    DataCell(Text(curso["id"].toString())),
-                    DataCell(Text(curso["nombre"] ?? "")),
-                    DataCell(Text(curso["nivel"] ?? "")),
-                    DataCell(Text(curso["paralelo"] ?? "")),
-                    DataCell(Text(curso["jornada"] ?? "")),
-                    DataCell(Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit, color: Colors.orange),
-                          onPressed: () => _abrirFormulario(curso: curso),
+          : cursos.isEmpty
+              ? const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(32.0),
+                    child: Text(
+                      "No hay cursos registrados",
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
+                  ),
+                )
+              : ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: carrerasOrdenadas.length,
+                  itemBuilder: (context, index) {
+                    final carreraNombre = carrerasOrdenadas[index];
+                    final cursosDeCarrera = cursosPorCarrera[carreraNombre]!;
+
+                    // Agrupar cursos de esta carrera por nivel
+                    Map<String, List<dynamic>> cursosPorNivel = {};
+                    for (var curso in cursosDeCarrera) {
+                      final nivel = curso["nivel"] ?? "Sin Nivel";
+                      if (!cursosPorNivel.containsKey(nivel)) {
+                        cursosPorNivel[nivel] = [];
+                      }
+                      cursosPorNivel[nivel]!.add(curso);
+                    }
+
+                    // Ordenar niveles (1ro, 2do, 3ro, etc.)
+                    final nivelesOrdenados = cursosPorNivel.keys.toList()..sort();
+
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: ExpansionTile(
+                        initiallyExpanded: true,
+                        tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                        title: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.indigo.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.school, color: Colors.indigo, size: 24),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    carreraNombre,
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.indigo,
+                                    ),
+                                  ),
+                                  Text(
+                                    "${cursosDeCarrera.length} curso${cursosDeCarrera.length != 1 ? 's' : ''}",
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () => _eliminarCurso(curso["id"]),
-                        ),
-                      ],
-                    )),
-                  ]);
-                }).toList(),
-              ),
-            ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.blue,
-        onPressed: () => _abrirFormulario(),
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
+                        children: nivelesOrdenados.map((nivel) {
+                          final cursosDelNivel = cursosPorNivel[nivel]!;
+                          
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Header del nivel
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.grade, color: Colors.blue, size: 20),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        nivel,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.blue,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        "(${cursosDelNivel.length} paralelo${cursosDelNivel.length != 1 ? 's' : ''})",
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                // Tabla de cursos del nivel
+                                AdminTable(
+                                  isLoading: false,
+                                  columns: const [
+                                    DataColumn(label: Text("Nombre")),
+                                    DataColumn(label: Text("Paralelo")),
+                                    DataColumn(label: Text("Jornada")),
+                                    DataColumn(label: Text("Acciones")),
+                                  ],
+                                  rows: cursosDelNivel.map((curso) {
+                                    return DataRow(cells: [
+                                      DataCell(Text(curso["nombre"] ?? "", style: const TextStyle(fontWeight: FontWeight.bold))),
+                                      DataCell(Text(curso["paralelo"] ?? "")),
+                                      DataCell(Text(curso["jornada"] ?? "")),
+                                      DataCell(Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(Icons.edit_outlined, color: Colors.blue),
+                                            onPressed: () => _abrirFormulario(curso: curso),
+                                            tooltip: "Editar",
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                            onPressed: () => _eliminarCurso(curso["id"]),
+                                            tooltip: "Eliminar",
+                                          ),
+                                        ],
+                                      )),
+                                    ]);
+                                  }).toList(),
+                                ),
+                                const SizedBox(height: 8),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    );
+                  },
+                ),
     );
   }
 }

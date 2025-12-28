@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:html' as html;
 import '../services/api_service.dart';
+import '../widgets/admin_crud_layout.dart';
+import '../widgets/admin_table.dart';
 
 class PdfHorariosScreen extends StatefulWidget {
   final int sedeId;
@@ -166,166 +168,174 @@ class _PdfHorariosScreenState extends State<PdfHorariosScreen> {
   Widget _buildSeccionTipo(String tipo, String titulo, IconData icono) {
     final horariosTipo = _horarios.where((h) => h['tipo'] == tipo).toList();
     
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icono, color: Colors.blue, size: 24),
-            SizedBox(width: 8),
-            Text(
-              titulo,
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue),
-            ),
-          ],
-        ),
-        SizedBox(height: 8),
-        ...horariosTipo.map((horario) => Card(
-          margin: EdgeInsets.only(bottom: 8.0),
-          child: ListTile(
-            leading: Icon(icono, color: Colors.green, size: 40),
-            title: Text(horario['titulo'] ?? 'Sin título'),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 8, bottom: 12),
+            child: Row(
               children: [
-                Text('Nombre: ${horario['nombre'] ?? ''}'),
-                if ((horario['fecha_subida'] ?? '').isNotEmpty)
-                  Text('Subido: ${horario['fecha_subida'].toString().substring(0, 10)}'),
-              ],
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: Icon(Icons.visibility, color: Colors.blue),
-                  onPressed: (horario['archivo'] ?? '').isNotEmpty ? () => _verPdf(horario['archivo']) : null,
-                  tooltip: 'Ver PDF',
+                Icon(icono, color: const Color(0xFF1E3A8A), size: 24),
+                const SizedBox(width: 8),
+                Text(
+                  titulo,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A)),
                 ),
-                if (widget.rol == 'admin')
-                  IconButton(
-                    icon: Icon(Icons.delete, color: Colors.red),
-                    onPressed: (horario['archivo'] ?? '').isNotEmpty ? () => _eliminarPdf(horario['archivo']) : null,
-                    tooltip: 'Eliminar PDF',
-                  ),
               ],
             ),
           ),
-        )).toList(),
-      ],
+          AdminTable(
+            isLoading: false, // Ya cargaron
+            columns: const [
+              DataColumn(label: Text("Título")),
+              DataColumn(label: Text("Nombre Archivo")),
+              DataColumn(label: Text("Fecha Subida")),
+              DataColumn(label: Text("Acciones")),
+            ],
+            rows: horariosTipo.map((horario) {
+              return DataRow(cells: [
+                DataCell(Text(horario['titulo'] ?? 'Sin título', style: const TextStyle(fontWeight: FontWeight.bold))),
+                DataCell(Text(horario['nombre'] ?? '', overflow: TextOverflow.ellipsis)),
+                DataCell(Text(horario['fecha_subida']?.toString().substring(0, 10) ?? '')),
+                DataCell(Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.visibility_outlined, color: Colors.blue),
+                      onPressed: (horario['archivo'] ?? '').isNotEmpty ? () => _verPdf(horario['archivo']) : null,
+                      tooltip: 'Ver PDF',
+                    ),
+                    if (widget.rol.toLowerCase() == 'admin')
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, color: Colors.red),
+                        onPressed: (horario['archivo'] ?? '').isNotEmpty ? () => _eliminarPdf(horario['archivo']) : null,
+                        tooltip: 'Eliminar PDF',
+                      ),
+                  ],
+                )),
+              ]);
+            }).toList(),
+          ),
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.rol == 'admin' ? 'PDF Horarios' : 'Horarios'),
-        backgroundColor: Colors.blue,
-      ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator())
+    final bool isDocente = widget.rol.toLowerCase() == 'docente' || widget.rol.toLowerCase() == 'profesor';
+    final bool isAdmin = widget.rol.toLowerCase() == 'admin';
+
+    if (isDocente) {
+      return AdminCRUDLayout(
+        title: "Horarios PDF",
+        subtitle: "Descarga y visualización de horarios",
+        idSede: widget.sedeId,
+        child: SizedBox(
+          height: 600,
+          child: PdfHorariosContent(sedeId: widget.sedeId),
+        ),
+      );
+    }
+
+    return AdminCRUDLayout(
+      title: "Gestión de Horarios PDF",
+      subtitle: "Subir y administrar horarios institucionales",
+      idSede: widget.sedeId,
+      // Custom actions provided in body
+      child: _isLoading
+          ? const Center(child: CircularProgressIndicator())
           : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Botón para subir nuevo PDF (solo admin)
-                if (widget.rol == 'admin')
+                // ACTION BUTTONS ROW
+                if (isAdmin)
                   Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Row(
+                    padding: const EdgeInsets.only(bottom: 24),
+                    child: Wrap(
+                      spacing: 16,
+                      runSpacing: 16,
                       children: _tiposHorarios.map((tipoInfo) => 
-                        Expanded(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 4.0),
-                            child: ElevatedButton.icon(
-                              onPressed: () => _subirPdf(tipoInfo['tipo']!),
-                              icon: Icon(Icons.upload_file),
-                              label: Text('Subir ${tipoInfo['titulo']!}'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orange,
-                                foregroundColor: Colors.white,
-                              ),
-                            ),
+                        ElevatedButton.icon(
+                          onPressed: () => _subirPdf(tipoInfo['tipo']!),
+                          icon: const Icon(Icons.upload_file),
+                          label: Text('Subir ${tipoInfo['titulo']!}'),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                           ),
                         ),
                       ).toList(),
                     ),
                   ),
-                
-                // Botón para ver PDFs (solo docentes)
-                if (widget.rol == 'docente')
-                  Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: ElevatedButton.icon(
-                      onPressed: () => _mostrarPdfs(),
-                      icon: Icon(Icons.picture_as_pdf),
-                      label: Text('Ver Horarios PDF'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
-                        minimumSize: Size(double.infinity, 50),
-                      ),
-                    ),
-                  ),
-                
-                // Lista de PDFs (admin) o mensaje (docente)
-                Expanded(
-                  child: widget.rol == 'admin' 
+
+                // LISTA DE PDFS
+                 isAdmin 
                     ? _buildListaAdmin()
                     : _buildVistaDocente(),
-                ),
               ],
             ),
     );
   }
   
   Widget _buildListaAdmin() {
-    return _horarios.isEmpty
-        ? Center(
-            child: Text(
-              'No hay PDFs subidos',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-          )
-        : Padding(
-            padding: EdgeInsets.all(16.0),
-            child: ListView(
-              children: [
-                // Horarios de Aulas
-                if (_horarios.any((h) => h['tipo'] == 'aulas'))
-                  _buildSeccionTipo('aulas', 'Horarios de Aulas', Icons.meeting_room),
-                if (_horarios.any((h) => h['tipo'] == 'aulas'))
-                  SizedBox(height: 16),
-                
-                // Horarios de Cursos
-                if (_horarios.any((h) => h['tipo'] == 'cursos'))
-                  _buildSeccionTipo('cursos', 'Horarios de Cursos', Icons.class_),
-                if (_horarios.any((h) => h['tipo'] == 'cursos'))
-                  SizedBox(height: 16),
-                
-                // Horarios de Docentes
-                if (_horarios.any((h) => h['tipo'] == 'docentes'))
-                  _buildSeccionTipo('docentes', 'Horarios de Docentes', Icons.person),
-              ],
-            ),
-          );
+    if (_horarios.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: Text(
+            'No hay PDFs subidos',
+            style: TextStyle(fontSize: 16, color: Colors.grey),
+          ),
+        ),
+      );
+    }
+
+    // We can use ListView with headers inside the layout card
+    return Column(
+      children: [
+        // Horarios de Aulas
+        if (_horarios.any((h) => h['tipo'] == 'aulas'))
+          _buildSeccionTipo('aulas', 'Horarios de Aulas', Icons.meeting_room_rounded),
+          
+        // Horarios de Cursos
+        if (_horarios.any((h) => h['tipo'] == 'cursos'))
+          _buildSeccionTipo('cursos', 'Horarios de Cursos', Icons.class_rounded),
+          
+        // Horarios de Docentes
+        if (_horarios.any((h) => h['tipo'] == 'docentes'))
+          _buildSeccionTipo('docentes', 'Horarios de Docentes', Icons.person_rounded),
+      ],
+    );
   }
   
   Widget _buildVistaDocente() {
-    return Center(
+    if (_horarios.isEmpty) {
+      return const Center(
+        child: Text(
+          'No hay horarios disponibles para descargar.',
+          style: TextStyle(fontSize: 16, color: Colors.grey),
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.schedule, size: 80, color: Colors.grey),
-          SizedBox(height: 16),
-          Text(
-            'Consulta de Horarios',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 8),
-          Text(
-            'Presiona "Ver Horarios PDF" para consultar\nlos horarios disponibles',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-          ),
+          if (_horarios.any((h) => h['tipo'] == 'aulas'))
+            _buildSeccionTipoDocente('aulas', 'Horarios de Aulas', Icons.meeting_room),
+          if (_horarios.any((h) => h['tipo'] == 'aulas'))
+            const SizedBox(height: 24),
+          
+          if (_horarios.any((h) => h['tipo'] == 'cursos'))
+            _buildSeccionTipoDocente('cursos', 'Horarios de Cursos', Icons.class_),
+          if (_horarios.any((h) => h['tipo'] == 'cursos'))
+            const SizedBox(height: 24),
+          
+          if (_horarios.any((h) => h['tipo'] == 'docentes'))
+            _buildSeccionTipoDocente('docentes', 'Horarios de Docentes', Icons.person),
         ],
       ),
     );
@@ -409,6 +419,163 @@ class _PdfHorariosScreenState extends State<PdfHorariosScreen> {
             ),
           ),
         )).toList(),
+      ],
+    );
+  }
+}
+
+class PdfHorariosContent extends StatefulWidget {
+  final int sedeId;
+
+  const PdfHorariosContent({Key? key, required this.sedeId}) : super(key: key);
+
+  @override
+  _PdfHorariosContentState createState() => _PdfHorariosContentState();
+}
+
+class _PdfHorariosContentState extends State<PdfHorariosContent> {
+  final ApiService _apiService = ApiService();
+  List<Map<String, dynamic>> _horarios = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarHorarios();
+  }
+
+  Future<void> _cargarHorarios() async {
+    try {
+      final response = await _apiService.listarPdfHorarios(widget.sedeId);
+      if (mounted) {
+        setState(() {
+          _horarios = List<Map<String, dynamic>>.from(response);
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _verPdf(String archivo) async {
+    try {
+      final url = "${_apiService.baseUrl}/pdf-horarios/ver/${widget.sedeId}/$archivo";
+      html.window.open(url, '_blank');
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al abrir PDF: $e')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) return const Center(child: CircularProgressIndicator());
+    
+    if (_horarios.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.picture_as_pdf_outlined, size: 48, color: Colors.grey[300]),
+            const SizedBox(height: 16),
+            Text(
+              'No hay horarios disponibles',
+              style: TextStyle(fontSize: 16, color: Colors.grey[500]),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          if (_horarios.any((h) => h['tipo'] == 'aulas'))
+            _buildSection('Horarios de Aulas', 'aulas', Icons.meeting_room_rounded, Colors.orange),
+          
+          if (_horarios.any((h) => h['tipo'] == 'cursos'))
+            _buildSection('Horarios de Cursos', 'cursos', Icons.class_rounded, Colors.blue),
+          
+          if (_horarios.any((h) => h['tipo'] == 'docentes'))
+            _buildSection('Horarios de Docentes', 'docentes', Icons.person_rounded, Colors.green),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSection(String title, String type, IconData icon, Color color) {
+    final items = _horarios.where((h) => h['tipo'] == type).toList();
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
+              ),
+            ],
+          ),
+        ),
+        ...items.map((item) => Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade100),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            leading: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.picture_as_pdf, color: Colors.red),
+            ),
+            title: Text(
+              item['titulo'] ?? 'Sin título',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            subtitle: Text(
+              item['nombre'] ?? '',
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
+            trailing: IconButton(
+              icon: const Icon(Icons.download_rounded, color: Colors.grey),
+              onPressed: () => _verPdf(item['archivo']),
+              tooltip: "Ver/Descargar",
+            ),
+            onTap: () => _verPdf(item['archivo']),
+          ),
+        )).toList(),
+        const SizedBox(height: 16),
       ],
     );
   }

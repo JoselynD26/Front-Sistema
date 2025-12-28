@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
-import '../widgets/web_layout.dart';
+import '../widgets/admin_crud_layout.dart';
 
 class AdminReservasScreen extends StatefulWidget {
-  const AdminReservasScreen({super.key});
+  final int? idSede;
+  const AdminReservasScreen({super.key, this.idSede});
 
   @override
   _AdminReservasScreenState createState() => _AdminReservasScreenState();
@@ -80,191 +81,187 @@ class _AdminReservasScreenState extends State<AdminReservasScreen> {
     const yaviracOrange = Color(0xFFFF6B35);
     const yaviracBlue = Color(0xFF1E3A8A);
 
-    return WebLayout(
-      title: "Gestión de Reservas - Admin",
+    return AdminCRUDLayout(
+      title: "Gestión de Reservas",
+      subtitle: "Aprueba o rechaza solicitudes de reserva",
+      idSede: widget.idSede,
+      // No Add button needed here
       child: cargando
           ? const Center(child: CircularProgressIndicator())
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.pending_actions, color: yaviracBlue, size: 32),
-                    const SizedBox(width: 12),
-                    const Text(
-                      "Reservas Pendientes de Aprobación",
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: yaviracBlue,
+          : reservasPendientes.isEmpty
+              ? Container(
+                  padding: const EdgeInsets.all(48),
+                  width: double.infinity,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.check_circle_outline, size: 64, color: Colors.green.withOpacity(0.5)),
+                      const SizedBox(height: 16),
+                      const Text(
+                        "No hay reservas pendientes",
+                        style: TextStyle(fontSize: 18, color: Colors.grey),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  "Revisa y aprueba las solicitudes de reserva de aulas de los profesores",
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey[600],
+                    ],
                   ),
-                ),
-                const SizedBox(height: 24),
-                
-                if (reservasPendientes.isEmpty)
-                  Center(
-                    child: Column(
-                      children: [
-                        Icon(Icons.check_circle, size: 64, color: Colors.green),
-                        const SizedBox(height: 16),
-                        const Text(
-                          "No hay reservas pendientes",
-                          style: TextStyle(fontSize: 18, color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  )
-                else
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: reservasPendientes.length,
-                    itemBuilder: (context, index) {
-                      final reserva = reservasPendientes[index];
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        elevation: 4,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.all(24),
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: reservasPendientes.length,
+                  separatorBuilder: (c, i) => const SizedBox(height: 16),
+                  itemBuilder: (context, index) {
+                    final reserva = reservasPendientes[index];
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade200),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
                             children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: yaviracOrange.withOpacity(0.1),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Icon(
-                                      Icons.meeting_room,
-                                      color: yaviracOrange,
-                                      size: 24,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          "Aula: ${reserva["aula_nombre"]}",
-                                          style: const TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                            color: yaviracBlue,
-                                          ),
-                                        ),
-                                        Text(
-                                          "Profesor: ${reserva["docente_nombre"]}",
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            color: Colors.grey[600],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 6,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.orange.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(
-                                        color: Colors.orange.withOpacity(0.3),
-                                      ),
-                                    ),
-                                    child: const Text(
-                                      "PENDIENTE",
-                                      style: TextStyle(
-                                        color: Colors.orange,
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: yaviracOrange.withOpacity(0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.meeting_room_rounded,
+                                  color: yaviracOrange,
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      "Aula: ${reserva["aula_nombre"]}",
+                                      style: const TextStyle(
+                                        fontSize: 18,
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 12,
+                                        color: yaviracBlue,
                                       ),
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      "Profesor: ${reserva["docente_nombre"]}",
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey[600],
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                              const SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  Icon(Icons.calendar_today, 
-                                       size: 16, color: Colors.grey[600]),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    "Fecha: ${reserva["fecha"]}",
-                                    style: TextStyle(color: Colors.grey[600]),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: Colors.orange.withOpacity(0.3),
                                   ),
-                                  const SizedBox(width: 16),
-                                  Icon(Icons.access_time, 
-                                       size: 16, color: Colors.grey[600]),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    "Hora: ${reserva["hora"]}",
-                                    style: TextStyle(color: Colors.grey[600]),
+                                ),
+                                child: const Text(
+                                  "PENDIENTE",
+                                  style: TextStyle(
+                                    color: Colors.orange,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
                                   ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  TextButton.icon(
-                                    onPressed: () => _rechazarReserva(reserva["id"]),
-                                    icon: const Icon(Icons.close, color: Colors.red),
-                                    label: const Text(
-                                      "Rechazar",
-                                      style: TextStyle(color: Colors.red),
-                                    ),
-                                    style: TextButton.styleFrom(
-                                      backgroundColor: Colors.red.withOpacity(0.1),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  ElevatedButton.icon(
-                                    onPressed: () => _aprobarReserva(reserva["id"]),
-                                    icon: const Icon(Icons.check, color: Colors.white),
-                                    label: const Text(
-                                      "Aprobar",
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.green,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                                ),
                               ),
                             ],
                           ),
-                        ),
-                      );
-                    },
-                  ),
-              ],
-            ),
+                          const SizedBox(height: 20),
+                          Row(
+                            children: [
+                              _InfoBadge(icon: Icons.calendar_today, text: reserva["fecha"]),
+                              const SizedBox(width: 16),
+                              _InfoBadge(icon: Icons.access_time, text: reserva["hora"]),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              OutlinedButton.icon(
+                                onPressed: () => _rechazarReserva(reserva["id"]),
+                                icon: const Icon(Icons.close_rounded, size: 18),
+                                label: const Text("Rechazar"),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.red,
+                                  side: BorderSide(color: Colors.red.withOpacity(0.5)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              ElevatedButton.icon(
+                                onPressed: () => _aprobarReserva(reserva["id"]),
+                                icon: const Icon(Icons.check_rounded, size: 18),
+                                label: const Text("Aprobar"),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                  elevation: 0,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+    );
+  }
+}
+
+class _InfoBadge extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _InfoBadge({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: Colors.grey[600]),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: TextStyle(color: Colors.grey[800], fontSize: 13, fontWeight: FontWeight.w500),
+          ),
+        ],
+      ),
     );
   }
 }

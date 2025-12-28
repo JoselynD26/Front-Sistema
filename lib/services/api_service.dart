@@ -13,6 +13,9 @@ class ApiService {
   // -------------------- AUTH --------------------
   Future<bool> login(String username, String password) async {
     try {
+      // Limpiar datos previos para evitar contaminación de roles/datos
+      await storage.deleteAll();
+
       final url = Uri.parse("$baseUrl/login/");
       final body = jsonEncode({"correo": username, "contrasena": password});
 
@@ -31,7 +34,9 @@ class ApiService {
         if (token != null) {
           await storage.write(key: "jwt", value: token);
           if (data.containsKey("rol")) {
-            await storage.write(key: "rol", value: data["rol"].toString());
+            final rolRecibido = data["rol"].toString();
+            print("[LOGIN] Escribiendo rol: $rolRecibido");
+            await storage.write(key: "rol", value: rolRecibido);
           }
           if (data.containsKey("id")) {
             await storage.write(key: "usuario_id", value: data["id"].toString());
@@ -42,9 +47,15 @@ class ApiService {
           if (data.containsKey("apellidos")) {
             await storage.write(key: "apellidos", value: data["apellidos"].toString());
           }
-          if (data.containsKey("docente_id")) {
-            await storage.write(key: "docente_id", value: data["docente_id"].toString());
+          if (data.containsKey("docente_id") && data["docente_id"] != null) {
+            final dId = data["docente_id"].toString();
+            print("[LOGIN] Escribiendo docente_id: $dId");
+            await storage.write(key: "docente_id", value: dId);
+          } else {
+            print("[LOGIN] No hay docente_id en la respuesta.");
           }
+          // Guardar correo
+          await storage.write(key: "email", value: username);
           return true;
         }
       }
@@ -90,15 +101,37 @@ class ApiService {
   }
 }
   Future<List<dynamic>> listarReservas() async {
-    final url = Uri.parse("$baseUrl/reservas/");
-    final res = await http.get(url);
-    return jsonDecode(res.body);
+    try {
+      final url = Uri.parse("$baseUrl/reservas/");
+      final h = await _headers(json: false);
+      final res = await http.get(url, headers: h);
+      
+      final data = jsonDecode(res.body);
+      if (data is List) return data;
+      
+      print("[API][listarReservas] Expected List but got: ${data.runtimeType}");
+      return [];
+    } catch (e) {
+      print("[API][listarReservas] Error: $e");
+      return [];
+    }
   }
 
   Future<List<dynamic>> listarMisReservas() async {
-    final url = Uri.parse("$baseUrl/reservas/mis/");
-    final res = await http.get(url);
-    return jsonDecode(res.body);
+    try {
+      final url = Uri.parse("$baseUrl/reservas/mis/");
+      final h = await _headers(json: false);
+      final res = await http.get(url, headers: h);
+      
+      final data = jsonDecode(res.body);
+      if (data is List) return data;
+      
+      print("[API][listarMisReservas] Expected List but got: ${data.runtimeType}");
+      return [];
+    } catch (e) {
+      print("[API][listarMisReservas] Error: $e");
+      return [];
+    }
   }
 
   Future<bool> aprobarReservaAntigua(int id) async {
@@ -111,6 +144,35 @@ class ApiService {
     final url = Uri.parse("$baseUrl/reservas/cancelar/$id");
     final res = await http.post(url);
     return res.statusCode == 200;
+  }
+
+  /// 📤 Subir PDF de Horario a Supabase (vía backend o directo si es necesario)
+  Future<String?> subirHorarioPDF(Uint8List bytes, String fileName) async {
+    try {
+      final url = Uri.parse("$baseUrl/utils/upload-pdf"); // Endpoint proxy o directo
+      final request = http.MultipartRequest('POST', url)
+        ..files.add(http.MultipartFile.fromBytes(
+          'file', 
+          bytes,
+          filename: fileName,
+          contentType: MediaType('application', 'pdf'),
+        ));
+      
+      final h = await _headers(json: false);
+      request.headers.addAll(h);
+
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 40));
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        return data['publicUrl']; // La URL pública del archivo en Supabase
+      }
+      return null;
+    } catch (e) {
+      print("[ERROR][UPLOAD PDF] $e");
+      return null;
+    }
   }
   // -------------------- GENERIC LIST / CRUD PATTERN --------------------
   // Para endpoints que devuelven listas (GET) -> devolver List<dynamic> o lanzar excepción
@@ -132,6 +194,15 @@ class ApiService {
   print("[REGISTER] ${response.statusCode} -> ${response.body}");
   return _isSuccess(response.statusCode);
 }
+
+  Future<bool> actualizarUsuario(int id, Map<String, dynamic> datos) async {
+    final url = Uri.parse("$baseUrl/usuarios/$id/");
+    final headers = await _headers();
+    // Intenta PATCH con slash final
+    final response = await http.patch(url, headers: headers, body: jsonEncode(datos));
+    print("[USUARIO][UPDATE] ${response.statusCode} -> ${response.body}");
+    return _isSuccess(response.statusCode);
+  }
 
  // -------------------- SEDES --------------------
 Future<List<dynamic>> listarSedes() async {
@@ -437,7 +508,10 @@ Future<List<dynamic>> listarSedes() async {
     final headers = await _headers(json: false);
     final r = await http.get(url, headers: headers);
     print("[DOCENTES][GET POR SEDE] ${r.statusCode} -> ${r.body}");
-    if (r.statusCode == 200) return jsonDecode(r.body);
+    if (r.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(r.body);
+      return data;
+    }
     throw Exception("Error al listar docentes por sede: ${r.statusCode}");
   }
 
@@ -488,7 +562,7 @@ Future<List<dynamic>> listarSedes() async {
   Future<bool> actualizarContrasenaDocente(int docenteId, String nueva) async {
     final url = Uri.parse("$baseUrl/usuarios/reset/$docenteId");
     final headers = await _headers();
-    final body = jsonEncode({"nueva": nueva});
+    final body = jsonEncode({"nueva_contrasena": nueva});
 
     final r = await http.put(url, headers: headers, body: body);
     print("[USUARIO][RESET CONTRASEÑA] ${r.statusCode} -> ${r.body}");
@@ -649,7 +723,7 @@ Future<List<dynamic>> listarSedes() async {
     required String horaInicio,
     required String horaFin,
   }) async {
-    final url = Uri.parse('$baseUrl/horario-docente/admin');
+    final url = Uri.parse('$baseUrl/horario-docente/');
 
     final response = await http.post(
       url,
@@ -685,6 +759,37 @@ Future<List<dynamic>> listarSedes() async {
       return jsonDecode(response.body);
     } else {
       throw Exception("Error al obtener horario del docente");
+    }
+  }
+
+  Future<bool> actualizarHorarioDocente(int id, Map<String, dynamic> datos) async {
+    try {
+      final url = Uri.parse('$baseUrl/horario-docente/$id/');
+      final response = await http.patch(
+        url,
+        headers: await _headers(),
+        body: jsonEncode(datos),
+      );
+      print("[HORARIO DOCENTE][PATCH $id] ${response.statusCode} -> ${response.body}");
+      return _isSuccess(response.statusCode);
+    } catch (e) {
+      print("[ERROR][PUT HORARIO DOCENTE] $e");
+      return false;
+    }
+  }
+
+  Future<bool> eliminarHorarioDocente(int id) async {
+    try {
+      final url = Uri.parse('$baseUrl/horario-docente/$id');
+      final response = await http.delete(
+        url,
+        headers: await _headers(json: false),
+      );
+      print("[HORARIO DOCENTE][DELETE $id] ${response.statusCode}");
+      return _isSuccess(response.statusCode);
+    } catch (e) {
+      print("[ERROR][DELETE HORARIO DOCENTE] $e");
+      return false;
     }
   }
 

@@ -5,6 +5,7 @@ import '../widgets/web_layout.dart';
 import '../utils/mouse_tracker_fix.dart';
 import 'detalle_sede_screen.dart';
 import 'form_sede_screen.dart';
+import '../widgets/admin_card.dart';
 
 class SedeScreen extends StatefulWidget {
   const SedeScreen({super.key});
@@ -97,15 +98,19 @@ class _SedeScreenState extends State<SedeScreen> with SafeStateMixin {
   Widget _buildSedesGrid() {
     return Center(
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 1000),
+        constraints: const BoxConstraints(maxWidth: 1200),
         child: Wrap(
           alignment: WrapAlignment.center,
           spacing: 32,
-          runSpacing: 39,
+          runSpacing: 32,
           children: sedes.map((sede) {
-            return MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: GestureDetector(
+            return SizedBox(
+              width: 300,
+              height: 240,
+              child: AdminCard(
+                title: sede["nombre"],
+                subtitle: sede["ubicacion"] ?? "Campus Principal",
+                icon: Icons.business_rounded,
                 onTap: () {
                   Navigator.push(
                     context,
@@ -117,70 +122,6 @@ class _SedeScreenState extends State<SedeScreen> with SafeStateMixin {
                     ),
                   );
                 },
-                child: Container(
-                  width: 350,
-                  height: 220,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: Colors.grey.shade100),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.shade200,
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).primaryColor.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.business_rounded,
-                          size: 40,
-                          color: Theme.of(context).primaryColor,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      Text(
-                        sede["nombre"],
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1E293B),
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.secondary.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          sede["ubicacion"] ?? "Campus Principal",
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Theme.of(context).colorScheme.secondary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ),
             );
           }).toList(),

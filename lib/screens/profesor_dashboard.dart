@@ -36,21 +36,25 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
 
   Future<void> _cargarDatos() async {
     try {
-      final materiasData = await _apiService.obtenerMisMaterias(widget.docenteId);
-      final horariosData = await _apiService.obtenerMiHorario(widget.docenteId);
-      final reservasData = await _apiService.obtenerMisReservas(widget.docenteId);
+      final results = await Future.wait([
+        _apiService.obtenerMisMaterias(widget.docenteId),
+        _apiService.obtenerMiHorario(widget.docenteId),
+        _apiService.obtenerMisReservas(widget.docenteId),
+      ]);
 
       setState(() {
-        materias = materiasData;
-        horarios = horariosData;
-        reservas = reservasData;
+        materias = results[0] as List<dynamic>;
+        horarios = results[1] as List<dynamic>;
+        reservas = results[2] as List<dynamic>;
         cargando = false;
       });
     } catch (e) {
-      setState(() => cargando = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error al cargar datos: $e")),
-      );
+      if (mounted) {
+        setState(() => cargando = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error al cargar datos: $e")),
+        );
+      }
     }
   }
 
@@ -316,121 +320,257 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
   }
 
   void _editarPerfil() {
-    showDialog(
+    showGeneralDialog(
       context: context,
-      builder: (context) => _EditarPerfilDialog(
-        docenteId: widget.docenteId,
-        nombreActual: widget.nombreProfesor,
-      ),
+      barrierDismissible: true,
+      barrierLabel: "Cerrar",
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, anim1, anim2) {
+        return _EditarPerfilDialog(
+          docenteId: widget.docenteId,
+          nombreActual: widget.nombreProfesor,
+        );
+      },
     );
   }
 
   void _mostrarMaterias() {
-    showDialog(
+    showGeneralDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Mis Materias Asignadas"),
-        content: SizedBox(
-          width: 400,
-          height: 300,
-          child: ListView.builder(
+      barrierDismissible: true,
+      barrierLabel: "Cerrar",
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, anim1, anim2) {
+        return _PremiumDialog(
+          title: "Mis Materias",
+          subtitle: "Asignaturas impartidas este periodo",
+          icon: Icons.menu_book_rounded,
+          color: const Color(0xFF3B82F6),
+          child: ListView.separated(
+            padding: const EdgeInsets.all(4),
             itemCount: materias.length,
+            separatorBuilder: (ctx, i) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final materia = materias[index];
-              return ListTile(
-                leading: const Icon(Icons.book, color: Color(0xFF1E3A8A)),
-                title: Text(materia["nombre"]),
-                subtitle: Text(
-                  "Carreras: ${materia["carreras"].map((c) => c["nombre"]).join(", ")}",
+              return Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                  border: Border.all(color: Colors.grey.shade100),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF3B82F6).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.book, color: Color(0xFF3B82F6)),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            materia["nombre"],
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1E293B),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(Icons.school, size: 14, color: Colors.grey[500]),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  "Carreras: ${materia["carreras"].map((c) => c["nombre"]).join(", ")}",
+                                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               );
             },
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cerrar"),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
   void _mostrarHorarios() {
-    showDialog(
+    showGeneralDialog(
       context: context,
-      builder: (context) => _HorarioCalendarioDialog(horarios: horarios),
+      barrierDismissible: true,
+      barrierLabel: "Cerrar",
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, anim1, anim2) {
+        return _HorarioCalendarioDialog(horarios: horarios);
+      },
     );
   }
 
 
   void _mostrarReservas() {
-    showDialog(
+    showGeneralDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Mis Reservas de Aulas"),
-        content: SizedBox(
-          width: 500,
-          height: 400,
-          child: ListView.builder(
-            itemCount: reservas.length,
-            itemBuilder: (context, index) {
-              final reserva = reservas[index];
-              Color statusColor = reserva["estado"] == "aprobada"
-                  ? Colors.green
-                  : reserva["estado"] == "pendiente"
-                      ? Colors.orange
-                      : Colors.red;
-
-              return Card(
-                child: ListTile(
-                  leading: Icon(Icons.meeting_room, color: statusColor),
-                  title: Text(reserva["aula_nombre"]),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+      barrierDismissible: true,
+      barrierLabel: "Cerrar",
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, anim1, anim2) {
+        return _PremiumDialog(
+          title: "Mis Reservas",
+          subtitle: "Historial de solicitudes de aulas",
+          icon: Icons.bookmark_rounded,
+          color: const Color(0xFF8B5CF6),
+          child: reservas.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text("Fecha: ${reserva["fecha"]}"),
-                      Text("Hora: ${reserva["hora"]}"),
-                      Text("Estado: ${reserva["estado"]}"),
+                      Icon(Icons.event_busy, size: 48, color: Colors.grey[300]),
+                      const SizedBox(height: 16),
+                      Text(
+                        "No tienes reservas activas",
+                        style: TextStyle(color: Colors.grey[500]),
+                      ),
                     ],
                   ),
-                  trailing: reserva["estado"] == "pendiente"
-                      ? IconButton(
-                          icon: const Icon(Icons.cancel, color: Colors.red),
-                          onPressed: () async {
-                            final success = await _apiService.cancelarReservaAula(reserva["id"], widget.docenteId);
-                            if (success) {
-                              Navigator.pop(context); // Cerrar el diálogo
-                              _cargarDatos();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text("Reserva cancelada")),
-                              );
-                            }
-                          },
-                        )
-                      : null,
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.all(4),
+                  itemCount: reservas.length,
+                  separatorBuilder: (ctx, i) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final reserva = reservas[index];
+                    Color statusColor = reserva["estado"] == "aprobada"
+                        ? Colors.green
+                        : reserva["estado"] == "pendiente"
+                            ? Colors.orange
+                            : Colors.red;
+
+                    return Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                        border: Border.all(color: Colors.grey.shade100),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: statusColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(Icons.meeting_room, color: statusColor),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  reserva["aula_nombre"],
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF1E293B),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    Icon(Icons.calendar_today, size: 14, color: Colors.grey[500]),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      "${reserva["fecha"]} • ${reserva["hora"]}",
+                                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: statusColor.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    reserva["estado"].toUpperCase(),
+                                    style: TextStyle(
+                                      color: statusColor,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (reserva["estado"] == "pendiente")
+                            IconButton(
+                              icon: const Icon(Icons.cancel_outlined, color: Colors.red),
+                              onPressed: () async {
+                                final success = await _apiService.cancelarReservaAula(
+                                    reserva["id"], widget.docenteId);
+                                if (success) {
+                                  Navigator.pop(context);
+                                  _cargarDatos();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text("Reserva cancelada")),
+                                  );
+                                }
+                              },
+                              tooltip: "Cancelar reserva",
+                            ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
-              );
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cerrar"),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
 
 
   void _crearReserva() {
-    showDialog(
+    showGeneralDialog(
       context: context,
-      builder: (context) => _FormularioReservaAula(docenteId: widget.docenteId),
+      barrierDismissible: true,
+      barrierLabel: "Cerrar",
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, anim1, anim2) {
+        return _FormularioReservaAula(docenteId: widget.docenteId);
+      },
     ).then((result) {
       if (result == true) {
         _cargarDatos(); // Recargar datos si se creó una reserva
@@ -446,76 +586,122 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
   }
 
   void _verHorarios() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => PdfHorariosScreen(
-          sedeId: 1, // Ajustar según la sede del docente
-          rol: 'docente',
-        ),
-      ),
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: "Cerrar",
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, anim1, anim2) {
+        return _PremiumDialog(
+          title: "Horarios PDF",
+          subtitle: "Descarga de horarios oficiales",
+          icon: Icons.picture_as_pdf_rounded,
+          color: const Color(0xFFEF4444),
+          child: PdfHorariosContent(sedeId: 1), // Sede ID fija por ahora o dinámica
+        );
+      },
     );
   }
+
   void _verCroquisPlazas() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => CroquisPlazaScreen(
-          sedeId: 1, // o la sede real del docente
-          rol: 'docente',
-        ),
-      ),
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: "Cerrar",
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, anim1, anim2) {
+        return _PremiumDialog(
+          title: "Croquis Institucional",
+          subtitle: "Mapas de patios y plazas",
+          icon: Icons.map_rounded,
+          color: const Color(0xFF6366F1),
+          child: CroquisPlazaContent(sedeId: 1), // Sede ID fija por ahora o dinámica
+        );
+      },
     );
   }
 
   void _verCroquis() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => DocenteCroquisScreen(
-          docenteId: widget.docenteId,
-        ),
-      ),
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: "Cerrar",
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, anim1, anim2) {
+        return _PremiumDialog(
+          title: "Sala de Profesores",
+          subtitle: "Mi ubicación y escritorio asignado",
+          icon: Icons.desk_rounded,
+          color: const Color(0xFF10B981),
+          child: DocenteCroquisContent(docenteId: widget.docenteId),
+        );
+      },
     );
   }
-  void _verMiCroquis() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => DocenteCroquisScreen(
-          docenteId: widget.docenteId,
-        ),
-      ),
-    );
-  }
+
 
 
   void _verHorarioAulas() {
-    showDialog(
+    showGeneralDialog(
       context: context,
-      builder: (context) => _HorarioAulasDialog(),
+      barrierDismissible: true,
+      barrierLabel: "Cerrar",
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, anim1, anim2) {
+        return _HorarioAulasDialog();
+      },
     );
   }
 
   void _cancelarClase(int horarioId) async {
     // Mostrar confirmación
-    final confirmar = await showDialog<bool>(
+    // Mostrar confirmación
+    final confirmar = await showGeneralDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Cancelar Clase"),
-        content: const Text("¿Estás seguro de que quieres cancelar esta clase?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("No"),
+      barrierDismissible: true,
+      barrierLabel: "Cerrar",
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, anim1, anim2) {
+        return _PremiumDialog(
+          title: "Cancelar Clase",
+          subtitle: "¿Estás seguro de que quieres cancelar esta clase?",
+          icon: Icons.warning_amber_rounded,
+          color: Colors.red,
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  "Esta acción notificará a los estudiantes y administrativos. No se puede deshacer.",
+                  style: TextStyle(color: Colors.grey, fontSize: 16),
+                ),
+                const SizedBox(height: 32),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text("Mantener Clase"),
+                    ),
+                    const SizedBox(width: 16),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text("Sí, Cancelar"),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text("Sí, Cancelar"),
-          ),
-        ],
-      ),
+        );
+      },
     );
 
     if (confirmar == true) {
@@ -579,30 +765,15 @@ class _HorarioAulasDialogState extends State<_HorarioAulasDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      child: Container(
-        width: 900,
-        height: 700,
+    return _PremiumDialog(
+      title: "Horario de Ocupación",
+      subtitle: "Disponibilidad de aulas por fecha",
+      icon: Icons.view_timeline_rounded,
+      color: const Color(0xFF3B82F6),
+      child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            Row(
-              children: [
-                const Icon(Icons.view_timeline, color: Color(0xFF1E3A8A), size: 28),
-                const SizedBox(width: 12),
-                const Text(
-                  "Horario de Ocupación de Aulas",
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                const Spacer(),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
-                ),
-              ],
-            ),
-            const Divider(),
-            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
@@ -770,30 +941,15 @@ class _HorarioCalendarioDialogState extends State<_HorarioCalendarioDialog> {
   
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      child: Container(
-        width: 900,
-        height: 700,
+    return _PremiumDialog(
+      title: "Mi Horario",
+      subtitle: "Calendario de clases semanal",
+      icon: Icons.access_time_filled_rounded,
+      color: const Color(0xFFFF6B35),
+      child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Row(
-              children: [
-                const Icon(Icons.schedule, color: Color(0xFFFF6B35), size: 28),
-                const SizedBox(width: 12),
-                const Text(
-                  "Mi Horario de Clases",
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                const Spacer(),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
-                ),
-              ],
-            ),
-            const Divider(),
-            const SizedBox(height: 16),
             
             // Selector de fecha
             Row(
@@ -868,11 +1024,11 @@ class _HorarioCalendarioDialogState extends State<_HorarioCalendarioDialog> {
   
   Widget _buildCalendarioSemanal() {
     const dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+    // Horarios por hora desde las 7:00 hasta las 21:00 (cubriendo hasta 21:10/22:00)
     const horas = [
-      '07:00', '07:30', '08:00', '08:30', '09:00', '09:30', '10:00', '10:30',
-      '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
-      '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30',
-      '19:00', '19:30', '20:00', '20:30', '21:00', '21:30'
+      '07:00', '08:00', '09:00', '10:00', '11:00', '12:00', 
+      '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', 
+      '19:00', '20:00', '21:00'
     ];
 
     return SingleChildScrollView(
@@ -892,7 +1048,7 @@ class _HorarioCalendarioDialogState extends State<_HorarioCalendarioDialog> {
             decoration: const BoxDecoration(color: Color(0xFF1E3A8A)),
             children: [
               const Padding(
-                padding: EdgeInsets.all(8),
+                padding: EdgeInsets.all(12),
                 child: Text(
                   'Hora',
                   style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
@@ -927,12 +1083,13 @@ class _HorarioCalendarioDialogState extends State<_HorarioCalendarioDialog> {
           ...horas.map((hora) => TableRow(
             children: [
               Container(
-                height: 40,
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: Colors.grey.shade100),
+                height: 60, // Mayor altura para mejor visualización
+                alignment: Alignment.center,
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(color: Colors.grey.shade50),
                 child: Text(
                   hora,
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black54),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -968,7 +1125,7 @@ class _HorarioCalendarioDialogState extends State<_HorarioCalendarioDialog> {
     );
 
     return Container(
-      height: 40,
+      height: 60,
       padding: const EdgeInsets.all(1),
       child: horario != null
           ? Container(
@@ -1083,31 +1240,16 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      child: Container(
-        width: 800,
-        height: 600,
+    return _PremiumDialog(
+      title: "Reservar Aula",
+      subtitle: "Solicita un espacio físico para actividades adicionales",
+      icon: Icons.add_circle_outline_rounded,
+      color: const Color(0xFFF59E0B),
+      child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                const Icon(Icons.meeting_room, color: Color(0xFFFF6B35), size: 28),
-                const SizedBox(width: 12),
-                const Text(
-                  "Reservar Aula",
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                const Spacer(),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
-                ),
-              ],
-            ),
-            const Divider(),
-            const SizedBox(height: 16),
             
             // Formulario de búsqueda
             Card(
@@ -1517,64 +1659,70 @@ class _EditarPerfilDialogState extends State<_EditarPerfilDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      child: Container(
-        width: 500,
+    return _PremiumDialog(
+      title: "Editar Perfil",
+      subtitle: "Actualiza tu información personal",
+      icon: Icons.person_rounded,
+      color: const Color(0xFF1E3A8A),
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              children: [
-                const Icon(Icons.person, color: Color(0xFF1E3A8A), size: 28),
-                const SizedBox(width: 12),
-                const Text(
-                  "Editar Perfil",
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                const Spacer(),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
-                ),
-              ],
-            ),
-            const Divider(),
-            const SizedBox(height: 16),
             TextField(
               controller: _nombreController,
-              decoration: const InputDecoration(
-                labelText: "Nombre",
-                prefixIcon: Icon(Icons.person),
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: "Nombre Completo",
+                prefixIcon: const Icon(Icons.person_outline),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                filled: true,
+                fillColor: Colors.grey[50],
               ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              "Cambiar Contraseña (opcional)",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _newPassController,
-              decoration: const InputDecoration(
-                labelText: "Nueva Contraseña",
-                prefixIcon: Icon(Icons.lock_outline),
-                border: OutlineInputBorder(),
-              ),
-              obscureText: true,
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _confirmPassController,
-              decoration: const InputDecoration(
-                labelText: "Confirmar Nueva Contraseña",
-                prefixIcon: Icon(Icons.lock_outline),
-                border: OutlineInputBorder(),
-              ),
-              obscureText: true,
             ),
             const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.orange.withOpacity(0.2)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.lock_outline, color: Colors.orange),
+                      SizedBox(width: 8),
+                      Text("Seguridad", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _newPassController,
+                    decoration: InputDecoration(
+                      labelText: "Nueva Contraseña",
+                      hintText: "Dejar en blanco para mantener",
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                    obscureText: true,
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _confirmPassController,
+                    decoration: InputDecoration(
+                      labelText: "Confirmar Nueva Contraseña",
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                    obscureText: true,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -1589,13 +1737,15 @@ class _EditarPerfilDialogState extends State<_EditarPerfilDialog> {
                       ? const SizedBox(
                           width: 16,
                           height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
                       : const Icon(Icons.save),
-                  label: Text(cargando ? "Guardando..." : "Guardar"),
+                  label: Text(cargando ? "Guardando..." : "Guardar Cambios"),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1E3A8A),
                     foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
               ],
@@ -1653,5 +1803,133 @@ class _EditarPerfilDialogState extends State<_EditarPerfilDialog> {
         SnackBar(content: Text("Error: $e")),
       );
     }
+  }
+}
+
+class _PremiumDialog extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final Widget child;
+
+  const _PremiumDialog({
+    Key? key,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.child,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    // Calculamos dimensiones responsivas y más grandes
+    final size = MediaQuery.of(context).size;
+    final width = size.width > 900 ? 900.0 : size.width * 0.95;
+    final height = size.height > 800 ? 800.0 : size.height * 0.9;
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2), // Sombra más fuerte
+              blurRadius: 30,
+              offset: const Offset(0, 15),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.08),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                         BoxShadow(
+                            color: color.withOpacity(0.2),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                         ),
+                      ],
+                    ),
+                    child: Icon(icon, color: color, size: 28),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[900],
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          subtitle,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                            height: 1.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => Navigator.pop(context),
+                      borderRadius: BorderRadius.circular(50),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                        ),
+                        child: Icon(Icons.close, size: 20, color: Colors.grey[600]),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            // Divider suave
+            Container(height: 1, color: Colors.grey.withOpacity(0.1)),
+
+            // Body
+            Expanded(
+              child: ClipRRect(
+                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
+                  child: child
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

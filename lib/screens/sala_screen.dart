@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
-import 'sala_form.dart';
+import '../widgets/admin_crud_layout.dart';
+import '../widgets/admin_table.dart';
+import 'sala_form_screen.dart';
 
 class SalasScreen extends StatefulWidget {
   final int idSede;
@@ -22,90 +24,91 @@ class _SalasScreenState extends State<SalasScreen> {
   }
 
   Future<void> _cargarSalas() async {
+    if (!mounted) return;
     try {
       final data = await _apiService.listarSalasPorSede(widget.idSede);
-      print("SALAS RECIBIDAS: $data");
-      setState(() {
-        salas = data;
-        cargando = false;
-      });
+      if (mounted) {
+        setState(() {
+          salas = data;
+          cargando = false;
+        });
+      }
     } catch (e) {
-      setState(() => cargando = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error al cargar salas")),
-      );
+      if (mounted) {
+        setState(() => cargando = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Error al cargar salas")),
+        );
+      }
     }
   }
 
   Future<void> _eliminarSala(int id) async {
     final ok = await _apiService.eliminarSala(id);
-    if (ok) {
-      _cargarSalas();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Sala eliminada")),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error al eliminar sala")),
-      );
+    if (mounted) {
+      if (ok) {
+        _cargarSalas();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Sala eliminada")),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Error al eliminar sala")),
+        );
+      }
     }
   }
 
-  void _abrirFormulario({Map<String, dynamic>? sala}) {
-    Navigator.push(
+  void _abrirFormulario({Map<String, dynamic>? sala}) async {
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => SalaForm(
+        builder: (_) => SalaFormScreen(
           sala: sala,
           idSede: widget.idSede,
-          onSave: _cargarSalas,
         ),
       ),
     );
+
+    if (result == true) {
+      _cargarSalas();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Salas")),
-      body: cargando
-          ? const Center(child: CircularProgressIndicator())
-          : salas.isEmpty
-              ? const Center(child: Text("No hay salas registradas"))
-              : ListView.builder(
-                  itemCount: salas.length,
-                  itemBuilder: (context, index) {
-                    final s = salas[index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          child: Text(s["id"].toString()),
-                        ),
-                        title: Text(s["nombre"]),
-                        subtitle: Text("Sede: ${s["sede_nombre"] ?? "Sin sede"}"),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.orange),
-                              onPressed: () => _abrirFormulario(sala: s),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => _eliminarSala(s["id"]),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
+    return AdminCRUDLayout(
+      title: "Salas",
+      subtitle: "Gestión de laboratorios y salas especiales",
+      onAdd: () => _abrirFormulario(),
+      child: AdminTable(
+        isLoading: cargando,
+        columns: const [
+          DataColumn(label: Text("Nombre")),
+          DataColumn(label: Text("Sede")),
+          DataColumn(label: Text("Acciones")),
+        ],
+        rows: salas.map((s) {
+          return DataRow(cells: [
+            DataCell(Text(s["nombre"], style: const TextStyle(fontWeight: FontWeight.bold))),
+            DataCell(Text(s["sede_nombre"] ?? "Sin sede")),
+            DataCell(Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined, color: Colors.blue),
+                  onPressed: () => _abrirFormulario(sala: s),
+                  tooltip: "Editar",
                 ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.blue,
-        onPressed: () => _abrirFormulario(),
-        child: const Icon(Icons.add, color: Colors.white),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  onPressed: () => _eliminarSala(s["id"]),
+                  tooltip: "Eliminar",
+                ),
+              ],
+            )),
+          ]);
+        }).toList(),
       ),
     );
   }

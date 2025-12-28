@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../widgets/admin_crud_layout.dart';
+import '../widgets/admin_table.dart';
+import 'aula_form_screen.dart';
+import 'horario_aula_screen.dart';
 
 class AulasScreen extends StatefulWidget {
   final int idSede;
@@ -31,6 +35,14 @@ class _AulasScreenState extends State<AulasScreen> {
       final data = await _apiService.listarAulasPorSede(widget.idSede);
       setState(() {
         aulas = data;
+        // Orden alfabético por Número, luego Nombre
+        aulas.sort((a, b) {
+          final numA = (a["numero"] ?? "").toString().toLowerCase();
+          final numB = (b["numero"] ?? "").toString().toLowerCase();
+          final cmp = numA.compareTo(numB);
+          if (cmp != 0) return cmp;
+          return (a["nombre"] ?? "").toString().toLowerCase().compareTo((b["nombre"] ?? "").toString().toLowerCase());
+        });
         cargando = false;
       });
     } catch (e) {
@@ -78,172 +90,85 @@ class _AulasScreenState extends State<AulasScreen> {
     );
   }
 
-  void _abrirFormulario({Map<String, dynamic>? aula}) {
-    // Precargar datos si es edición
-    if (aula != null) {
-      _nombreController.text = aula["nombre"] ?? "";
-      _numeroController.text = aula["numero"] ?? "";
-      _capacidadController.text = aula["capacidad"]?.toString() ?? "";
-      _descripcionController.text = aula["descripcion"] ?? "";
-    } else {
-      _nombreController.clear();
-      _numeroController.clear();
-      _capacidadController.clear();
-      _descripcionController.clear();
-    }
-
-    showDialog(
-      context: context,
-      builder: (_) {
-        bool guardando = false;
-        return StatefulBuilder(
-          builder: (context, setStateDialog) {
-            return AlertDialog(
-              title: Text(aula == null ? "Nueva Aula" : "Editar Aula"),
-              content: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: _nombreController,
-                      decoration: const InputDecoration(labelText: "Nombre"),
-                    ),
-                    TextField(
-                      controller: _numeroController,
-                      decoration: const InputDecoration(labelText: "Número"),
-                    ),
-                    TextField(
-                      controller: _capacidadController,
-                      decoration: const InputDecoration(labelText: "Capacidad"),
-                      keyboardType: TextInputType.number,
-                    ),
-                    TextField(
-                      controller: _descripcionController,
-                      decoration: const InputDecoration(labelText: "Descripción"),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("Cancelar"),
-                ),
-                ElevatedButton(
-                  onPressed: guardando
-                      ? null
-                      : () async {
-                          final nombre = _nombreController.text.trim();
-                          final numero = _numeroController.text.trim();
-                          final capacidadText = _capacidadController.text.trim();
-
-                          if (nombre.isEmpty || numero.isEmpty || capacidadText.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Completa todos los campos")),
-                            );
-                            return;
-                          }
-
-                          final capacidad = int.tryParse(capacidadText);
-                          if (capacidad == null || capacidad <= 0) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Capacidad debe ser un número válido")),
-                            );
-                            return;
-                          }
-
-                          setStateDialog(() => guardando = true);
-
-                          final datos = {
-                            "nombre": nombre,
-                            "numero": numero,
-                            "capacidad": capacidad,
-                            "descripcion": _descripcionController.text.trim(),
-                            "id_sede": widget.idSede,
-                          };
-
-                          bool success;
-                          if (aula == null) {
-                            success = await _apiService.crearAula(datos);
-                          } else {
-                            success = await _apiService.actualizarAula(aula["id"], datos);
-                          }
-
-                          setStateDialog(() => guardando = false);
-
-                          if (success) {
-                            _cargarAulas();
-                            Navigator.pop(context);
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Error al guardar aula")),
-                            );
-                          }
-                        },
-                  child: guardando
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Text("Guardar"),
-                ),
-              ],
-            );
-          },
-        );
-      },
+  void _abrirFormulario({Map<String, dynamic>? aula}) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AulaFormScreen(
+          idSede: widget.idSede,
+          aula: aula,
+        ),
+      ),
     );
+
+    if (result == true) {
+      _cargarAulas();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(aula == null ? "Aula creada" : "Aula actualizada"),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Aulas")),
-      body: cargando
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                columns: const [
-                  DataColumn(label: Text("ID")),
-                  DataColumn(label: Text("Número")),
-                  DataColumn(label: Text("Nombre")),
-                  DataColumn(label: Text("Capacidad")),
-                  DataColumn(label: Text("Descripción")),
-                  DataColumn(label: Text("Acciones")),
+    return AdminCRUDLayout(
+      title: "Aulas",
+      subtitle: "Administra las aulas físicas de la sede",
+      idSede: widget.idSede,
+      onAdd: () => _abrirFormulario(),
+      child: AdminTable(
+        isLoading: cargando,
+        columns: const [
+          DataColumn(label: Text("Número")),
+          DataColumn(label: Text("Nombre")),
+          DataColumn(label: Text("Capacidad")),
+          DataColumn(label: Text("Descripción")),
+          DataColumn(label: Text("Acciones")),
+        ],
+        rows: aulas.map((aula) {
+          return DataRow(cells: [
+            DataCell(Text(aula["numero"] ?? "", style: const TextStyle(fontWeight: FontWeight.bold))),
+            DataCell(Text(aula["nombre"] ?? "")),
+            DataCell(Text(aula["capacidad"].toString())),
+            DataCell(Text(aula["descripcion"] ?? "")),
+            DataCell(
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                   IconButton(
+                    icon: const Icon(Icons.calendar_month, color: Colors.indigo),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => HorarioAulaScreen(
+                            idSede: widget.idSede,
+                            aulaId: aula["id"],
+                            aulaNombre: aula["nombre"] ?? "",
+                          ),
+                        ),
+                      );
+                    },
+                    tooltip: "Gestionar Horario",
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, color: Colors.blue),
+                    onPressed: () => _abrirFormulario(aula: aula),
+                    tooltip: "Editar",
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                    onPressed: () => _confirmarEliminar(aula["id"]),
+                    tooltip: "Eliminar",
+                  ),
                 ],
-                rows: aulas.map((aula) {
-                  return DataRow(cells: [
-                    DataCell(Text(aula["id"].toString())),
-                    DataCell(Text(aula["numero"] ?? "")),
-                    DataCell(Text(aula["nombre"] ?? "")),
-                    DataCell(Text(aula["capacidad"].toString())),
-                    DataCell(Text(aula["descripcion"] ?? "")),
-                    DataCell(
-                      Row(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit, color: Colors.orange),
-                            onPressed: () => _abrirFormulario(aula: aula),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => _confirmarEliminar(aula["id"]),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ]);
-                }).toList(),
               ),
             ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.blue, // ✅ visible
-        onPressed: () => _abrirFormulario(),
-        child: const Icon(Icons.add, color: Colors.white),
+          ]);
+        }).toList(),
       ),
     );
   }

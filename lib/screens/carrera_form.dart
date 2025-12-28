@@ -1,111 +1,148 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../widgets/admin_form_layout.dart';
 
-class CarrerasScreen extends StatefulWidget {
+class CarreraFormScreen extends StatefulWidget {
   final int idSede;
-  const CarrerasScreen({super.key, required this.idSede});
+  final Map<String, dynamic>? carrera;
+
+  const CarreraFormScreen({
+    super.key,
+    required this.idSede,
+    this.carrera,
+  });
 
   @override
-  _CarrerasScreenState createState() => _CarrerasScreenState();
+  State<CarreraFormScreen> createState() => _CarreraFormScreenState();
 }
 
-class _CarrerasScreenState extends State<CarrerasScreen> {
+class _CarreraFormScreenState extends State<CarreraFormScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _apiService = ApiService();
-  List<dynamic> carreras = [];
-  bool cargando = true;
+  
+  late TextEditingController _nombreCtrl;
+  late TextEditingController _codigoCtrl;
+  bool cargando = false;
+  final Color _primaryColor = const Color(0xFF4F46E5); // Indigo 600
 
   @override
   void initState() {
     super.initState();
-    _cargarCarreras();
+    _nombreCtrl = TextEditingController(text: widget.carrera?["nombre"] ?? "");
+    _codigoCtrl = TextEditingController(text: widget.carrera?["codigo"] ?? "");
   }
 
-  Future<void> _cargarCarreras() async {
+  @override
+  void dispose() {
+    _nombreCtrl.dispose();
+    _codigoCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _guardar() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => cargando = true);
+
+    final datos = {
+      "nombre": _nombreCtrl.text.trim(),
+      "codigo": _codigoCtrl.text.trim().isEmpty ? "AUTO" : _codigoCtrl.text.trim(),
+      "sede_ids": [widget.idSede],
+    };
+
     try {
-      final data = await _apiService.listarCarreras();
-      setState(() {
-        carreras = data;
-        cargando = false;
-      });
+      bool success;
+      if (widget.carrera == null) {
+        success = await _apiService.crearCarrera(datos);
+      } else {
+        success = await _apiService.actualizarCarrera(widget.carrera!["id"], datos);
+      }
+
+      if (mounted) {
+        if (success) {
+          Navigator.pop(context, true);
+        } else {
+          setState(() => cargando = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Error al guardar carrera"), backgroundColor: Colors.redAccent),
+          );
+        }
+      }
     } catch (e) {
-      setState(() {
-        carreras = [];
-        cargando = false;
-      });
+      if (mounted) {
+        setState(() => cargando = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e"), backgroundColor: Colors.redAccent),
+        );
+      }
     }
-  }
-
-  void _mostrarFormulario() {
-    final nombreController = TextEditingController();
-    final codigoController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Nueva Carrera'),
-        content: SizedBox(
-          height: 150,
-          child: Column(
-            children: [
-              TextField(
-                controller: nombreController,
-                decoration: InputDecoration(labelText: 'Nombre'),
-              ),
-              SizedBox(height: 20),
-              TextField(
-                controller: codigoController,
-                decoration: InputDecoration(labelText: 'Código'),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final datos = {
-                "nombre": nombreController.text,
-                "codigo": codigoController.text.isEmpty ? "AUTO" : codigoController.text,
-                "sede_ids": [widget.idSede],
-              };
-              
-              final success = await _apiService.crearCarrera(datos);
-              Navigator.pop(context);
-              
-              if (success) {
-                _cargarCarreras();
-              }
-            },
-            child: Text('Guardar'),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text("Carreras")),
-      body: cargando
-          ? Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              itemCount: carreras.length,
-              itemBuilder: (context, index) {
-                final carrera = carreras[index];
-                return ListTile(
-                  title: Text(carrera["nombre"] ?? ""),
-                  subtitle: Text("Código: ${carrera["codigo"] ?? "AUTO"}"),
-                );
-              },
-            ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _mostrarFormulario,
-        child: Icon(Icons.add),
-      ),
+    final esEdicion = widget.carrera != null;
+
+    return AdminFormLayout(
+      title: esEdicion ? "Editar Carrera" : "Nueva Carrera",
+      subtitle: "Defina los programas académicos de la sede para organizar la oferta educativa.",
+      icon: Icons.school_rounded,
+      primaryColor: _primaryColor,
+      isLoading: cargando,
+      children: [
+        Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              TextFormField(
+                controller: _nombreCtrl,
+                decoration: premiumInputDecoration(
+                  label: "Nombre de la Carrera",
+                  hint: "Ej. Ingeniería de Software",
+                  icon: Icons.menu_book_rounded,
+                  primaryColor: _primaryColor,
+                ),
+                validator: (v) => v!.trim().isEmpty ? "Requerido" : null,
+              ),
+              const SizedBox(height: 24),
+              TextFormField(
+                controller: _codigoCtrl,
+                decoration: premiumInputDecoration(
+                  label: "Código (Opcional)",
+                  hint: "Dejar vacío para generación automática",
+                  icon: Icons.code_rounded,
+                  primaryColor: _primaryColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+      actions: [
+        ElevatedButton(
+          onPressed: cargando ? null : _guardar,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _primaryColor,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            elevation: 8,
+            shadowColor: _primaryColor.withOpacity(0.4),
+          ),
+          child: Text(
+            esEdicion ? "GUARDAR CAMBIOS" : "CREAR CARRERA",
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1),
+          ),
+        ),
+        const SizedBox(height: 16),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.grey.shade600,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+          ),
+          child: const Text("Cancelar y volver"),
+        ),
+      ],
     );
   }
 }
