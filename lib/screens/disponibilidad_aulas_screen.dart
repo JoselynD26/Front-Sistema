@@ -32,19 +32,21 @@ class _DisponibilidadAulasScreenState extends State<DisponibilidadAulasScreen> {
     try {
       final results = await Future.wait<dynamic>([
         _apiService.listarAulasPorSede(widget.idSede),
-        _apiService.listarHorariosPorSede(widget.idSede),
+        _apiService.listarHorariosPorSede(widget.idSede), // Eventos individuales (Reservas)
         _apiService.listarDocentesPorSede(widget.idSede),
         _apiService.listarCarreras(),
         _apiService.listarCursosPorSede(widget.idSede),
-        _apiService.listarMateriasPorSede(widget.idSede), // Corregido el nombre del método
+        _apiService.listarMateriasPorSede(widget.idSede),
+        _apiService.listarHorariosDocentesPorSede(widget.idSede), // ✅ Bulk Load Recurrentes
       ]);
 
       final List<dynamic> aulasList = results[0] ?? [];
-      final List<dynamic> eventos = results[1] ?? [];
+      final List<dynamic> eventos = results[1] ?? []; // Reservas
       final List<dynamic> docentes = results[2] ?? [];
       final List<dynamic> carreras = results[3] ?? [];
       final List<dynamic> cursos = results[4] ?? [];
       final List<dynamic> materias = results[5] ?? [];
+      final List<dynamic> recurrentesRaw = results[6] ?? []; // Todo el horario docente
 
       // Ordenar aulas A-Z
       aulasList.sort((a, b) => (a["nombre"] ?? "").toString().toLowerCase().compareTo((b["nombre"] ?? "").toString().toLowerCase()));
@@ -63,30 +65,24 @@ class _DisponibilidadAulasScreenState extends State<DisponibilidadAulasScreen> {
       for (var m in materias) {
         if (m != null && m["id"] != null) mMap[m["id"]] = m["nombre"] ?? "";
       }
+      
+      final Map<int, dynamic> docentesMap = {};
+      for(var d in docentes) {
+        if (d["id"]!=null) docentesMap[d["id"]] = d;
+      }
 
-      // Cargar horarios recurrentes de todos los docentes
+      // Procesar horarios recurrentes
       final List<dynamic> recurrentesTotal = [];
-      try {
-        final teacherSchedules = await Future.wait(
-          docentes.map((d) => _apiService.obtenerHorarioDocente(d["id"]))
-        );
+      for (var h in recurrentesRaw) {
+        final dId = h["docente_id"];
+        final docente = docentesMap[dId];
+        final hIdMateria = h["id_materia"] ?? h["materia_id"];
         
-        for (var i = 0; i < teacherSchedules.length; i++) {
-          final list = teacherSchedules[i];
-          final docente = docentes[i];
-          if (list != null) {
-            for (var h in list) {
-              final hIdMateria = h["id_materia"] ?? h["materia_id"];
-              recurrentesTotal.add({
-                ...h,
-                "docente_nombre": "${docente['apellidos']} ${docente['nombres']}",
-                "materia_nombre": h["materia_nombre"] ?? mMap[hIdMateria],
-              });
-            }
-          }
-        }
-      } catch (e) {
-        debugPrint("Error cargando horarios recurrentes: $e");
+        recurrentesTotal.add({
+          ...h,
+          "docente_nombre": docente != null ? "${docente['apellidos']} ${docente['nombres']}" : "Docente #$dId",
+          "materia_nombre": h["materia_nombre"] ?? mMap[hIdMateria],
+        });
       }
 
       setState(() {

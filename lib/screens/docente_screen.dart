@@ -3,6 +3,7 @@ import '../services/api_service.dart';
 import '../widgets/admin_crud_layout.dart';
 import '../widgets/admin_table.dart';
 import 'docente_form_screen.dart';
+import 'docente_excel_import_screen.dart';
 
 class DocentesScreen extends StatefulWidget {
   final int idSede;
@@ -318,16 +319,45 @@ class _DocentesScreenState extends State<DocentesScreen> {
       subtitle: "Administración de personal docente",
       idSede: widget.idSede,
       onAdd: () => _abrirFormulario(),
-      filters: TextField(
-        controller: _searchController,
-        onChanged: (_) => _filterDocentes(),
-        decoration: InputDecoration(
-          hintText: "Buscar por nombre, apellido o cédula...",
-          prefixIcon: const Icon(Icons.search),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          filled: true,
-          fillColor: Colors.white,
-        ),
+      filters: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (_) => _filterDocentes(),
+                  decoration: InputDecoration(
+                    hintText: "Buscar por nombre, apellido o cédula...",
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => DocenteExcelImportScreen(idSede: widget.idSede),
+                    ),
+                  ).then((_) => _cargarDocentes());
+                },
+                icon: const Icon(Icons.upload_file),
+                label: const Text("Importar Excel"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       child: AdminTable(
         isLoading: cargando,

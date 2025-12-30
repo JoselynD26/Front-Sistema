@@ -235,13 +235,13 @@ class _WebLayoutState extends State<WebLayout> with SafeStateMixin {
                             textColor: textColor,
                             onTap: () => _navigateTo(MateriasScreen(idSede: widget.idSede!)),
                           ),
-                          _SidebarItem(
-                            icon: Icons.schedule_rounded,
-                            label: "Horarios",
-                            isActive: widget.title.contains("Horarios") && !widget.title.contains("PDF"),
-                            textColor: textColor,
-                            onTap: () => _navigateTo(HorarioScreen(idSede: widget.idSede!)),
-                          ),
+                          // _SidebarItem(
+                          //   icon: Icons.schedule_rounded,
+                          //   label: "Horarios",
+                          //   isActive: widget.title.contains("Horarios") && !widget.title.contains("PDF"),
+                          //   textColor: textColor,
+                          //   onTap: () => _navigateTo(HorarioScreen(idSede: widget.idSede!)),
+                          // ),
                           _SidebarItem(
                             icon: Icons.event_available_rounded,
                             label: "Reservas",
@@ -249,13 +249,13 @@ class _WebLayoutState extends State<WebLayout> with SafeStateMixin {
                             textColor: textColor,
                             onTap: () => _navigateTo(AdminReservasScreen(idSede: widget.idSede)),
                           ),
-                          _SidebarItem(
-                            icon: Icons.calendar_month_rounded,
-                            label: "Calendario",
-                            isActive: widget.title.contains("Calendario"),
-                            textColor: textColor,
-                            onTap: () => _navigateTo(const CalendarioReservasScreen()),
-                          ),
+                          // _SidebarItem(
+                          //   icon: Icons.calendar_month_rounded,
+                          //   label: "Calendario",
+                          //   isActive: widget.title.contains("Calendario"),
+                          //   textColor: textColor,
+                          //   onTap: () => _navigateTo(const CalendarioReservasScreen()),
+                          // ),
 
                           const Padding(
                             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),

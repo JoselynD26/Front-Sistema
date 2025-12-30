@@ -755,10 +755,66 @@ Future<List<dynamic>> listarSedes() async {
       headers: await _headers(),
     );
 
+    // print("[DEBUG API] obtenerHorarioDocente($docenteId): Code ${response.statusCode}");
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
       throw Exception("Error al obtener horario del docente");
+    }
+  }
+
+  /// ✅ Listar horarios docentes por Sede (Optimizado con Fallback)
+  Future<List<dynamic>> listarHorariosDocentesPorSede(int sedeId) async {
+    // 1. Intentar endpoint masivo (Optimo)
+    try {
+      final url = Uri.parse('$baseUrl/horario-docente/sede/$sedeId');
+      final response = await http.get(url, headers: await _headers());
+      // print("[HORARIO DOCENTE][GET POR SEDE] ${response.statusCode}");
+      
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+    } catch (e) {
+      print("[API] Error intentando bulk fetch: $e");
+    }
+
+    // 2. Fallback: Peticiones por lotes (Batching) para evitar saturación
+    print("[API] Bulk fetch no disponible (404/Error). Iniciando carga por lotes...");
+    try {
+      // a) Obtener lista de docentes
+      final docentes = await listarDocentesPorSede(sedeId);
+      final List<dynamic> todosLosHorarios = [];
+      
+      // b) Procesar en lotes de 6 para no saturar conexiones (Chrome suele limitar a 6 por dominio)
+      final int batchSize = 6; 
+      for (var i = 0; i < docentes.length; i += batchSize) {
+        final end = (i + batchSize < docentes.length) ? i + batchSize : docentes.length;
+        final batch = docentes.sublist(i, end);
+        
+        final results = await Future.wait(
+          batch.map((d) async {
+             try {
+               return await obtenerHorarioDocente(d["id"]);
+             } catch (e) {
+               print("Error cargando horario docente ${d['id']}: $e");
+               return [];
+             }
+          })
+        );
+        
+        for (var list in results) {
+          if (list is List) todosLosHorarios.addAll(list);
+        }
+        // Pequeña pausa para dar respiro al event loop si es necesario
+        await Future.delayed(const Duration(milliseconds: 50));
+      }
+      
+      print("[API] Carga por lotes completada. Total horarios: ${todosLosHorarios.length}");
+      return todosLosHorarios;
+      
+    } catch (e) {
+      print("[API] Error grave en fallback por lotes: $e");
+      return [];
     }
   }
 
@@ -1059,6 +1115,33 @@ Future<List<dynamic>> listarSedes() async {
     }
   }
 
+  /// ✅ Listar TODAS las reservas de la sede (Aprobadas)
+  // Nota: El endpoint '/reservas/' devuelve todas, filtramos por lógica de negocio si es necesario.
+  Future<List<dynamic>> listarReservasPorSede(int sedeId) async {
+    try {
+      final url = Uri.parse("$baseUrl/reservas/");
+      final headers = await _headers(json: false);
+      final res = await http.get(url, headers: headers);
+      
+      print("[LISTAR TODAS RESERVAS] ${res.statusCode}");
+      
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        // Filtrar por sede si el objeto tiene sede_id, si no, devolvemos todo y que el dashboard filtre por aula
+        if (data is List) {
+           return data; 
+        }
+        return [];
+      } else {
+        print("Error al listar reservas: ${res.statusCode}");
+        return [];
+      }
+    } catch (e) {
+      print("[ERROR][LISTAR TODAS RESERVAS] $e");
+      return []; 
+    }
+  }
+
   /// Obtener reservas pendientes (admin)
   Future<List<dynamic>> obtenerReservasPendientes() async {
     try {
@@ -1103,6 +1186,44 @@ Future<List<dynamic>> listarSedes() async {
     } catch (e) {
       print("[ERROR][RECHAZAR RESERVA] $e");
       return false;
+    }
+  }
+
+  /// Eliminar reserva (admin y docente)
+  Future<bool> eliminarReserva(int reservaId) async {
+    try {
+      // Usaremos el estándar REST: DELETE /reserva-aulas/{id}/
+      final url = Uri.parse("$baseUrl/reserva-aulas/$reservaId");
+      final headers = await _headers(json: false);
+      
+      final res = await http.delete(url, headers: headers);
+      print("[ELIMINAR RESERVA] ${res.statusCode}");
+      
+      return res.statusCode == 200 || res.statusCode == 204;
+    } catch (e) {
+      print("[ERROR][ELIMINAR RESERVA] $e");
+      return false;
+    }
+  }
+
+  /// Listar Historial Completo (Admin)
+  Future<List<dynamic>> listarHistorialReservas() async {
+    try {
+      // Endpoint específico que pediremos crear en el backend
+      final url = Uri.parse("$baseUrl/reserva-aulas/historial");
+      final headers = await _headers(json: false);
+      
+      final res = await http.get(url, headers: headers);
+      print("[HISTORIAL RESERVAS] ${res.statusCode}");
+      
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        if (data is List) return data;
+      }
+      return [];
+    } catch (e) {
+      print("[ERROR][HISTORIAL RESERVAS] $e");
+      return []; 
     }
   }
 

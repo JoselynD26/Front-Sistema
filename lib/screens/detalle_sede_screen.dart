@@ -57,7 +57,8 @@ class _DetalleSedeScreenState extends State<DetalleSedeScreen> with SingleTicker
       final data = await _apiService.listarModulosPorSede(widget.idSede);
       if (mounted) {
         setState(() {
-          modulos = data;
+          // Filtrar modulo Horarios/Horario de clases si el usuario lo pidió eliminar
+          modulos = data.where((m) => m["titulo"] != "Horarios").toList();
           cargando = false;
         });
         _controller.forward();

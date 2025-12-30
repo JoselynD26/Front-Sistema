@@ -154,10 +154,17 @@ class _HorarioAulaFormState extends State<HorarioAulaForm> {
         });
       }
     } catch (e) {
-      if (mounted) setState(() {
-        mensaje = "Error al cargar listas: $e";
-        cargando = false;
-      });
+      print("Error cargando datos: $e");
+      if (mounted) {
+        setState(() => cargando = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(
+             content: Text("Error de conexión: No se pudieron cargar los datos.\nVerifique que el servidor backend esté corriendo."),
+             backgroundColor: Colors.red,
+             duration: const Duration(seconds: 5),
+           )
+        );
+      }
     }
   }
 
@@ -172,8 +179,29 @@ class _HorarioAulaFormState extends State<HorarioAulaForm> {
     // 1. Obtener horarios existentes para esta aula para validar traslapes
     List<dynamic> existentes = [];
     try {
-      final todos = await _apiService.listarHorariosPorSede(widget.idSede);
-      existentes = todos.where((h) => h["id_aula"] == widget.aulaId).toList();
+      final results = await Future.wait([
+        _apiService.listarHorariosPorSede(widget.idSede),
+        _apiService.listarHorariosDocentesPorSede(widget.idSede),
+      ]);
+
+      final eventos = results[0] as List<dynamic>;
+      final recurrentes = results[1] as List<dynamic>;
+
+      // Filtrar eventos por aula
+      final eventosAula = eventos.where((h) {
+          final hAulaId = h["aula_id"] ?? h["id_aula"];
+          final hId = int.tryParse(hAulaId.toString()) ?? -1;
+          return hId == widget.aulaId;
+      }).toList();
+
+      // Filtrar recurrentes por aula
+      final recurrentesAula = recurrentes.where((h) {
+          final hAulaId = h["aula_id"] ?? h["id_aula"];
+          final hId = int.tryParse(hAulaId.toString()) ?? -1;
+          return hId == widget.aulaId;
+      }).toList();
+
+      existentes = [...eventosAula, ...recurrentesAula];
     } catch (e) {
       debugPrint("Error validando traslapes: $e");
     }
@@ -182,8 +210,45 @@ class _HorarioAulaFormState extends State<HorarioAulaForm> {
     int fallidos = 0;
     List<String> errores = [];
 
+    // Helper para normalizar hora "HH:mm:ss" -> "HH:mm"
+    // Helper para normalizar hora "HH:mm:ss" -> "HH:mm"
+    String normalizarHora(String? h) {
+      if (h == null || h.isEmpty) return "00:00";
+      String horaStr = h.trim();
+      if (horaStr.length > 5) horaStr = horaStr.substring(0, 5);
+      // Si es H:mm (e.g. 9:00), agregamos 0 al inicio -> 09:00
+      if (horaStr.length == 4 && horaStr.indexOf(':') == 1) {
+        horaStr = "0$horaStr"; 
+      }
+      return horaStr;
+    }
+
     if (widget.horario != null) {
       // MODO EDICIÓN
+      // Validar traslape excluyendo el actual
+      final inicioNuevo = normalizarHora(_horaInicioController.text);
+      final finNuevo = normalizarHora(_horaFinController.text);
+      final dia = diasSeleccionados.first;
+
+      bool hayTraslape = existentes.any((h) {
+        if (h["id"] == widget.horario!["id"]) return false; // Excluirse a sí mismo
+        if (h["dia"] != dia) return false;
+        
+        final hInicio = normalizarHora(h["hora_inicio"]);
+        final hFin = normalizarHora(h["hora_fin"]);
+        
+        // Overlap logic: (StartA < EndB) and (EndA > StartB)
+        return (inicioNuevo.compareTo(hFin) < 0) && (finNuevo.compareTo(hInicio) > 0);
+      });
+
+      if (hayTraslape) {
+          setState(() {
+             cargando = false;
+             mensaje = "Esta hora ya está ocupada, por favor selecciona otra.";
+          });
+          return;
+      }
+
       final ok = await _apiService.actualizarHorarioDocente(widget.horario!["id"], {
         'docente_id': docenteSeleccionado!,
         'curso_id': cursoSeleccionado!,
@@ -203,22 +268,28 @@ class _HorarioAulaFormState extends State<HorarioAulaForm> {
     } else {
       // MODO CREACIÓN
       for (String dia in diasSeleccionados) {
-        // 2. Validar traslape localmente
-        final inicioNuevo = _horaInicioController.text;
-        final finNuevo = _horaFinController.text;
+          // Validar traslape localmente
+          final inicioNuevo = normalizarHora(_horaInicioController.text);
+          final finNuevo = normalizarHora(_horaFinController.text);
 
-        bool hayTraslape = existentes.any((h) {
-          if (h["dia"] != dia) return false;
-          final hInicio = h["hora_inicio"];
-          final hFin = h["hora_fin"];
-          
-          // (Inicio1 < Fin2) AND (Fin1 > Inicio2) => Overlap
-          return (inicioNuevo.compareTo(hFin) < 0) && (finNuevo.compareTo(hInicio) > 0);
-        });
+          bool hayTraslape = existentes.any((h) {
+            // Validar condicionales de fecha y hora
+            final hDia = (h["dia"] ?? "").toString();
+            if (hDia.toLowerCase().trim() != dia.toLowerCase().trim()) return false;
+            
+            final hInicio = normalizarHora(h["hora_inicio"]);
+            final hFin = normalizarHora(h["hora_fin"]);
+            
+             // (Inicio1 < Fin2) AND (Fin1 > Inicio2) => Overlap
+            bool cond1 = inicioNuevo.compareTo(hFin) < 0; // New Start < Old End
+            bool cond2 = finNuevo.compareTo(hInicio) > 0; // New End > Old Start
+            
+            return cond1 && cond2;
+          });
 
         if (hayTraslape) {
           fallidos++;
-          errores.add("El día $dia ya tiene una clase en ese horario.");
+          errores.add("El día $dia: Esta hora ya está ocupada ($inicioNuevo-$finNuevo), por favor selecciona otra.");
           continue;
         }
 
@@ -236,27 +307,59 @@ class _HorarioAulaFormState extends State<HorarioAulaForm> {
     }
 
     if (mounted) {
-      setState(() {
-        cargando = false;
-        if (errores.isNotEmpty) {
-           mensaje = errores.join("\n");
-        } else if (fallidos == 0) {
-          mensaje = widget.horario != null ? "Horario actualizado correctamente" : "Se registraron $creados horarios para el aula ${widget.aulaNombre}";
-        } else {
-          mensaje = "Ocurrió un error al procesar la solicitud.";
-        }
-      });
+      setState(() => cargando = false);
 
-      if (creados > 0) {
+      if (errores.isNotEmpty) {
+        // Mostrar Alerta de Errores
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text("Conflicto de Horarios"),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: errores.map((e) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(e)),
+                    ],
+                  ),
+                )).toList(),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("Entendido"),
+              ),
+            ],
+          ),
+        );
+      } else if (fallidos > 0 && creados == 0) {
+        // Error genérico sin mensaje específico
+        setState(() => mensaje = "Error al guardar. Verifique su conexión.");
+      } else {
+        // Éxito total
         if (widget.onSave != null) widget.onSave!();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(widget.horario != null ? "¡Horario actualizado!" : "¡Horarios agregados correctamente!"), 
             backgroundColor: Colors.green,
-            duration: const Duration(seconds: 2),
           )
         );
         Navigator.pop(context, true);
+      }
+
+      // Si hubo parciales (algunos creados, otros fallidos), podrías manejarlo aquí también si fuera necesario
+      // Pero con el loop actual, si errores no está vacío, mostramos el dialog.
+      // Si se crearon algunos, podríamos querer refrescar o cerrar, pero el usuario debe saber qué falló.
+      if (creados > 0 && errores.isNotEmpty) {
+         if (widget.onSave != null) widget.onSave!(); // Refrescar los que sí se guardaron
       }
     }
   }

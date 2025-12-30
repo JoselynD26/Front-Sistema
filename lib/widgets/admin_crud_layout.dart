@@ -11,6 +11,7 @@ class AdminCRUDLayout extends StatelessWidget {
   final Widget? filters;
   final int? idSede;
   final bool scrollable;
+  final List<Widget>? actions;
 
   const AdminCRUDLayout({
     super.key,
@@ -22,6 +23,7 @@ class AdminCRUDLayout extends StatelessWidget {
     this.filters,
     this.idSede,
     this.scrollable = true,
+    this.actions,
   });
 
   @override
@@ -62,6 +64,8 @@ class AdminCRUDLayout extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (actions != null)
+                  ...actions!.map((a) => Padding(padding: const EdgeInsets.only(right: 12), child: a)),
                 if (onAdd != null)
                   ElevatedButton.icon(
                     onPressed: onAdd,

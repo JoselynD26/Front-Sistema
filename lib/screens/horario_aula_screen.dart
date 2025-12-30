@@ -38,11 +38,12 @@ class _HorarioAulaScreenState extends State<HorarioAulaScreen> {
     setState(() => cargando = true);
     try {
       final results = await Future.wait<dynamic>([
-        _apiService.listarHorariosPorSede(widget.idSede),
+        _apiService.listarHorariosPorSede(widget.idSede), // Eventos
         _apiService.listarDocentesPorSede(widget.idSede),
         _apiService.listarCarreras(),
         _apiService.listarCursosPorSede(widget.idSede),
         _apiService.listarMateriasPorSede(widget.idSede),
+        _apiService.listarHorariosDocentesPorSede(widget.idSede), // ✅ Bulk Load Recurrentes
       ]);
 
       final List<dynamic> eventosTotal = results[0] ?? [];
@@ -50,6 +51,7 @@ class _HorarioAulaScreenState extends State<HorarioAulaScreen> {
       final List<dynamic> carreras = results[2] ?? [];
       final List<dynamic> cursos = results[3] ?? [];
       final List<dynamic> materias = results[4] ?? [];
+      final List<dynamic> recurrentesRaw = results[5] ?? []; // Todo el horario docente
 
       final Map<int, String> caMap = {};
       for (var c in carreras) {
@@ -65,30 +67,24 @@ class _HorarioAulaScreenState extends State<HorarioAulaScreen> {
       for (var m in materias) {
         if (m != null && m["id"] != null) maMap[m["id"]] = m["nombre"] ?? "";
       }
+      
+      final Map<int, dynamic> docentesMap = {};
+      for(var d in docentes) {
+        if (d["id"]!=null) docentesMap[d["id"]] = d;
+      }
 
-      // Cargar horarios recurrentes de todos los docentes
+      // Procesar horarios recurrentes
       final List<dynamic> recurrentesTotal = [];
-      try {
-        final teacherSchedules = await Future.wait(
-          docentes.map((d) => _apiService.obtenerHorarioDocente(d["id"]))
-        );
+      for (var h in recurrentesRaw) {
+        final dId = h["docente_id"];
+        final docente = docentesMap[dId];
+        final hIdMateria = h["id_materia"] ?? h["materia_id"];
         
-        for (var i = 0; i < teacherSchedules.length; i++) {
-          final list = teacherSchedules[i];
-          final docente = docentes[i];
-          if (list != null) {
-            for (var h in list) {
-              final hIdMateria = h["id_materia"] ?? h["materia_id"];
-              recurrentesTotal.add({
-                ...h,
-                "docente_nombre": "${docente['apellidos']} ${docente['nombres']}",
-                "materia_nombre": h["materia_nombre"] ?? maMap[hIdMateria],
-              });
-            }
-          }
-        }
-      } catch (e) {
-        debugPrint("Error al cargar horarios recurrentes del docente: $e");
+        recurrentesTotal.add({
+          ...h,
+          "docente_nombre": docente != null ? "${docente['apellidos']} ${docente['nombres']}" : "Docente #$dId",
+          "materia_nombre": h["materia_nombre"] ?? maMap[hIdMateria],
+        });
       }
 
       // Unificar y filtrar por aula
@@ -110,9 +106,9 @@ class _HorarioAulaScreenState extends State<HorarioAulaScreen> {
         }
       }
 
-      // Agregar horarios recurrentes del aula
+      // Agregar horarios recurrentes del aula (FILTRADOS POR AULA AQUÍ)
       for (var h in (recurrentesTotal ?? [])) {
-        final hIdAula = h["id_aula"] ?? h["aula_id"];
+        final hIdAula = h["id_aula"] ?? h["aula_id"]; // Este campo debe existir en el horario-docente
         if (hIdAula?.toString() == widget.aulaId.toString()) {
           final hIdCurso = h["id_curso"] ?? h["curso_id"];
           final curso = cuMap[hIdCurso];

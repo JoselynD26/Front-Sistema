@@ -25,6 +25,8 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
   List<dynamic> materias = [];
   List<dynamic> horarios = [];
   List<dynamic> reservas = [];
+  List<dynamic> cursos = []; // Lista de cursos para lookup
+  List<dynamic> aulas = []; // Lista de aulas para lookup
   Map<String, dynamic> miEscritorio = {};
   bool cargando = true;
 
@@ -38,14 +40,37 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
     try {
       final results = await Future.wait([
         _apiService.obtenerMisMaterias(widget.docenteId),
-        _apiService.obtenerMiHorario(widget.docenteId),
+        _apiService.obtenerHorarioDocente(widget.docenteId), // Usar mismo endpoint que admin
         _apiService.obtenerMisReservas(widget.docenteId),
+        _apiService.listarCursosPorSede(1), // Fetch cursos (Sede 1 fixed for now)
+        _apiService.listarAulasPorSede(1), // Fetch aulas (Sede 1 fixed for now)
       ]);
 
       setState(() {
         materias = results[0] as List<dynamic>;
-        horarios = results[1] as List<dynamic>;
+        
+        // Normalizar horarios para asegurar compatibilidad con la vista
+        final rawHorarios = results[1] as List<dynamic>;
+        horarios = rawHorarios.map((h) {
+          final map = Map<String, dynamic>.from(h);
+          // Asegurar materia_id
+          if (!map.containsKey('materia_id') && map.containsKey('id_materia')) {
+            map['materia_id'] = map['id_materia'];
+          }
+           // Asegurar aula_id
+          if (!map.containsKey('aula_id') && map.containsKey('id_aula')) {
+            map['aula_id'] = map['id_aula'];
+          }
+          // Asegurar curso_id
+          if (!map.containsKey('curso_id') && map.containsKey('id_curso')) {
+            map['curso_id'] = map['id_curso'];
+          }
+          return map;
+        }).toList();
+
         reservas = results[2] as List<dynamic>;
+        cursos = results[3] as List<dynamic>;
+        aulas = results[4] as List<dynamic>;
         cargando = false;
       });
     } catch (e) {
@@ -104,44 +129,47 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
                         ),
                       ),
                       const SizedBox(width: 24),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          GestureDetector(
-                            onTap: _editarPerfil,
-                            child: Text(
-                              "Hola, ${widget.nombreProfesor}",
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: -0.5,
-                                decoration: TextDecoration.underline,
-                                decorationColor: Colors.white70,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            GestureDetector(
+                              onTap: _editarPerfil,
+                              child: Text(
+                                "Hola, ${widget.nombreProfesor}",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: -0.5,
+                                  decoration: TextDecoration.underline,
+                                  decorationColor: Colors.white70,
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Text(
-                              "Panel de Gestión Académica",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Text(
+                                "Panel de Gestión Académica",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ],
-                  ),
-                ),
+                    ], // Closes Row
+                  ), // Closes Container child
+                ), // Closes Container
                 
                 const SizedBox(height: 40),
                 
@@ -423,7 +451,12 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
       barrierLabel: "Cerrar",
       transitionDuration: const Duration(milliseconds: 300),
       pageBuilder: (context, anim1, anim2) {
-        return _HorarioCalendarioDialog(horarios: horarios);
+        return _HorarioCalendarioDialog(
+          horarios: horarios,
+          materias: materias,
+          cursos: cursos,
+          aulas: aulas,
+        );
       },
     );
   }
@@ -550,6 +583,45 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
                               },
                               tooltip: "Cancelar reserva",
                             ),
+                          // Botón de eliminar (Basurero)
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline_rounded, color: Colors.grey),
+                            onPressed: () async {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (_) => AlertDialog(
+                                  title: const Text("Eliminar Reserva"),
+                                  content: const Text("¿Estás seguro? Se eliminará del historial permanentemente."),
+                                  actions: [
+                                    TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancelar")),
+                                    TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Eliminar", style: TextStyle(color: Colors.red))),
+                                  ],
+                                ),
+                              );
+                              
+                              if (confirm == true) {
+                                final success = await _apiService.eliminarReserva(reserva["id"]);
+                                if (success) {
+                                  // Refresh local list closing dialog and reopening or just refreshing if state management allowed (Dialog is general dialog).
+                                  // Since it's a dialog with local list 'reservas', I need to refresh it.
+                                  // But `reservas` comes from `_cargarDatos`. If I close and reopen or setState...
+                                  // This is inside `_mostrarReservas` which uses `reservas` from the parent widget state.
+                                  // I should close the dialog and reload or ideally setState inside this builder if it were stateful.
+                                  // For simplicity and matching current flow: Close and Reload.
+                                  Navigator.pop(context); 
+                                  _cargarDatos();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text("Reserva eliminada")),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text("Error al eliminar")),
+                                  );
+                                }
+                              }
+                            },
+                            tooltip: "Eliminar del historial",
+                          ),
                         ],
                       ),
                     );
@@ -895,9 +967,17 @@ class _HorarioAulasDialogState extends State<_HorarioAulasDialog> {
 
 class _HorarioCalendarioDialog extends StatefulWidget {
   final List<dynamic> horarios;
-  
-  const _HorarioCalendarioDialog({required this.horarios});
-  
+  final List<dynamic> materias;
+  final List<dynamic> cursos; // Nueva lista para cruzar datos
+  final List<dynamic> aulas; // Nueva lista para cruzar datos
+
+  const _HorarioCalendarioDialog({
+    required this.horarios,
+    required this.materias,
+    required this.cursos,
+    required this.aulas,
+  });
+
   @override
   _HorarioCalendarioDialogState createState() => _HorarioCalendarioDialogState();
 }
@@ -905,90 +985,105 @@ class _HorarioCalendarioDialog extends StatefulWidget {
 class _HorarioCalendarioDialogState extends State<_HorarioCalendarioDialog> {
   DateTime fechaSeleccionada = DateTime.now();
   
-  @override
-  void initState() {
-    super.initState();
-    _ajustarFechaInicial();
+  // Cache de nombres
+  String _getMateriaNombre(int? id) {
+     if (id == null) return 'Materia ?';
+     final materia = widget.materias.cast<dynamic>().firstWhere(
+        (m) => m['id'] == id, 
+        orElse: () => null
+     );
+     return materia != null ? materia['nombre'] : 'Materia ?';
   }
-  
-  void _ajustarFechaInicial() {
-    // Si hay horarios, usar la fecha del primer horario
-    if (widget.horarios.isNotEmpty) {
-      try {
-        final primerHorario = widget.horarios.first;
-        final fechaHorario = primerHorario['fecha'];
-        
-        if (fechaHorario != null) {
-          DateTime fecha;
-          if (fechaHorario is String) {
-            fecha = DateTime.parse(fechaHorario);
-          } else if (fechaHorario is DateTime) {
-            fecha = fechaHorario;
-          } else {
-            fecha = DateTime.now();
-          }
-          
-          setState(() {
-            fechaSeleccionada = fecha;
-          });
-        }
-      } catch (e) {
-        // Si hay error, mantener fecha actual
-        print('Error ajustando fecha inicial: $e');
-      }
-    }
+
+  String _getCursoNombre(int? id) {
+     if (id == null) return '';
+     final curso = widget.cursos.cast<dynamic>().firstWhere(
+        (c) => c['id'] == id, 
+        orElse: () => null
+     );
+     // Ajusta según la estructura real de tu curso (nombre + paralelo)
+     if (curso != null) {
+       return "${curso['nombre'] ?? ''} ${curso['paralelo'] ?? ''}".trim();
+     }
+     return '';
   }
-  
+
+  String _getAulaNombre(int? id) {
+     if (id == null) return '';
+     final aula = widget.aulas.cast<dynamic>().firstWhere(
+        (a) => a['id'] == id, 
+        orElse: () => null
+     );
+     return aula != null ? "${aula['numero']} - ${aula['nombre']}" : "Aula $id";
+  }
+
+  LinearGradient _getColorForMateria(String nombreMateria) {
+    // Paleta Pastel Profesional
+    final gradients = [
+      const LinearGradient(colors: [Color(0xFFDBEAFE), Color(0xFFBFDBFE)], begin: Alignment.topLeft, end: Alignment.bottomRight), // Blue 100-200
+      const LinearGradient(colors: [Color(0xFFD1FAE5), Color(0xFFA7F3D0)], begin: Alignment.topLeft, end: Alignment.bottomRight), // Emerald 100-200
+      const LinearGradient(colors: [Color(0xFFEDE9FE), Color(0xFFDDD6FE)], begin: Alignment.topLeft, end: Alignment.bottomRight), // Violet 100-200
+      const LinearGradient(colors: [Color(0xFFFEF3C7), Color(0xFFFDE68A)], begin: Alignment.topLeft, end: Alignment.bottomRight), // Amber 100-200
+      const LinearGradient(colors: [Color(0xFFFEE2E2), Color(0xFFFECACA)], begin: Alignment.topLeft, end: Alignment.bottomRight), // Red 100-200
+      const LinearGradient(colors: [Color(0xFFFCE7F3), Color(0xFFFBCFE8)], begin: Alignment.topLeft, end: Alignment.bottomRight), // Pink 100-200
+      const LinearGradient(colors: [Color(0xFFE0E7FF), Color(0xFFC7D2FE)], begin: Alignment.topLeft, end: Alignment.bottomRight), // Indigo 100-200
+      const LinearGradient(colors: [Color(0xFFCCFBF1), Color(0xFF99F6E4)], begin: Alignment.topLeft, end: Alignment.bottomRight), // Teal 100-200
+    ];
+    
+    final hash = nombreMateria.codeUnits.fold(0, (prev, element) => prev + element);
+    return gradients[hash % gradients.length];
+  }
+
   @override
   Widget build(BuildContext context) {
-    return _PremiumDialog(
-      title: "Mi Horario",
-      subtitle: "Calendario de clases semanal",
-      icon: Icons.access_time_filled_rounded,
-      color: const Color(0xFFFF6B35),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        width: 1000,
+        height: 800,
         child: Column(
           children: [
-            
-            // Selector de fecha
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                IconButton(
-                  onPressed: () => _cambiarSemana(-1),
-                  icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF1E3A8A)),
-                  tooltip: 'Semana anterior',
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                     const Text(
+                      "Mi Horario Semanal",
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      _formatearFecha(fechaSeleccionada),
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                  ],
                 ),
-                const Icon(Icons.calendar_today, color: Color(0xFF1E3A8A)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    "Semana del: ${_formatearFecha(fechaSeleccionada)}",
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                  ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: _seleccionarFecha,
-                  icon: const Icon(Icons.date_range),
-                  label: const Text("Cambiar"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1E3A8A),
-                    foregroundColor: Colors.white,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: () => _cambiarSemana(1),
-                  icon: const Icon(Icons.arrow_forward_ios, color: Color(0xFF1E3A8A)),
-                  tooltip: 'Semana siguiente',
+                Row(
+                  children: [
+                    IconButton(
+                        onPressed: () => _cambiarSemana(-1),
+                         icon: const Icon(Icons.chevron_left)),
+                    TextButton.icon(
+                      onPressed: _seleccionarFecha,
+                      icon: const Icon(Icons.calendar_today),
+                      label: const Text("Cambiar Semana"),
+                    ),
+                    IconButton(
+                        onPressed: () => _cambiarSemana(1),
+                        icon: const Icon(Icons.chevron_right)),
+                    const SizedBox(width: 16),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            
-            Expanded(
-              child: _buildCalendarioSemanal(),
-            ),
+            const SizedBox(height: 24),
+            Expanded(child: _buildCalendarioSemanal()),
           ],
         ),
       ),
@@ -1024,11 +1119,12 @@ class _HorarioCalendarioDialogState extends State<_HorarioCalendarioDialog> {
   
   Widget _buildCalendarioSemanal() {
     const dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
-    // Horarios por hora desde las 7:00 hasta las 21:00 (cubriendo hasta 21:10/22:00)
     const horas = [
-      '07:00', '08:00', '09:00', '10:00', '11:00', '12:00', 
-      '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', 
-      '19:00', '20:00', '21:00'
+      '07:00 - 08:00', '08:00 - 09:00', '09:00 - 10:00', 
+      '10:00 - 11:00', '11:00 - 12:00', '12:00 - 13:00', 
+      '13:00 - 14:00', '14:00 - 15:00', '15:00 - 16:00', 
+      '16:00 - 17:00', '17:00 - 17:50', '17:50 - 18:40', 
+      '18:40 - 19:30', '19:30 - 20:20', '20:20 - 21:10'
     ];
 
     return SingleChildScrollView(
@@ -1043,7 +1139,6 @@ class _HorarioCalendarioDialogState extends State<_HorarioCalendarioDialog> {
           5: FlexColumnWidth(),
         },
         children: [
-          // Header
           TableRow(
             decoration: const BoxDecoration(color: Color(0xFF1E3A8A)),
             children: [
@@ -1060,17 +1155,18 @@ class _HorarioCalendarioDialogState extends State<_HorarioCalendarioDialog> {
                 final dia = entry.value;
                 final fechaDia = _obtenerFechaDia(index);
                 return Padding(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
                   child: Column(
                     children: [
                       Text(
                         dia,
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                         textAlign: TextAlign.center,
                       ),
+                      const SizedBox(height: 4),
                       Text(
                         "${fechaDia.day}/${fechaDia.month}",
-                        style: const TextStyle(color: Colors.white70, fontSize: 12),
+                        style: const TextStyle(color: Colors.white70, fontSize: 11),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -1079,17 +1175,23 @@ class _HorarioCalendarioDialogState extends State<_HorarioCalendarioDialog> {
               }).toList(),
             ],
           ),
-          // Filas de horarios
           ...horas.map((hora) => TableRow(
+            decoration: const BoxDecoration(
+              border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+            ),
             children: [
               Container(
-                height: 60, // Mayor altura para mejor visualización
+                height: 85, // Un poco más alto para elegancia y evitar overflow
                 alignment: Alignment.center,
                 padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(color: Colors.grey.shade50),
+                color: const Color(0xFFF8FAFC), // Fondo muy suave para la hora
                 child: Text(
                   hora,
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black54),
+                  style: TextStyle(
+                    fontSize: 11, 
+                    fontWeight: FontWeight.w600, 
+                    color: Colors.grey.shade600
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -1112,62 +1214,101 @@ class _HorarioCalendarioDialogState extends State<_HorarioCalendarioDialog> {
   }
 
   Widget _buildCeldaHorario(String dia, String hora, DateTime fechaDia) {
-    // Buscar si hay un horario para este día, hora y fecha específica
-    final horario = widget.horarios.firstWhere(
+    final horario = widget.horarios.cast<dynamic>().firstWhere(
       (h) {
-        final diaCoincide = h['dia']?.toLowerCase() == dia.toLowerCase();
-        final horaCoincide = _estaEnRangoHora(hora, h['hora_inicio'], h['hora_fin']);
-        final fechaCoincide = _esMismaFecha(h['fecha'], fechaDia);
+        final partsBloque = hora.split(' - ');
+        final inicioBloque = _parseHora(partsBloque[0]);
+        
+        final inicioClase = _parseHora(h['hora_inicio']);
+        final finClase = _parseHora(h['hora_fin']);
+
+        String normalize(String s) => s.toLowerCase()
+            .replaceAll('á', 'a')
+            .replaceAll('é', 'e')
+            .replaceAll('í', 'i')
+            .replaceAll('ó', 'o')
+            .replaceAll('ú', 'u');
+
+        final diaApi = normalize(h['dia']?.toString() ?? "");
+        final diaColumna = normalize(dia);
+        
+        final diaCoincide = diaApi == diaColumna;
+        final horaCoincide = (inicioBloque >= inicioClase) && (inicioBloque < finClase);
+        
+        // Relax fecha check (Always true for now)
+        bool fechaCoincide = true;
         
         return diaCoincide && horaCoincide && fechaCoincide;
       },
       orElse: () => null,
     );
+    
+    final materiaNombre = horario != null ? _getMateriaNombre(horario['materia_id']) : '';
 
     return Container(
-      height: 60,
-      padding: const EdgeInsets.all(1),
+      height: 85,
+      padding: const EdgeInsets.all(3),
       child: horario != null
           ? Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFFF6B35).withOpacity(0.8),
-                borderRadius: BorderRadius.circular(2),
+                gradient: _getColorForMateria(materiaNombre),
+                borderRadius: BorderRadius.circular(12), // Bordes más redondeados
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05), // Sombra muy sutil
+                    blurRadius: 3,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              padding: const EdgeInsets.all(2),
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    horario['materia_nombre'] ?? 'Materia',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 7,
-                      fontWeight: FontWeight.bold,
+                    _getMateriaNombre(horario['materia_id']), 
+                    style: TextStyle(
+                      color: Colors.grey.shade800, // Texto oscuro
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      height: 1.1,
                     ),
                     textAlign: TextAlign.center,
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  Text(
-                    horario['aula_nombre'] ?? 'Aula',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 6,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if ((horario['curso_nombre'] ?? 'N/A') != 'N/A')
-                    Text(
-                      '${horario['curso_nombre']} ${horario['curso_paralelo']}',
-                      style: const TextStyle(
-                        color: Colors.white60,
-                        fontSize: 6,
+                  if (_getCursoNombre(horario['curso_id']).isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 3),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          _getCursoNombre(horario['curso_id']),
+                          style: TextStyle(
+                            color: Colors.grey.shade900,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    ),
+                  if (horario['aula_id'] != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        _getAulaNombre(horario['aula_id']), 
+                        style: TextStyle(
+                          color: Colors.grey.shade700,
+                          fontSize: 9,
+                          fontStyle: FontStyle.italic
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
                     ),
                 ],
               ),
@@ -1211,9 +1352,16 @@ class _HorarioCalendarioDialogState extends State<_HorarioCalendarioDialog> {
     }
   }
 
-  int _parseHora(String hora) {
-    final parts = hora.split(':');
-    return int.parse(parts[0]) * 60 + int.parse(parts[1]);
+  int _parseHora(String? hora) {
+    if (hora == null) return -1;
+    try {
+      final parts = hora.split(':');
+      final h = int.parse(parts[0]);
+      final m = int.parse(parts[1]);
+      return h * 60 + m;
+    } catch (e) {
+      return -1;
+    }
   }
 }
 
@@ -1237,6 +1385,39 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
   int? aulaSeleccionada;
   bool cargando = false;
   bool buscandoAulas = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fechaController.text = DateTime.now().toString().split(' ')[0];
+    
+    // Limpiar resultados si cambian los filtros para obligar a buscar de nuevo
+    void limpiarResultados() {
+      if (aulasDisponibles.isNotEmpty) {
+        setState(() {
+          aulasDisponibles = [];
+          aulaSeleccionada = null;
+        });
+      }
+    }
+    _fechaController.addListener(limpiarResultados);
+    _horaInicioController.addListener(limpiarResultados);
+    _horaFinController.addListener(limpiarResultados);
+  }
+
+  Future<void> _seleccionarHora(TextEditingController controller) async {
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+    if (time != null) {
+      final hour = time.hour.toString().padLeft(2, '0');
+      final minute = time.minute.toString().padLeft(2, '0');
+      setState(() {
+        controller.text = "$hour:$minute";
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1303,6 +1484,8 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
                         Expanded(
                           child: TextField(
                             controller: _horaInicioController,
+                            readOnly: true,
+                            onTap: () => _seleccionarHora(_horaInicioController),
                             decoration: const InputDecoration(
                               labelText: "Hora Inicio",
                               hintText: "14:00",
@@ -1314,6 +1497,8 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
                         Expanded(
                           child: TextField(
                             controller: _horaFinController,
+                            readOnly: true,
+                            onTap: () => _seleccionarHora(_horaFinController),
                             decoration: const InputDecoration(
                               labelText: "Hora Fin",
                               hintText: "16:00",
@@ -1561,6 +1746,27 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
     );
   }
 
+  double _parseHora(String hora) {
+    if (hora.isEmpty) return 0.0;
+    final parts = hora.split(':');
+    final h = int.tryParse(parts[0]) ?? 0;
+    final m = int.tryParse(parts[1]) ?? 0;
+    return h + (m / 60.0);
+  }
+
+  String _getDayName(int weekday) {
+    switch (weekday) {
+      case 1: return "Lunes";
+      case 2: return "Martes";
+      case 3: return "Miércoles";
+      case 4: return "Jueves";
+      case 5: return "Viernes";
+      case 6: return "Sábado";
+      case 7: return "Domingo";
+      default: return "";
+    }
+  }
+
   Future<void> _buscarAulasDisponibles() async {
     if (_fechaController.text.isEmpty || _horaInicioController.text.isEmpty || _horaFinController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1572,27 +1778,132 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
     setState(() => buscandoAulas = true);
 
     try {
-      final aulas = await _apiService.obtenerAulasDisponibles(
-        _fechaController.text,
-        _horaInicioController.text,
-        1, // sede_id fijo por ahora
+      final fechaDate = DateTime.parse(_fechaController.text);
+      final diaSemana = _getDayName(fechaDate.weekday);
+      final inicioSolicitado = _parseHora(_horaInicioController.text);
+      final finSolicitado = _parseHora(_horaFinController.text);
+
+      print("DEBUG: Iniciando Busqueda Exhaustiva para $diaSemana ${_fechaController.text} ($inicioSolicitado - $finSolicitado)");
+
+      // 1. Obtener datos basicos: Aulas, Eventos y Horario Diario (Reservas + Ocupación)
+      final resultsBasicos = await Future.wait([
+        _apiService.listarAulasPorSede(1),
+        _apiService.listarHorariosPorSede(1), // Eventos con fecha especifica
+        _apiService.listarDocentesPorSede(1), // Lista de todos los profes para ver sus recurrentes
+        _apiService.obtenerHorarioAulas(1, _fechaController.text), // NUEVO: Horario diario consolidado
+      ]);
+
+      final todasLasAulas = resultsBasicos[0] as List<dynamic>;
+      final eventosPorFecha = resultsBasicos[1] as List<dynamic>;
+      final docentes = resultsBasicos[2] as List<dynamic>;
+      final horarioDiario = resultsBasicos[3] as List<dynamic>;
+
+      // 2. Obtener Horarios Recurrentes de TODOS los docentes (Pesado pero necesario)
+      print("DEBUG: Fetcheando horarios de ${docentes.length} docentes...");
+      final teacherSchedules = await Future.wait(
+        docentes.map((d) => _apiService.obtenerHorarioDocente(d["id"]))
       );
 
+      // 3. Aplanar la lista de recurrentes
+      final List<dynamic> horarioRecurrenteTotal = [];
+      for (var list in teacherSchedules) {
+        if (list != null) {
+          horarioRecurrenteTotal.addAll(list as List<dynamic>);
+        }
+      }
+      
+      print("DEBUG: Total Recurrentes Globales: ${horarioRecurrenteTotal.length}");
+      print("DEBUG: Total Eventos Por Fecha: ${eventosPorFecha.length}");
+      print("DEBUG: Items Horario Diario: ${horarioDiario.length}");
+
+      // 4. Filtrar aulas disponibles
+      final disponibles = todasLasAulas.where((aula) {
+        bool ocupada = false;
+
+        // --- A. Revisar Horario Recurrente (Clases Semanales) ---
+        final clasesRecurrentesAula = horarioRecurrenteTotal.where((h) {
+          final hAulaId = h['aula_id'] ?? h['id_aula'];
+          final hDia = h['dia'];
+          return hAulaId.toString() == aula['id'].toString() && 
+                 hDia.toString().toLowerCase() == diaSemana.toLowerCase();
+        });
+
+        for (var clase in clasesRecurrentesAula) {
+          final start = _parseHora(clase['hora_inicio']);
+          final end = _parseHora(clase['hora_fin']);
+          
+          if (inicioSolicitado < end && finSolicitado > start) {
+            print("   >>> CONFLICTO RECURRENTE en ${aula['nombre']}: ${clase['hora_inicio']} - ${clase['hora_fin']} (${clase['materia_nombre'] ?? 'Clase'})");
+            ocupada = true;
+            break;
+          }
+        }
+        if (ocupada) return false;
+
+        // --- B. Revisar Eventos por Fecha (Excepciones) ---
+        final eventosFechaAula = eventosPorFecha.where((h) {
+          final hAulaId = h['aula_id'] ?? h['id_aula'];
+          final hFecha = h['fecha'];
+          return hAulaId.toString() == aula['id'].toString() && 
+                 hFecha != null && 
+                 hFecha.toString() == _fechaController.text;
+        });
+
+        for (var evento in eventosFechaAula) {
+          final start = _parseHora(evento['hora_inicio']);
+          final end = _parseHora(evento['hora_fin']);
+
+          if (inicioSolicitado < end && finSolicitado > start) {
+             print("   >>> CONFLICTO FECHA en ${aula['nombre']}: ${evento['hora_inicio']} - ${evento['hora_fin']} (Evento)");
+             ocupada = true;
+             break;
+          }
+        }
+        if (ocupada) return false;
+
+        // --- C. Revisar Ocupación Diaria de Aulas (Consolidado: Reservas + Otros) ---
+        // Buscamos el objeto correspondiente a esta aula en horarioDiario
+        final infoAula = horarioDiario.firstWhere(
+          (item) => item['id'].toString() == aula['id'].toString(),
+          orElse: () => null
+        );
+
+        if (infoAula != null && infoAula['ocupaciones'] != null) {
+          final ocupaciones = infoAula['ocupaciones'] as List<dynamic>;
+          for (var ocup in ocupaciones) {
+             final start = _parseHora(ocup['hora_inicio']);
+             final end = _parseHora(ocup['hora_fin']);
+             
+             if (inicioSolicitado < end && finSolicitado > start) {
+               print("   >>> CONFLICTO DIARIO en ${aula['nombre']}: ${ocup['hora_inicio']} - ${ocup['hora_fin']} (${ocup['tipo'] ?? 'Ocupado'})");
+               ocupada = true;
+               break;
+             }
+          }
+        }
+        if (ocupada) return false;
+
+        return true; 
+      }).toList();
+
+      print("DEBUG: Aulas Disponibles Final: ${disponibles.length}");
+
       setState(() {
-        aulasDisponibles = aulas;
+        aulasDisponibles = disponibles;
         aulaSeleccionada = null;
         buscandoAulas = false;
       });
 
-      if (aulas.isEmpty) {
+      if (disponibles.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("No hay aulas disponibles en ese horario")),
         );
       }
     } catch (e) {
       setState(() => buscandoAulas = false);
+      print("ERROR DETECTADO: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
+        SnackBar(content: Text("Error al buscar disponibilidad: $e")),
       );
     }
   }

@@ -3,6 +3,7 @@ import '../services/api_service.dart';
 import '../widgets/admin_crud_layout.dart';
 import '../widgets/admin_table.dart';
 import 'materia_form_screen.dart';
+import 'materia_excel_import_screen.dart';
 
 class MateriasScreen extends StatefulWidget {
   final int idSede;
@@ -63,7 +64,24 @@ class _MateriasScreenState extends State<MateriasScreen> {
       subtitle: "Asignación de materias, carreras y docentes",
       idSede: widget.idSede,
       onAdd: () => _abrirFormulario(),
-
+      actions: [
+        ElevatedButton.icon(
+          onPressed: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => MateriaExcelImportScreen(idSede: widget.idSede)),
+            );
+            _cargarTodo();
+          },
+          icon: const Icon(Icons.upload_file),
+          label: const Text("Importar Excel"),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.white,
+            foregroundColor: const Color(0xFFEC4899),
+            side: const BorderSide(color: Color(0xFFEC4899)),
+          ),
+        ),
+      ],
       child: cargando
           ? const Center(child: CircularProgressIndicator())
           : _buildGroupedList(),

@@ -3,6 +3,7 @@ import '../services/api_service.dart';
 import '../widgets/admin_crud_layout.dart';
 import '../widgets/admin_table.dart';
 import 'aula_form_screen.dart';
+import 'horario_aula_excel_import_screen.dart';
 import 'horario_aula_screen.dart';
 
 class AulasScreen extends StatefulWidget {
@@ -119,6 +120,24 @@ class _AulasScreenState extends State<AulasScreen> {
       subtitle: "Administra las aulas físicas de la sede",
       idSede: widget.idSede,
       onAdd: () => _abrirFormulario(),
+      actions: [
+        ElevatedButton.icon(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => HorarioAulaExcelImportScreen(idSede: widget.idSede)),
+            );
+          },
+          icon: const Icon(Icons.file_upload),
+          label: const Text("Importar Excel"),
+          style: ElevatedButton.styleFrom(
+             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+             backgroundColor: Colors.indigo.shade50,
+             foregroundColor: Colors.indigo,
+             side: BorderSide(color: Colors.indigo.shade200)
+          ),
+        ),
+      ],
       child: AdminTable(
         isLoading: cargando,
         columns: const [

@@ -299,7 +299,16 @@ class _PlantillaSemanalViewState extends State<_PlantillaSemanalView> {
                     children: horarios.map((h) => ListTile(
                       leading: const Icon(Icons.access_time),
                       title: Text("${h['dia']} ${h['hora_inicio']} - ${h['hora_fin']}"),
-                      subtitle: Text("${h['materia_nombre'] ?? 'Materia'} (Aula ${h['aula_nombre']??'?'})"),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("${h['materia_nombre'] ?? 'Materia'} (Aula ${h['aula_nombre']??'?'})"),
+                          Text(
+                            "${h['curso_nombre']} ${h['curso_paralelo']} - ${h['carrera_nombre'] ?? ''}",
+                            style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                          ),
+                        ],
+                      ),
                       trailing: const Icon(Icons.check_circle, color: Colors.green, size: 16),
                     )).toList(),
                   );
