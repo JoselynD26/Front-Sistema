@@ -246,23 +246,47 @@ class _PlantillaSemanalView extends StatefulWidget {
 class _PlantillaSemanalViewState extends State<_PlantillaSemanalView> {
   final ApiService _api = ApiService();
   List<dynamic> docentes = [];
+  Map<int, List<dynamic>> horariosMap = {};
   bool loading = true;
 
   @override
   void initState() {
     super.initState();
-    _cargarDocentes();
+    _cargarDatos();
   }
 
-  Future<void> _cargarDocentes() async {
+  Future<void> _cargarDatos() async {
     try {
-      final data = await _api.listarDocentesPorSede(widget.idSede);
-      data.sort((a, b) => (a["nombres"]??"").toString().compareTo(b["nombres"]??"")); 
-      setState(() {
-        docentes = data;
-        loading = false;
-      });
+      final results = await Future.wait([
+        _api.listarDocentesPorSede(widget.idSede),
+        _api.listarHorariosDocentesPorSede(widget.idSede), // ✅ Carga Masiva (Bulk)
+      ]);
+
+      final docentesData = results[0] as List<dynamic>;
+      final horariosData = results[1] as List<dynamic>;
+
+      // Ordenar docentes
+      docentesData.sort((a, b) => (a["nombres"]??"").toString().compareTo(b["nombres"]??"")); 
+
+      // Agrupar horarios por docente_id
+      final Map<int, List<dynamic>> grouped = {};
+      for (var h in horariosData) {
+        final dId = h["docente_id"];
+        if (dId != null) {
+          grouped.putIfAbsent(dId, () => []);
+          grouped[dId]!.add(h);
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          docentes = docentesData;
+          horariosMap = grouped;
+          loading = false;
+        });
+      }
     } catch (e) {
+      print("Error cargando plantilla: $e");
       if(mounted) setState(() => loading = false);
     }
   }
@@ -277,43 +301,36 @@ class _PlantillaSemanalViewState extends State<_PlantillaSemanalView> {
       itemCount: docentes.length,
       itemBuilder: (ctx, i) {
         final d = docentes[i];
+        final dId = d["id"];
+        final horarios = horariosMap[dId] ?? [];
+
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           child: ExpansionTile(
             leading: CircleAvatar(child: Text(d["nombres"][0])),
             title: Text("${d["apellidos"]} ${d["nombres"]}"),
-            subtitle: const Text("Ver horario semanal"),
+            subtitle: Text("${horarios.length} clases asignadas"),
             children: [
-              FutureBuilder<List<dynamic>>(
-                future: _api.obtenerHorarioDocente(d["id"]),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator());
-                  }
-                  if (snapshot.hasError) return const Padding(padding: EdgeInsets.all(20), child: Text("Error cargando horario"));
-                  
-                  final horarios = snapshot.data ?? [];
-                  if (horarios.isEmpty) return const Padding(padding: EdgeInsets.all(20), child: Text("Sin horario asignado."));
-
-                  return Column(
-                    children: horarios.map((h) => ListTile(
-                      leading: const Icon(Icons.access_time),
-                      title: Text("${h['dia']} ${h['hora_inicio']} - ${h['hora_fin']}"),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text("${h['materia_nombre'] ?? 'Materia'} (Aula ${h['aula_nombre']??'?'})"),
-                          Text(
-                            "${h['curso_nombre']} ${h['curso_paralelo']} - ${h['carrera_nombre'] ?? ''}",
-                            style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                          ),
-                        ],
-                      ),
-                      trailing: const Icon(Icons.check_circle, color: Colors.green, size: 16),
-                    )).toList(),
-                  );
-                },
-              )
+              if (horarios.isEmpty)
+                const Padding(padding: EdgeInsets.all(20), child: Text("Sin horario asignado."))
+              else
+                Column(
+                  children: horarios.map((h) => ListTile(
+                    leading: const Icon(Icons.access_time),
+                    title: Text("${h['dia']} ${h['hora_inicio']} - ${h['hora_fin']}"),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("${h['materia_nombre'] ?? 'Materia'} (Aula ${h['aula_nombre']??'?'})"),
+                        Text(
+                          "${h['curso_nombre']} ${h['curso_paralelo']} - ${h['carrera_nombre'] ?? ''}",
+                          style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                        ),
+                      ],
+                    ),
+                    trailing: const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                  )).toList(),
+                )
             ],
           ),
         );

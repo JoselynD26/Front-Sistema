@@ -9,8 +9,9 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  // Servidor local para web o Prod desde environment
-  final String baseUrl = const String.fromEnvironment('API_URL', defaultValue: "http://localhost:8000");
+  // Servidor local por defecto, o Prod si se especifica.
+  // CAMBIO PROVISIONAL: Usando Render por defecto para evitar error local.
+  final String baseUrl = const String.fromEnvironment('API_URL', defaultValue: "https://sistema-de-gestion-act-bj8j.onrender.com");
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
   // 🔒 STORAGE HELPERS (Conditional Web/Mobile)
@@ -114,9 +115,10 @@ class ApiService {
   Future<bool> crearReserva(Map<String, dynamic> datos) async {
   try {
     final url = Uri.parse("$baseUrl/reservas/");
+    final headers = await _headers();
     final res = await http.post(
       url,
-      headers: {"Content-Type": "application/json"},
+      headers: headers,
       body: jsonEncode(datos),
     );
 
@@ -795,30 +797,45 @@ Future<List<dynamic>> listarSedes() async {
   Future<List<dynamic>> listarHorariosDocentesPorSede(int sedeId) async {
     // 1. Intentar endpoint masivo (Optimo)
     try {
-      final url = Uri.parse('$baseUrl/horario-docente/sede/$sedeId');
-      final response = await http.get(url, headers: await _headers());
-      // print("[HORARIO DOCENTE][GET POR SEDE] ${response.statusCode}");
+      // Intento 1: horario-docente singular
+      var url = Uri.parse('$baseUrl/horario-docente/sede/$sedeId/');
+      var response = await http.get(url, headers: await _headers());
       
       if (response.statusCode == 200) {
+        print("[BULK FETCH] Exito con /horario-docente/sede/");
         return jsonDecode(response.body);
       }
+      print("[BULK FETCH] Falló Singular (${response.statusCode}). Intentando Plural...");
+
+      // Intento 2: horarios-docentes plural
+      url = Uri.parse('$baseUrl/horarios-docentes/sede/$sedeId/');
+      response = await http.get(url, headers: await _headers());
+
+      if (response.statusCode == 200) {
+        print("[BULK FETCH] Exito con /horarios-docentes/sede/");
+        return jsonDecode(response.body);
+      }
+      print("[BULK FETCH] Falló Plural (${response.statusCode}).");
+
     } catch (e) {
-      print("[API] Error intentando bulk fetch: $e");
+      print("[BULK FETCH ERROR] Detalles: $e");
     }
 
     // 2. Fallback: Peticiones por lotes (Batching) para evitar saturación
-    print("[API] Bulk fetch no disponible (404/Error). Iniciando carga por lotes...");
+    print("[API] Bulk fetch no disponible. Iniciando carga por lotes (Lento)...");
     try {
       // a) Obtener lista de docentes
       final docentes = await listarDocentesPorSede(sedeId);
       final List<dynamic> todosLosHorarios = [];
       
-      // b) Procesar en lotes de 6 para no saturar conexiones (Chrome suele limitar a 6 por dominio)
-      final int batchSize = 6; 
+      // b) Procesar en lotes pequeños (3) para no matar el servidor
+      final int batchSize = 3; 
       for (var i = 0; i < docentes.length; i += batchSize) {
         final end = (i + batchSize < docentes.length) ? i + batchSize : docentes.length;
         final batch = docentes.sublist(i, end);
         
+        print("Cargando lote ${i ~/ batchSize + 1} de ${(docentes.length / batchSize).ceil()}...");
+
         final results = await Future.wait(
           batch.map((d) async {
              try {
@@ -833,8 +850,8 @@ Future<List<dynamic>> listarSedes() async {
         for (var list in results) {
           if (list is List) todosLosHorarios.addAll(list);
         }
-        // Pequeña pausa para dar respiro al event loop si es necesario
-        await Future.delayed(const Duration(milliseconds: 50));
+        // Pausa más larga para evitar Rate Limiting / CORS drop
+        await Future.delayed(const Duration(milliseconds: 300));
       }
       
       print("[API] Carga por lotes completada. Total horarios: ${todosLosHorarios.length}");
