@@ -7,7 +7,8 @@ import 'package:http_parser/http_parser.dart';
 
 class ApiService {
   // Servidor local para web
-  final String baseUrl = "http://localhost:8000";
+  // Servidor local para web o Prod desde environment
+  final String baseUrl = const String.fromEnvironment('API_URL', defaultValue: "http://localhost:8000");
   final FlutterSecureStorage storage = const FlutterSecureStorage();
 
   // -------------------- AUTH --------------------
