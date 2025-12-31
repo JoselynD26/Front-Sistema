@@ -119,7 +119,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (kIsWeb) {
+    final width = MediaQuery.of(context).size.width;
+    if (kIsWeb && width >= 800) {
       return _buildWebRegister(context);
     }
     return _buildMobileRegister(context);

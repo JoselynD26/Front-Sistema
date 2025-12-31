@@ -301,7 +301,7 @@ Future<List<dynamic>> listarSedes() async {
   }
 
   Future<bool> eliminarCarrera(int id) async {
-    final url = Uri.parse("$baseUrl/carreras/$id");
+    final url = Uri.parse("$baseUrl/carreras/$id/");
     final headers = await _headers(json: false);
     final r = await http.delete(url, headers: headers);
     print("[CARRERAS][DELETE] ${r.statusCode} -> ${r.body}");
@@ -1539,14 +1539,25 @@ Future<List<dynamic>> listarSedes() async {
   /// Subir PDF de horario con 4 parámetros
   Future<bool> subirPdfHorarioCompleto(int sedeId, String tipo, Uint8List bytes, String fileName) async {
     try {
-      final url = Uri.parse("$baseUrl/pdf-horarios/subir/$sedeId/$tipo");
+      // Nota: Si el backend espera 'nombre' como query param
+      // Ajustamos la URL para incluir el nombre si es necesario, pero el método original no lo tenía.
+      // Sin embargo, en PdfHorariosScreen se usaba ?nombre=...
+      // Vamos a asumir que el fileName es el nombre del archivo, y si se requiere metadata 'nombre', 
+      // deberíamos pasarlo.
+      // El código original en PdfHorariosScreen usaba: .../subir/$sedeId/$tipo?nombre=$nombre
+      // Este método 'subirPdfHorarioCompleto' recibía 'fileName' pero no lo usaba en el query param?
+      // Vamos a ajustar ambos métodos para recibir 'nombre' opcional o usar headers.
+      
+      // Ajuste para coincidir con lo que hacía la pantalla:
+      final url = Uri.parse("$baseUrl/pdf-horarios/subir/$sedeId/$tipo?nombre=$fileName"); 
+      
       final request = http.MultipartRequest("POST", url);
       
       request.files.add(
         http.MultipartFile.fromBytes(
           'file',
           bytes,
-          filename: fileName,
+          filename: fileName, 
           contentType: MediaType('application', 'pdf'),
         ),
       );
@@ -1557,6 +1568,28 @@ Future<List<dynamic>> listarSedes() async {
       return response.statusCode == 200;
     } catch (e) {
       print("[ERROR][SUBIR PDF HORARIO] $e");
+      return false;
+    }
+  }
+
+  /// ✅ Subir PDF de horario usando PATH (Mobile/Desktop)
+  Future<bool> subirPdfHorarioCompletoPath(int sedeId, String tipo, String filePath, String nombrePublico) async {
+    try {
+      final url = Uri.parse("$baseUrl/pdf-horarios/subir/$sedeId/$tipo?nombre=$nombrePublico");
+      final request = http.MultipartRequest("POST", url);
+      
+      request.files.add(await http.MultipartFile.fromPath(
+        'file', 
+        filePath,
+        contentType: MediaType('application', 'pdf'),
+      ));
+      
+      final response = await request.send();
+      print("[SUBIR PDF HORARIO PATH] ${response.statusCode}");
+      
+      return response.statusCode == 200;
+    } catch (e) {
+      print("[ERROR][SUBIR PDF HORARIO PATH] $e");
       return false;
     }
   }

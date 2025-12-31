@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'dart:html' as html;
+import 'package:flutter/foundation.dart'; // kIsWeb
+import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../widgets/admin_crud_layout.dart';
 import '../widgets/admin_table.dart';
@@ -62,34 +63,45 @@ class _PdfHorariosScreenState extends State<PdfHorariosScreen> {
       );
 
       if (result != null) {
-        final file = result.files.first;
+        final platformFile = result.files.first;
         
         // Después pedir nombre
         String? nombre = await _mostrarDialogoNombre();
         if (nombre == null || nombre.isEmpty) return;
         
-        // Crear FormData para enviar nombre y archivo
-        final url = Uri.parse("${_apiService.baseUrl}/pdf-horarios/subir/${widget.sedeId}/$tipo?nombre=$nombre");
-        final request = html.HttpRequest();
-        request.open('POST', url.toString());
+        bool success = false;
+
+        if (kIsWeb) {
+          if (platformFile.bytes != null) {
+             success = await _apiService.subirPdfHorarioCompleto(
+                widget.sedeId, 
+                tipo, 
+                platformFile.bytes!, 
+                nombre // Pasamos el nombre ingresado como nombre del archivo/param
+             );
+          }
+        } else {
+             // Mobile
+             if (platformFile.path != null) {
+                success = await _apiService.subirPdfHorarioCompletoPath(
+                  widget.sedeId,
+                  tipo,
+                  platformFile.path!,
+                  nombre
+                );
+             }
+        }
         
-        final formData = html.FormData();
-        formData.appendBlob('file', html.Blob([file.bytes!]), file.name);
-        
-        request.send(formData);
-        
-        request.onLoadEnd.listen((e) {
-          if (request.status == 200) {
+        if (success) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('PDF "$nombre" subido exitosamente')),
             );
             _cargarHorarios();
-          } else {
+        } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Error al subir PDF')),
+              const SnackBar(content: Text('Error al subir PDF')),
             );
-          }
-        });
+        }
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -127,12 +139,14 @@ class _PdfHorariosScreenState extends State<PdfHorariosScreen> {
 
   Future<void> _verPdf(String archivo) async {
     try {
-      final url = "${_apiService.baseUrl}/pdf-horarios/ver/${widget.sedeId}/$archivo";
-      html.window.open(url, '_blank');
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('PDF abierto')),
-      );
+      final url = Uri.parse("${_apiService.baseUrl}/pdf-horarios/ver/${widget.sedeId}/$archivo");
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: kIsWeb ? LaunchMode.platformDefault : LaunchMode.externalApplication);
+      } else {
+         ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo abrir el PDF')),
+        );
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error al abrir PDF: $e')),
@@ -143,10 +157,7 @@ class _PdfHorariosScreenState extends State<PdfHorariosScreen> {
   Future<void> _editarPdf(Map<String, dynamic> horario) async {
     final controller = TextEditingController(text: horario['titulo'] ?? horario['nombre']);
     
-    // Para web, usamos PlatformFile
-    // file_picker retorna PlatformFile que tiene 'bytes' en web.
-    // Necesitamos importar 'package:file_picker/file_picker.dart' que ya está.
-    var resultPicker; 
+    FilePickerResult? resultPicker; 
 
     await showDialog(
       context: context,
@@ -182,7 +193,7 @@ class _PdfHorariosScreenState extends State<PdfHorariosScreen> {
                 },
                 icon: const Icon(Icons.upload_file),
                 label: Text(resultPicker != null 
-                  ? "Archivo: ${resultPicker.files.first.name}" 
+                  ? "Archivo: ${resultPicker!.files.first.name}" 
                   : "Seleccionar nuevo PDF"),
               ),
             ],
@@ -204,41 +215,38 @@ class _PdfHorariosScreenState extends State<PdfHorariosScreen> {
                 
                 // 1. ELIMINAR EL ANTERIOR
                 try {
-                  final urlDel = Uri.parse("${_apiService.baseUrl}/pdf-horarios/eliminar/${widget.sedeId}/${horario['archivo']}");
-                  await html.HttpRequest.request(urlDel.toString(), method: 'DELETE');
+                  await _apiService.eliminarPdfHorario(widget.sedeId, horario['archivo']);
                 } catch(e) {
-                  print("Error eliminando anterior (puede que no exista o error red): $e");
-                  // Continuamos intentando subir el nuevo
+                  print("Error eliminando anterior: $e");
                 }
 
                 // 2. SUBIR EL NUEVO
                 try {
-                  final file = resultPicker.files.first;
+                  final platformFile = resultPicker!.files.first;
                   final nombre = controller.text;
                   final tipo = horario['tipo'];
+                  bool success = false;
+
+                  if (kIsWeb) {
+                     if (platformFile.bytes != null) {
+                       success = await _apiService.subirPdfHorarioCompleto(widget.sedeId, tipo, platformFile.bytes!, nombre);
+                     }
+                  } else {
+                     if (platformFile.path != null) {
+                       success = await _apiService.subirPdfHorarioCompletoPath(widget.sedeId, tipo, platformFile.path!, nombre);
+                     }
+                  }
                   
-                  final urlUp = Uri.parse("${_apiService.baseUrl}/pdf-horarios/subir/${widget.sedeId}/$tipo?nombre=$nombre");
-                  final request = html.HttpRequest();
-                  request.open('POST', urlUp.toString());
-                  
-                  final formData = html.FormData();
-                  formData.appendBlob('file', html.Blob([file.bytes!]), file.name);
-                  
-                  request.send(formData);
-                  
-                  request.onLoadEnd.listen((e) {
-                    if (!mounted) return;
-                    if (request.status == 200) {
+                  if (success) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Horario actualizado con éxito')),
                       );
                       _cargarHorarios();
-                    } else {
+                  } else {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Error al subir el nuevo archivo')),
                       );
-                    }
-                  });
+                  }
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Error al actualizar: $e')),
@@ -255,20 +263,16 @@ class _PdfHorariosScreenState extends State<PdfHorariosScreen> {
 
   Future<void> _eliminarPdf(String archivo) async {
     try {
-      final url = Uri.parse("${_apiService.baseUrl}/pdf-horarios/eliminar/${widget.sedeId}/$archivo");
-      final response = await html.HttpRequest.request(
-        url.toString(),
-        method: 'DELETE',
-      );
+      final success = await _apiService.eliminarPdfHorario(widget.sedeId, archivo);
       
-      if (response.status == 200) {
+      if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('PDF eliminado exitosamente')),
+          const SnackBar(content: Text('PDF eliminado exitosamente')),
         );
         _cargarHorarios();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al eliminar PDF')),
+          const SnackBar(content: Text('Error al eliminar PDF')),
         );
       }
     } catch (e) {
@@ -579,8 +583,15 @@ class _PdfHorariosContentState extends State<PdfHorariosContent> {
 
   Future<void> _verPdf(String archivo) async {
     try {
-      final url = "${_apiService.baseUrl}/pdf-horarios/ver/${widget.sedeId}/$archivo";
-      html.window.open(url, '_blank');
+      final url = Uri.parse("${_apiService.baseUrl}/pdf-horarios/ver/${widget.sedeId}/$archivo");
+      // Use launchUrl instead of html.window.open
+       if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: kIsWeb ? LaunchMode.platformDefault : LaunchMode.externalApplication);
+      } else {
+         ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo abrir el PDF')),
+        );
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error al abrir PDF: $e')),

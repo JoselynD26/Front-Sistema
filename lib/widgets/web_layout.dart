@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../utils/mouse_tracker_fix.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../services/api_service.dart';
+// import 'package:flutter_secure_storage/flutter_secure_storage.dart'; // Removed direct usage
 import '../screens/sede_screen.dart';
 import '../screens/carrera_screen.dart';
 import '../screens/aula_screen.dart';
@@ -47,7 +48,7 @@ class _WebLayoutState extends State<WebLayout> with SafeStateMixin {
   String? _emailUsuario;
   String? _rolUsuario;
   int? _docenteId;
-  final _storage = const FlutterSecureStorage();
+  final _apiService = ApiService();
 
   @override
   void initState() {
@@ -56,11 +57,11 @@ class _WebLayoutState extends State<WebLayout> with SafeStateMixin {
   }
 
   Future<void> _cargarDatosUsuario() async {
-    final nombres = await _storage.read(key: "nombres");
-    final apellidos = await _storage.read(key: "apellidos");
-    final email = await _storage.read(key: "email");
-    final rol = await _storage.read(key: "rol");
-    final dId = await _storage.read(key: "docente_id");
+    final nombres = await _apiService.readStorage("nombres");
+    final apellidos = await _apiService.readStorage("apellidos");
+    final email = await _apiService.readStorage("email");
+    final rol = await _apiService.readStorage("rol");
+    final dId = await _apiService.readStorage("docente_id");
     
     debugPrint("WEBLAYOUT: Carga de datos usuario");
     debugPrint(" - nombres: $nombres");
@@ -100,7 +101,7 @@ class _WebLayoutState extends State<WebLayout> with SafeStateMixin {
   }
 
   void _logout() async {
-    await _storage.deleteAll();
+    await _apiService.clearStorage();
     if (mounted) {
       Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
     }

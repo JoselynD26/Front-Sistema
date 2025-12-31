@@ -84,9 +84,12 @@ class _LoginScreenState extends State<LoginScreen> with SafeStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    if (kIsWeb) {
+    final width = MediaQuery.of(context).size.width;
+    // Show Desktop layout only on Web with sufficient width
+    if (kIsWeb && width >= 800) {
       return _buildWebLogin(context);
     }
+    // Mobile layout for mobile devices OR small web screens
     return _buildMobileLogin(context);
   }
 
