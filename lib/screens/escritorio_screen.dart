@@ -41,176 +41,18 @@ class _EscritoriosScreenState extends State<EscritoriosScreen> with SafeStateMix
     if (ok) _cargarEscritorios();
   }
 
-  void _abrirFormulario({Map<String, dynamic>? escritorio}) {
-    final codigoController = TextEditingController();
-    String estado = "libre";
-    String jornada = "matutina";
-    int? salaSeleccionada;
-    int? carreraSeleccionada;
-    int? docenteSeleccionado;
-    List<dynamic> salasDisponibles = [];
-    List<dynamic> carrerasDisponibles = [];
-    List<dynamic> docentesDisponibles = [];
-
-    if (escritorio != null) {
-      codigoController.text = escritorio["codigo"];
-      estado = escritorio["estado"];
-      jornada = escritorio["jornada"];
-      salaSeleccionada = escritorio["sala_id"];
-      carreraSeleccionada = escritorio["carrera_id"];
-      docenteSeleccionado = escritorio["docente_id"];
-    }
-
-    showDialog(
-      context: context,
-      builder: (_) {
-        bool guardando = false;
-        bool cargandoDatos = true;
-        
-        return StatefulBuilder(
-          builder: (context, setStateDialog) {
-            if (cargandoDatos) {
-              _cargarDatosFormulario().then((datos) {
-                setStateDialog(() {
-                  salasDisponibles = datos['salas'] ?? [];
-                  carrerasDisponibles = datos['carreras'] ?? [];
-                  docentesDisponibles = datos['docentes'] ?? [];
-                  cargandoDatos = false;
-                });
-              });
-            }
-
-            return AlertDialog(
-              title: Text(escritorio == null ? "Nuevo Escritorio" : "Editar Escritorio"),
-              content: cargandoDatos
-                  ? const SizedBox(
-                      height: 100,
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  : SingleChildScrollView(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          TextField(
-                            controller: codigoController,
-                            decoration: const InputDecoration(labelText: "Código"),
-                          ),
-                          const SizedBox(height: 16),
-                          DropdownButtonFormField<String>(
-                            value: estado,
-                            items: ["libre", "ocupado"].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                            onChanged: (value) => setStateDialog(() => estado = value!),
-                            decoration: const InputDecoration(labelText: "Estado"),
-                          ),
-                          const SizedBox(height: 16),
-                          DropdownButtonFormField<String>(
-                            value: jornada,
-                            items: ["matutina", "vespertina", "nocturna"].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                            onChanged: (value) => setStateDialog(() => jornada = value!),
-                            decoration: const InputDecoration(labelText: "Jornada"),
-                          ),
-                          const SizedBox(height: 16),
-                          DropdownButtonFormField<int>(
-                            value: salaSeleccionada,
-                            items: salasDisponibles.map((sala) => DropdownMenuItem<int>(value: sala["id"], child: Text(sala["nombre"]))).toList(),
-                            onChanged: (value) => setStateDialog(() => salaSeleccionada = value),
-                            decoration: const InputDecoration(labelText: "Sala"),
-                          ),
-                          const SizedBox(height: 16),
-                          DropdownButtonFormField<int>(
-                            value: carreraSeleccionada,
-                            items: carrerasDisponibles.map((carrera) => DropdownMenuItem<int>(value: carrera["id"], child: Text(carrera["nombre"]))).toList(),
-                            onChanged: (value) => setStateDialog(() => carreraSeleccionada = value),
-                            decoration: const InputDecoration(labelText: "Carrera"),
-                          ),
-                          const SizedBox(height: 16),
-                          DropdownButtonFormField<int>(
-                            value: docenteSeleccionado,
-                            items: docentesDisponibles.map((docente) => DropdownMenuItem<int>(value: docente["id"], child: Text("${docente["apellidos"]} ${docente["nombres"]}"))).toList(),
-                            onChanged: (value) => setStateDialog(() => docenteSeleccionado = value),
-                            decoration: const InputDecoration(labelText: "Docente (Opcional)"),
-                          ),
-                        ],
-                      ),
-                    ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("Cancelar"),
-                ),
-                ElevatedButton(
-                  onPressed: guardando || cargandoDatos
-                      ? null
-                      : () async {
-                          if (codigoController.text.trim().isEmpty || salaSeleccionada == null || carreraSeleccionada == null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Completa todos los campos obligatorios")),
-                            );
-                            return;
-                          }
-
-                          setStateDialog(() => guardando = true);
-
-                          final datos = {
-                            "codigo": codigoController.text.trim(),
-                            "estado": estado,
-                            "jornada": jornada,
-                            "sala_id": salaSeleccionada,
-                            "carrera_id": carreraSeleccionada,
-                            "docente_id": docenteSeleccionado,
-                          };
-
-                          bool success;
-                          if (escritorio == null) {
-                            success = await _apiService.crearEscritorio(datos);
-                          } else {
-                            success = await _apiService.actualizarEscritorio(escritorio["id"], datos);
-                          }
-
-                          setStateDialog(() => guardando = false);
-
-                          if (success) {
-                            _cargarEscritorios();
-                            Navigator.pop(context);
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Error al guardar escritorio")),
-                            );
-                          }
-                        },
-                  child: guardando
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Text("Guardar"),
-                ),
-              ],
-            );
-          },
-        );
-      },
+  void _abrirFormulario({Map<String, dynamic>? escritorio}) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EscritorioForm(
+          idSede: widget.idSede,
+          escritorio: escritorio,
+          onSave: _cargarEscritorios,
+        ),
+      ),
     );
-  }
-
-  Future<Map<String, List<dynamic>>> _cargarDatosFormulario() async {
-    try {
-      final salas = await _apiService.listarSalasPorSede(widget.idSede);
-      final carreras = await _apiService.listarCarreras();
-      final docentes = await _apiService.listarDocentes(widget.idSede);
-      
-      return {
-        'salas': salas,
-        'carreras': carreras.where((c) => (c["sede_ids"] as List).contains(widget.idSede)).toList(),
-        'docentes': docentes,
-      };
-    } catch (e) {
-      return {'salas': [], 'carreras': [], 'docentes': []};
-    }
+    _cargarEscritorios();
   }
 
   @override
@@ -219,6 +61,7 @@ class _EscritoriosScreenState extends State<EscritoriosScreen> with SafeStateMix
       title: "Escritorios",
       subtitle: "Gestión de espacios de trabajo y escritorios",
       onAdd: () => _abrirFormulario(),
+      idSede: widget.idSede,
       child: AdminTable(
         isLoading: cargando,
         columns: const [

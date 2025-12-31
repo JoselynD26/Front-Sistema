@@ -81,17 +81,16 @@ class _SalasScreenState extends State<SalasScreen> {
       title: "Salas",
       subtitle: "Gestión de laboratorios y salas especiales",
       onAdd: () => _abrirFormulario(),
+      idSede: widget.idSede,
       child: AdminTable(
         isLoading: cargando,
         columns: const [
           DataColumn(label: Text("Nombre")),
-          DataColumn(label: Text("Sede")),
           DataColumn(label: Text("Acciones")),
         ],
         rows: salas.map((s) {
           return DataRow(cells: [
             DataCell(Text(s["nombre"], style: const TextStyle(fontWeight: FontWeight.bold))),
-            DataCell(Text(s["sede_nombre"] ?? "Sin sede")),
             DataCell(Row(
               mainAxisSize: MainAxisSize.min,
               children: [

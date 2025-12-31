@@ -95,7 +95,7 @@ class _LoginScreenState extends State<LoginScreen> with SafeStateMixin {
       child: Scaffold(
         body: Row(
           children: [
-            // Left Panel - Branding
+            // Left Panel: Branding
             Expanded(
               flex: 5,
               child: Container(
@@ -103,232 +103,61 @@ class _LoginScreenState extends State<LoginScreen> with SafeStateMixin {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
+                    colors: [
+                      Color(0xFF0C2461), // Darker Deep Blue
+                      Color(0xFF1E3A8A), // Brand Blue
+                      Color(0xFF4A69BD), // Lighter "Premium" Blue
+                    ],
+                  ),
+                  image: DecorationImage(
+                    image: NetworkImage("https://www.transparenttextures.com/patterns/cubes.png"),
+                    fit: BoxFit.cover,
+                    opacity: 0.05,
                   ),
                 ),
-                child: Stack(
-                  children: [
-                    // Decorative circles
-                    Positioned(
-                      top: -100,
-                      right: -100,
-                      child: Container(
-                        width: 400,
-                        height: 400,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.05),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.school_rounded, size: 80, color: Colors.white.withOpacity(0.9)),
+                      const SizedBox(height: 24),
+                      const Text(
+                        "Yavirac",
+                        style: TextStyle(
+                          fontSize: 64,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: 2,
                         ),
                       ),
-                    ),
-                    Positioned(
-                      bottom: -50,
-                      left: -50,
-                      child: Container(
-                        width: 300,
-                        height: 300,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.05),
+                      const SizedBox(height: 16),
+                      Container(height: 4, width: 60, color: const Color(0xFFFF6B35)), // Orange Accent
+                      const SizedBox(height: 24),
+                      Text(
+                        "Sistema de Gestión Académica",
+                        style: TextStyle(
+                          fontSize: 20,
+                          color: Colors.white.withOpacity(0.8),
+                          letterSpacing: 1.2,
                         ),
                       ),
-                    ),
-                    // Content
-                    Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(24),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.1),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.school_rounded,
-                              size: 80,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 32),
-                          const Text(
-                            'YAVIRAC',
-                            style: TextStyle(
-                              fontSize: 48,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              letterSpacing: 2,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'Sistema de Gestión Académica',
-                            style: TextStyle(
-                              fontSize: 20,
-                              color: Colors.white70,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
-            // Right Panel - Login Form
+            
+            // Right Panel: Form
             Expanded(
               flex: 4,
               child: Container(
                 color: Colors.white,
                 child: Center(
-                  child: Container(
-                    constraints: const BoxConstraints(maxWidth: 400),
-                    padding: const EdgeInsets.all(40),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Bienvenido de nuevo',
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF1E293B),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Ingresa tus credenciales para acceder',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        const SizedBox(height: 48),
-                        TextField(
-                          controller: _correoController,
-                          decoration: const InputDecoration(
-                            labelText: "Correo electrónico",
-                            prefixIcon: Icon(Icons.email_outlined),
-                          ),
-                          keyboardType: TextInputType.emailAddress,
-                        ),
-                        const SizedBox(height: 24),
-                        TextField(
-                          controller: _contrasenaController,
-                          decoration: InputDecoration(
-                            labelText: "Contraseña",
-                            prefixIcon: const Icon(Icons.lock_outline),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                              ),
-                              onPressed: () {
-                                safeSetState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
-                              },
-                            ),
-                          ),
-                          obscureText: _obscurePassword,
-                          onSubmitted: (_) => _login(),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Checkbox(
-                              value: _recordarCredenciales,
-                              activeColor: Theme.of(context).primaryColor,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                              onChanged: (value) {
-                                safeSetState(() {
-                                  _recordarCredenciales = value ?? false;
-                                });
-                              },
-                            ),
-                            const Text("Recordar credenciales"),
-                          ],
-                        ),
-                        const SizedBox(height: 32),
-                        if (error != null)
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            margin: const EdgeInsets.only(bottom: 24),
-                            decoration: BoxDecoration(
-                              color: Colors.red[50],
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.red[100]!),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.error_outline, color: Colors.red, size: 20),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    error!,
-                                    style: const TextStyle(color: Colors.red, fontSize: 14),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 56,
-                          child: ElevatedButton(
-                            onPressed: cargando ? null : _login,
-                            child: cargando
-                                ? const SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                    ),
-                                  )
-                                : const Text(
-                                    "Iniciar Sesión",
-                                    style: TextStyle(fontSize: 16),
-                                  ),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        Center(
-                          child: TextButton(
-                            onPressed: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => RegisterScreen()),
-                            ),
-                            child: RichText(
-                              text: TextSpan(
-                                text: "¿No tienes cuenta? ",
-                                style: TextStyle(color: Colors.grey[600]),
-                                children: [
-                                  TextSpan(
-                                    text: "Regístrate aquí",
-                                    style: TextStyle(
-                                      color: Theme.of(context).primaryColor,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        const Spacer(),
-                        Center(
-                          child: Text(
-                            "Desarrollado por Joselyn Dicao, María Ortiz y Raul Hidalgo",
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[400],
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ],
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 64, vertical: 32),
+                    child: Container(
+                      constraints: const BoxConstraints(maxWidth: 400),
+                      child: _buildFormContent(),
                     ),
                   ),
                 ),
@@ -342,73 +171,264 @@ class _LoginScreenState extends State<LoginScreen> with SafeStateMixin {
 
   Widget _buildMobileLogin(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Login")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TextField(
-                controller: _correoController,
-                decoration: const InputDecoration(
-                  labelText: "Correo",
-                  border: OutlineInputBorder(),
+
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        children: [
+          Container(
+             decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0xFF0C2461), 
+                    Color(0xFF1E3A8A), 
+                    Color(0xFF4A69BD), 
+                  ],
                 ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _contrasenaController,
-                decoration: InputDecoration(
-                  labelText: "Contraseña",
-                  border: const OutlineInputBorder(),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword ? Icons.visibility : Icons.visibility_off,
+             ),
+          ),
+          // Header Branding
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: MediaQuery.of(context).size.height * 0.35,
+            child: Container(
+             padding: const EdgeInsets.only(left: 24, right: 24, top: 48),
+             alignment: Alignment.topCenter,
+             child: Column(
+               children: [
+                  Icon(Icons.school_rounded, size: 48, color: Colors.white.withOpacity(0.9)),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "Yavirac",
+                    style: TextStyle(
+                      fontSize: 40,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
-                    onPressed: () {
-                      safeSetState(() {
-                        _obscurePassword = !_obscurePassword;
-                      });
-                    },
                   ),
-                ),
-                obscureText: _obscurePassword,
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Checkbox(
-                    value: _recordarCredenciales,
-                    onChanged: (value) {
-                      safeSetState(() {
-                        _recordarCredenciales = value ?? false;
-                      });
-                    },
+                  Text(
+                    "Gestión Académica",
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white.withOpacity(0.7),
+                    ),
                   ),
-                  const Text("Recordar credenciales"),
-                ],
+               ],
+             ),
+            ),
+          ),
+          
+          // Form Sheet
+          Positioned(
+            top: MediaQuery.of(context).size.height * 0.3,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
               ),
-              const SizedBox(height: 20),
-              if (cargando) const CircularProgressIndicator(),
-              if (error != null)
-                Text(error!, style: const TextStyle(color: Colors.red)),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: cargando ? null : _login,
-                child: const Text("Ingresar"),
-              ),
-              TextButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => RegisterScreen()),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
+                  child: _buildFormContent(),
                 ),
-                child: const Text("¿No tienes cuenta? Regístrate"),
               ),
-            ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFormContent() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          "Bienvenido",
+          style: TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF1E3A8A),
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          "Ingresa tus credenciales para acceder.",
+          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 48),
+
+        // Email
+        _buildInput(
+          controller: _correoController,
+          label: "Correo Electrónico",
+          icon: Icons.email_outlined,
+          type: TextInputType.emailAddress,
+        ),
+        const SizedBox(height: 24),
+
+        // Password
+        _buildInput(
+          controller: _contrasenaController,
+          label: "Contraseña",
+          icon: Icons.lock_outline,
+          isPassword: true,
+          obscureText: _obscurePassword,
+          onToggleVisibility: () {
+            setState(() {
+              _obscurePassword = !_obscurePassword;
+            });
+          },
+        ),
+
+        const SizedBox(height: 16),
+        
+        // Checkbox
+        Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            SizedBox(
+              height: 24,
+              width: 24,
+              child: Checkbox(
+                value: _recordarCredenciales,
+                activeColor: const Color(0xFF1E3A8A),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                onChanged: (value) {
+                  setState(() {
+                    _recordarCredenciales = value ?? false;
+                  });
+                },
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text("Recordar credenciales", style: TextStyle(color: Colors.grey[700], fontSize: 14)),
+          ],
+        ),
+
+        const SizedBox(height: 32),
+
+        if (error != null)
+           Container(
+             padding: const EdgeInsets.all(12),
+             margin: const EdgeInsets.only(bottom: 16),
+             decoration: BoxDecoration(
+               color: Colors.red[50],
+               borderRadius: BorderRadius.circular(8),
+               border: Border.all(color: Colors.red[100]!),
+             ),
+             child: Text(error!, style: TextStyle(color: Colors.red[800], fontSize: 13), textAlign: TextAlign.center),
+           ),
+
+        // Login Button
+        SizedBox(
+          height: 52,
+          child: ElevatedButton(
+            onPressed: cargando ? null : _login,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF6B35), // Orange Action
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: cargando 
+              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+              : const Text("Ingresar", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           ),
         ),
-      ),
+
+        const SizedBox(height: 32),
+        
+        // Footer: Register link
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text("¿No tienes cuenta? ", style: TextStyle(color: Colors.grey[600])),
+            GestureDetector(
+              onTap: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const RegisterScreen()),
+              ),
+              child: const Text(
+                "Regístrate aquí",
+                style: TextStyle(
+                  color: Color(0xFF1E3A8A),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        
+        const SizedBox(height: 24),
+        Text(
+          "Desarrollado por Joselyn Dicao, María Ortiz y Raul Hidalgo",
+          style: TextStyle(fontSize: 11, color: Colors.grey[400]),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInput({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    bool isPassword = false,
+    bool obscureText = false,
+    VoidCallback? onToggleVisibility,
+    TextInputType? type,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87)),
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          obscureText: isPassword ? obscureText : false,
+          keyboardType: type,
+          enabled: !cargando,
+          onSubmitted: (_) => _login(),
+          style: const TextStyle(fontWeight: FontWeight.w500),
+          decoration: InputDecoration(
+            hintText: "Ingresa tu $label",
+            hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+            prefixIcon: Icon(icon, color: Colors.grey[400], size: 20),
+            suffixIcon: isPassword 
+              ? IconButton(
+                  icon: Icon(obscureText ? Icons.visibility_outlined : Icons.visibility_off_outlined, color: Colors.grey[400]),
+                  onPressed: onToggleVisibility,
+                )
+              : null,
+            filled: true,
+            fillColor: Colors.grey[50],
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[200]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[200]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF1E3A8A), width: 1.5),
+            ),
+            contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+          ),
+        ),
+      ],
     );
   }
 }

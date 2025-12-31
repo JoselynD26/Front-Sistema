@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/api_service.dart';
+import '../utils/mouse_tracker_fix.dart';
 import '../widgets/web_layout.dart';
 import '../screens/sede_screen.dart';
 import 'profesor_dashboard.dart';
@@ -99,9 +100,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF1F5F9), // Slate 100
-      body: Stack(
+    return MouseTrackerFix(
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF1F5F9), // Slate 100
+        body: Stack(
         children: [
           // 🔹 1. HERO HEADER (GRADIENT BACKGROUND)
           Container(
@@ -325,6 +327,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ],
       ),
+    ),
     );
   }
 
