@@ -363,8 +363,10 @@ class _DocentesScreenState extends State<DocentesScreen> {
         isLoading: cargando,
         columns: const [
           DataColumn(label: Text("Cédula")),
-          DataColumn(label: Text("Nombres")),
+          DataColumn(label: Text("Apellidos y Nombres")),
           DataColumn(label: Text("Correo")),
+          DataColumn(label: Text("Régimen")),
+          DataColumn(label: Text("Dedicación")),
           DataColumn(label: Text("Cuenta")),
           DataColumn(label: Text("Acciones")),
         ],
@@ -375,6 +377,8 @@ class _DocentesScreenState extends State<DocentesScreen> {
             DataCell(Text(docente["cedula"] ?? "", style: const TextStyle(fontWeight: FontWeight.bold))),
             DataCell(Text("${docente["apellidos"] ?? ""} ${docente["nombres"] ?? ""}")),
             DataCell(Text(docente["correo"] ?? "")),
+            DataCell(Text(docente["regimen"] ?? "-")),
+            DataCell(Text(docente["observacion"] ?? "-")),
             DataCell(
               tieneCuenta 
               ? Container(
@@ -406,7 +410,28 @@ class _DocentesScreenState extends State<DocentesScreen> {
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  onPressed: () => _eliminarDocente(docente["id"]),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text("Confirmar Eliminación"),
+                        content: Text("¿Estás seguro de eliminar al docente ${docente["nombres"]} ${docente["apellidos"]}?\nEsta acción no se puede deshacer."),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: const Text("Cancelar"),
+                          ),
+                          TextButton(
+                             onPressed: () {
+                               Navigator.pop(ctx);
+                               _eliminarDocente(docente["id"]);
+                             },
+                             child: const Text("Eliminar", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                   tooltip: "Eliminar",
                 ),
                 const SizedBox(width: 8),

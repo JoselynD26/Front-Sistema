@@ -36,7 +36,20 @@ class _MateriaExcelImportScreenState extends State<MateriaExcelImportScreen> {
 
   Future<void> _cargarDatosValidacion() async {
     try {
-      final carreras = await _api.listarCarrerasPorSede(widget.idSede);
+      // Usamos listarCarreras general porque el endpoint por sede da 404
+      final carrerasAll = await _api.listarCarreras(); 
+      
+      // Filtrar localmente por sede (solo mostrar las de esta sede)
+      final carreras = carrerasAll.where((c) {
+          final sIds = c['sede_ids'];
+          if (sIds is List) {
+             // Comparación robusta (por si vienen como String o Int)
+             final match = sIds.any((id) => id.toString() == widget.idSede.toString());
+             return match;
+          }
+          return false;
+      }).toList();
+      
       final docentes = await _api.listarDocentesPorSede(widget.idSede);
       
       if (mounted) {
@@ -45,7 +58,6 @@ class _MateriaExcelImportScreenState extends State<MateriaExcelImportScreen> {
           _docentesDisponibles = docentes;
         });
         print("DEBUG: Loaded ${carreras.length} carreras and ${docentes.length} docentes for validation.");
-        for(var c in carreras) print("DEBUG: Available Carrera: '${c['nombre']}'");
       }
     } catch (e) {
       debugPrint("Error cargando datos de validación: $e");
@@ -195,8 +207,8 @@ class _MateriaExcelImportScreenState extends State<MateriaExcelImportScreen> {
                if (match.isNotEmpty) {
                    carrerasIds.add(match['id']);
                } else {
-                   print("DEBUG: Failed to match '$tc' (normalized: '$busquedaNorm'). Available: ${_carrerasDisponibles.map((c) => normalize(c['nombre'] ?? "")).toList()}");
-                   errs.add("Carrera no encontrada: '$tc'");
+                   final disponibles = _carrerasDisponibles.map((c) => "'${c['nombre']}'").join(", ");
+                   errs.add("Carrera no encontrada: '$tc'.\nOpciones válidas: $disponibles");
                }
            }
         } else {

@@ -149,11 +149,15 @@ class _MateriasScreenState extends State<MateriasScreen> {
                   return DataRow(cells: [
                      DataCell(Text(m["nombre"] ?? "", style: const TextStyle(fontWeight: FontWeight.bold))),
                      // DataCell(...), // Omitimos carrera
-                     DataCell(SizedBox(
-                      width: 250,
-                      child: Text(
-                        (m["docentes"] as List).map((d) => "${d["apellidos"]} ${d["nombres"]}").join(", "),
-                        overflow: TextOverflow.ellipsis,
+                     DataCell(Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: (m["docentes"] as List).map((d) => Text(
+                          "- ${d["apellidos"]} ${d["nombres"]}",
+                          style: const TextStyle(fontSize: 13),
+                        )).toList(),
                       ),
                     )),
                     DataCell(Row(
@@ -166,7 +170,28 @@ class _MateriasScreenState extends State<MateriasScreen> {
                         ),
                         IconButton(
                           icon: const Icon(Icons.delete_outline, color: Colors.red),
-                          onPressed: () => _eliminarMateria(m["id"]),
+                          onPressed: () {
+                             showDialog(
+                               context: context,
+                               builder: (ctx) => AlertDialog(
+                                 title: const Text("Confirmar Eliminación"),
+                                 content: Text("¿Estás seguro de eliminar la materia ${m["nombre"]}?\nEsta acción no se puede deshacer."),
+                                 actions: [
+                                   TextButton(
+                                     onPressed: () => Navigator.pop(ctx),
+                                     child: const Text("Cancelar"),
+                                   ),
+                                   TextButton(
+                                      onPressed: () {
+                                        Navigator.pop(ctx);
+                                        _eliminarMateria(m["id"]);
+                                      },
+                                      child: const Text("Eliminar", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                                   ),
+                                 ],
+                               ),
+                             );
+                          },
                           tooltip: "Eliminar",
                         ),
                       ],

@@ -60,13 +60,25 @@ class _AdminReservasScreenState extends State<AdminReservasScreen> with SingleTi
       // Usamos el nuevo endpoint que trae TODO el historial (incluyendo rechazadas/canceladas)
       List<dynamic> data = await _apiService.listarHistorialReservas();
       
-      // Si estamos seleccionando una sede específica, filtramos localmente 
-      // (si el endpoint no soportaba filtro por sede, es mejor filtrar aquí que mostrar de otras sedes)
+      // Filtrar por sede basándonos en si el docente pertenece a esta sede (Match por Nombre porque el endpoint no devuelve ID)
       if (widget.idSede != null) {
-        data = data.where((r) {
-           // Asumimos que los objetos tienen 'sede_id'
-           return r['sede_id'] == widget.idSede;
-        }).toList();
+        try {
+           final docentesSede = await _apiService.listarDocentesPorSede(widget.idSede!);
+           
+           // Construimos los nombres completos como vienen en el historial: "NOMBRES APELLIDOS"
+           final nombresValidos = docentesSede.map((d) {
+             final n = (d['nombres'] ?? '').toString().trim();
+             final a = (d['apellidos'] ?? '').toString().trim();
+             return "$n $a".toUpperCase();
+           }).toSet();
+           
+           data = data.where((r) {
+             final dNombre = (r['docente_nombre'] ?? '').toString().trim().toUpperCase();
+             return nombresValidos.contains(dNombre);
+           }).toList();
+        } catch (e) {
+           debugPrint("Error filtrando historial por nombre: $e");
+        }
       }
 
       if (mounted) {

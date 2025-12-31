@@ -38,15 +38,17 @@ class _DisponibilidadAulasScreenState extends State<DisponibilidadAulasScreen> {
         _apiService.listarCursosPorSede(widget.idSede),
         _apiService.listarMateriasPorSede(widget.idSede),
         _apiService.listarHorariosDocentesPorSede(widget.idSede), // ✅ Bulk Load Recurrentes
+        _apiService.listarHistorialReservas(), // ✅ Historial de Reservas para incluir Aprobadas
       ]);
 
       final List<dynamic> aulasList = results[0] ?? [];
-      final List<dynamic> eventos = results[1] ?? []; // Reservas
+      final List<dynamic> eventos = results[1] ?? [];
       final List<dynamic> docentes = results[2] ?? [];
       final List<dynamic> carreras = results[3] ?? [];
       final List<dynamic> cursos = results[4] ?? [];
       final List<dynamic> materias = results[5] ?? [];
-      final List<dynamic> recurrentesRaw = results[6] ?? []; // Todo el horario docente
+      final List<dynamic> recurrentesRaw = results[6] ?? [];
+      final List<dynamic> historialReservas = results[7] ?? [];
 
       // Ordenar aulas A-Z
       aulasList.sort((a, b) => (a["nombre"] ?? "").toString().toLowerCase().compareTo((b["nombre"] ?? "").toString().toLowerCase()));
@@ -85,9 +87,36 @@ class _DisponibilidadAulasScreenState extends State<DisponibilidadAulasScreen> {
         });
       }
 
+      // Procesar reservas aprobadas del historial
+      // Debemos asegurarnos de que tengan el formato correcto para ser mostradas
+      final List<dynamic> reservasAprobadas = [];
+      for (var r in historialReservas) {
+         if ((r["estado"] ?? "").toString().toLowerCase() == "aprobada") {
+            // Normalizar hora inicio/fin si viene en string único "HH:MM - HH:MM"
+            String hInicio = r["hora_inicio"] ?? "";
+            String hFin = r["hora_fin"] ?? "";
+            
+            if (hInicio.isEmpty && r["hora"] != null) {
+               final parts = r["hora"].toString().split("-");
+               if (parts.length == 2) {
+                 hInicio = parts[0].trim();
+                 hFin = parts[1].trim();
+               }
+            }
+            
+            reservasAprobadas.add({
+               ...r,
+               "hora_inicio": hInicio,
+               "hora_fin": hFin,
+               // Asegurar ID de aula para match
+               "id_aula": r["aula_id"] ?? r["id_aula"], 
+            });
+         }
+      }
+
       setState(() {
         aulas = aulasList;
-        horariosEventos = eventos;
+        horariosEventos = [...eventos, ...reservasAprobadas]; // Unimos ambos tipos de eventos puntuales
         horariosRecurrentes = recurrentesTotal;
         carrerasMap = cMap;
         cursosMap = cuMap;
@@ -163,7 +192,7 @@ class _DisponibilidadAulasScreenState extends State<DisponibilidadAulasScreen> {
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
               Text(
-                "${fechaSeleccionada.day}/${fechaSeleccionada.month}/${fechaSeleccionada.year}",
+                "${fechaSeleccionada.year}-${fechaSeleccionada.month.toString().padLeft(2,'0')}-${fechaSeleccionada.day.toString().padLeft(2,'0')}",
                 style: TextStyle(color: Colors.grey.shade600),
               ),
             ],
@@ -199,10 +228,12 @@ class _DisponibilidadAulasScreenState extends State<DisponibilidadAulasScreen> {
         final aula = aulas[index];
         final idAula = aula["id"];
 
-        // 1. Ocupación por eventos individuales (match por fecha)
+        // 1. Ocupación por eventos/reservas (match por fecha)
+        // Ya incluye las reservas aprobadas del historial
         final ocupacionEventos = (horariosEventos ?? []).where((h) {
-          final hFecha = h["fecha"]; // Asumiendo formato YYYY-MM-DD
+          final hFecha = h["fecha"]; 
           final hIdAula = h["id_aula"] ?? h["aula_id"];
+          // Importante: comparar con fecha exacta
           return h != null && hIdAula?.toString() == idAula?.toString() && hFecha == fechaStr;
         }).toList();
 
@@ -216,14 +247,18 @@ class _DisponibilidadAulasScreenState extends State<DisponibilidadAulasScreen> {
         final List<Map<String, dynamic>> ocupacionHoy = [];
         
         for (var h in ocupacionEventos) {
+          // Detectar si es una reserva aprobada del historial (suele tener "motivo")
+          bool esReserva = h.containsKey("motivo") || (h["estado"] == "aprobada");
+          
           final hIdCurso = h["id_curso"] ?? h["curso_id"];
           final curso = cursosMap[hIdCurso];
           final carName = carrerasMap[curso?["carrera_id"]] ?? (h["carrera_nombre"] ?? "");
+          
           ocupacionHoy.add({
             ...h,
-            "tipo": "Evento",
-            "display_carrera": carName,
-            "display_curso": "${curso?['nombre'] ?? (h['curso_nombre']??'')} ${curso?['paralelo']??''}",
+            "tipo": esReserva ? "Reserva" : "Evento",
+            "display_carrera": esReserva ? (h["motivo"] ?? "Reserva de Espacio") : carName,
+            "display_curso": esReserva ? "Reservado" : "${curso?['nombre'] ?? (h['curso_nombre']??'')} ${curso?['paralelo']??''}",
           });
         }
 

@@ -61,7 +61,7 @@ class AdminTable extends StatelessWidget {
             columnSpacing: 32,
             headingRowHeight: 56,
             dataRowMinHeight: 52,
-            dataRowMaxHeight: 52,
+            dataRowMaxHeight: double.infinity,
             dividerThickness: 0.5,
             columns: columns,
             rows: rows,

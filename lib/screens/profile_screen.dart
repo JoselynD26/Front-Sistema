@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/api_service.dart';
@@ -83,11 +82,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _isSaving = false;
           _passwordController.clear();
         });
-        
-        // Reload WebLayout via navigation or let generic rebuild handle it
-        // A simple way is to push replacement to self or dashboard logic
-        // But since we are inside WebLayout usually, we might just update state.
-        // For now, simpler to stay on screen.
       }
     } else {
       if (mounted) {
@@ -101,170 +95,233 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 700),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF1F5F9), // Slate 100
+      body: Stack(
         children: [
-          // Back Button
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
-              child: ElevatedButton.icon(
+          // 🔹 1. HERO HEADER (GRADIENT BACKGROUND)
+          Container(
+            height: 280,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [const Color(0xFF0F172A), Colors.blue.shade900],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+          ),
+
+          // 🔹 2. DECORATIVE ELEMENTS
+          Positioned(
+            top: -50,
+            right: -50,
+            child: Container(
+              width: 200,
+              height: 200,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.05),
+              ),
+            ),
+          ),
+
+          // 🔹 3. MAIN CONTENT (Moved behind the button in code, but button needs to be on TOP visually -> Button last in list)
+          // Wait, 'Main Content' goes first if we want button on top.
+          SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 140, 20, 40),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 600),
+                child: Column(
+                  children: [
+                    // PROFILE AVATAR
+                    Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                           BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10)),
+                        ],
+                        border: Border.all(color: Colors.white, width: 4),
+                      ),
+                      child: CircleAvatar(
+                        radius: 60,
+                        backgroundColor: Colors.blue.shade700,
+                        child: Text(
+                          _nombresController.text.isNotEmpty ? _nombresController.text[0].toUpperCase() : "A",
+                          style: const TextStyle(
+                            fontSize: 48,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // CARD
+                    Card(
+                      elevation: 8,
+                      shadowColor: Colors.black12,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                      color: Colors.white,
+                      child: Padding(
+                        padding: const EdgeInsets.all(40.0),
+                        child: Column(
+                          children: [
+                            // HEADER TEXT
+                            Text(
+                              "${_nombresController.text} ${_apellidosController.text}",
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1E293B),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade50,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Colors.blue.shade100),
+                              ),
+                              child: Text(
+                                _rol.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue.shade800,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 32),
+                            const Divider(),
+                            const SizedBox(height: 32),
+
+                            // ACTIONS ROW
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                if (_isEditing) ...[
+                                  TextButton(
+                                    onPressed: _isSaving ? null : () => setState(() => _isEditing = false),
+                                    child: const Text("Cancelar", style: TextStyle(color: Colors.grey)),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  ElevatedButton.icon(
+                                    onPressed: _isSaving ? null : _guardarCambios,
+                                    icon: _isSaving
+                                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                        : const Icon(Icons.check_rounded, size: 18),
+                                    label: Text(_isSaving ? "Guardando..." : "Guardar Cambios"),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.indigo.shade600,
+                                      foregroundColor: Colors.white,
+                                      elevation: 0,
+                                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    ),
+                                  ),
+                                ] else
+                                  TextButton.icon(
+                                    onPressed: () => setState(() => _isEditing = true),
+                                    icon: const Icon(Icons.edit_rounded, size: 18),
+                                    label: const Text("Editar Perfil"),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Colors.indigo.shade600,
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+
+                            // FORM FIELDS
+                            _buildTextField("Nombres", _nombresController, Icons.person_rounded),
+                            const SizedBox(height: 20),
+                            _buildTextField("Apellidos", _apellidosController, Icons.person_outline_rounded),
+                            const SizedBox(height: 20),
+                            _buildTextField("Correo Electrónico", _emailController, Icons.email_rounded),
+                            const SizedBox(height: 20),
+                            if (_isEditing) ...[
+                              _buildTextField("Nueva Contraseña", _passwordController, Icons.lock_rounded, isPassword: true),
+                              const SizedBox(height: 8),
+                              const Row(
+                                children: [
+                                  Icon(Icons.info_outline_rounded, size: 14, color: Colors.orange),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      "Déjalo en blanco si no deseas cambiar tu contraseña.",
+                                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ] else
+                              _buildStaticField("Rol de Usuario", _rol, Icons.security_rounded),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                    const Text(
+                      "© 2024 Gestión Académica",
+                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // 🔹 4. BACK BUTTON (Moved to LAST to be clickable on top)
+          Positioned(
+            top: 40,
+            left: 20,
+            child: SafeArea(
+              child: FloatingActionButton.extended(
                 onPressed: () async {
                   final isDocente = _rol.toLowerCase() == 'docente' || _rol.toLowerCase() == 'profesor';
                   final dIdStr = await _storage.read(key: "docente_id");
                   final n = await _storage.read(key: "nombres") ?? "Profesor";
                   final a = await _storage.read(key: "apellidos") ?? "";
                   
-                  if (mounted) {
-                    if (isDocente) {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ProfesorDashboard(
-                            docenteId: dIdStr != null ? int.parse(dIdStr) : 0,
-                            nombreProfesor: "$n $a",
-                          ),
+                  if (!mounted) return;
+
+                  if (isDocente) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (context) => ProfesorDashboard(
+                          docenteId: dIdStr != null ? int.parse(dIdStr) : 0,
+                          nombreProfesor: "$n $a",
                         ),
-                      );
-                    } else {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (context) => WebLayout(title: 'Sedes', child: const SedeScreen())),
-                      );
-                    }
+                      ),
+                      (route) => false,
+                    );
+                  } else {
+                    // Redirigir a Selección de Sede con el título correcto
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (context) => const SedeScreen()
+                      ),
+                      (route) => false,
+                    );
                   }
                 },
-                icon: const Icon(Icons.arrow_back),
-                label: const Text("Regresar al Dashboard"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey[200],
-                  foregroundColor: Colors.black87,
-                ),
+                icon: const Icon(Icons.arrow_back_rounded, color: Colors.indigo),
+                label: const Text("Volver al Dashboard", style: TextStyle(color: Colors.indigo, fontWeight: FontWeight.bold)),
+                backgroundColor: Colors.white,
+                elevation: 4,
               ),
             ),
-          ),
-          Card(
-            elevation: 4,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-            color: Colors.white,
-            child: _isLoading
-                ? const SizedBox(
-                    height: 300,
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                : Padding(
-                    padding: const EdgeInsets.all(40.0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  "Mi Perfil",
-                                  style: TextStyle(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF1E293B),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  _isEditing ? "Editando información..." : "Información de cuenta",
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            _isEditing
-                                ? Row(
-                                    children: [
-                                      TextButton(
-                                        onPressed: _isSaving ? null : () => setState(() => _isEditing = false),
-                                        child: const Text("Cancelar", style: TextStyle(color: Colors.grey)),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      ElevatedButton.icon(
-                                        onPressed: _isSaving ? null : _guardarCambios,
-                                        icon: _isSaving
-                                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                            : const Icon(Icons.save),
-                                        label: Text(_isSaving ? "Guardando..." : "Guardar"),
-                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[800], foregroundColor: Colors.white),
-                                      ),
-                                    ],
-                                  )
-                                : ElevatedButton.icon(
-                                    onPressed: () => setState(() => _isEditing = true),
-                                    icon: const Icon(Icons.edit),
-                                    label: const Text("Editar"),
-                                    style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor, foregroundColor: Colors.white),
-                                  ),
-                          ],
-                        ),
-                        const SizedBox(height: 32),
-                        const Divider(),
-                        const SizedBox(height: 32),
-                        Center(
-                          child: Stack(
-                            children: [
-                              CircleAvatar(
-                                radius: 50,
-                                backgroundColor: Theme.of(context).primaryColor,
-                                child: Text(
-                                  _nombresController.text.isNotEmpty ? _nombresController.text[0].toUpperCase() : "A",
-                                  style: const TextStyle(
-                                    fontSize: 40,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                              if (_isEditing)
-                                Positioned(
-                                  bottom: 0,
-                                  right: 0,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(6),
-                                    decoration: const BoxDecoration(
-                                      color: Colors.white,
-                                      shape: BoxShape.circle,
-                                      boxShadow: [BoxShadow(blurRadius: 4, color: Colors.black26)],
-                                    ),
-                                    child: const Icon(Icons.camera_alt, size: 16, color: Colors.black54),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        _buildTextField("Nombres", _nombresController, Icons.person_outline),
-                        const SizedBox(height: 16),
-                        _buildTextField("Apellidos", _apellidosController, Icons.person_outline),
-                        const SizedBox(height: 16),
-                        _buildTextField("Correo Electrónico", _emailController, Icons.email_outlined),
-                        const SizedBox(height: 16),
-                        if (_isEditing) ...[
-                          _buildTextField("Nueva Contraseña (Opcional)", _passwordController, Icons.lock_outline, isPassword: true),
-                          const SizedBox(height: 8),
-                          const Text(
-                            "Dejar en blanco para mantener la contraseña actual",
-                            style: TextStyle(fontSize: 12, color: Colors.orange),
-                          ),
-                        ] else
-                          _buildStaticField("Rol de Usuario", _rol, Icons.security),
-                      ],
-                    ),
-                  ),
           ),
         ],
       ),

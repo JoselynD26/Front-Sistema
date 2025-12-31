@@ -81,7 +81,7 @@ class _DetalleSedeScreenState extends State<DetalleSedeScreen> with SingleTicker
       case "Salas": return SalasScreen(idSede: widget.idSede);
       case "Materias": return MateriasScreen(idSede: widget.idSede);
       case "Horarios": return HorarioScreen(idSede: widget.idSede);
-      case "Reservas": return const AdminReservasScreen();
+      case "Reservas": return AdminReservasScreen(idSede: widget.idSede);
       case "Croquis por Sala": return CroquisScreen(sedeId: widget.idSede, rol: 'admin');
       case "Croquis Institucionales": return CroquisPlazaScreen(sedeId: widget.idSede, rol: 'admin');
       case "PDFHorarios": return PdfHorariosScreen(sedeId: widget.idSede, rol: 'admin');

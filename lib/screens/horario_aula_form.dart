@@ -138,7 +138,6 @@ class _HorarioAulaFormState extends State<HorarioAulaForm> {
           cursos = curs;
           carreras = carrs;
           cursosFiltrados = curs; // Inicialmente mostrar todos
-          materiasFiltradas = mats; // Inicialmente mostrar todas
           
           if (widget.horario != null) {
             final h = widget.horario!;
@@ -149,7 +148,46 @@ class _HorarioAulaFormState extends State<HorarioAulaForm> {
             _horaInicioController.text = h["hora_inicio"] ?? "";
             _horaFinController.text = h["hora_fin"] ?? "";
           }
-          
+           
+           // Aplicar filtro inicial si hay docente seleccionado
+           if (docenteSeleccionado != null) {
+              materiasFiltradas = materias.where((m) {
+                 final docList = m['docentes'] as List?;
+                 final docIds = m['docente_ids'] as List?;
+                 bool match = false;
+                 if (docList != null) match = docList.any((d) => d['id'] == docenteSeleccionado);
+                 if (!match && docIds != null) match = docIds.contains(docenteSeleccionado);
+                 return match;
+              }).toList();
+           }
+
+           // Deduplicar materiasFiltradas por ID para evitar crash "2 or more items"
+           final seenIds = <int>{};
+           materiasFiltradas = materiasFiltradas.where((m) {
+              final id = m['id'];
+              if (id is int && !seenIds.contains(id)) {
+                 seenIds.add(id);
+                 return true;
+              }
+              return false;
+           }).toList();
+
+           // Validación anti-crash: Asegurar que materiaSeleccionada esté en la lista
+           if (materiaSeleccionada != null) {
+              final exists = seenIds.contains(materiaSeleccionada);
+              if (!exists) {
+                  // Si no está en la lista filtrada, buscamos en la original y la agregamos
+                  final original = materias.where((m) => m['id'] == materiaSeleccionada).firstOrNull;
+                  if (original != null) {
+                    materiasFiltradas.add(original);
+                    seenIds.add(materiaSeleccionada!); // Marcar como visto
+                  } else {
+                    // Si no existe ni en la original, null para evitar crash
+                    materiaSeleccionada = null;
+                  }
+              }
+           }
+
           cargando = false;
         });
       }
@@ -166,6 +204,59 @@ class _HorarioAulaFormState extends State<HorarioAulaForm> {
         );
       }
     }
+  }
+
+  void _filtrarMaterias() {
+    setState(() {
+      final filteredRaw = materias.where((m) {
+        // Filtro por Carrera
+        bool matchCarrera = true;
+        if (carreraSeleccionada != null) {
+          final carreraIds = m['carrera_ids'] as List?;
+          final carreras = m['carreras'] as List?;
+          
+          bool inCarreraIds = carreraIds != null && carreraIds.contains(carreraSeleccionada);
+          bool inCarrerasObjs = carreras != null && carreras.any((c) => c['id'] == carreraSeleccionada);
+          
+          matchCarrera = inCarreraIds || inCarrerasObjs;
+        }
+
+        // Filtro por Docente
+        bool matchDocente = true;
+        if (docenteSeleccionado != null) {
+             final docentes = m['docentes'] as List?;
+             final docenteIds = m['docente_ids'] as List?;
+             
+             bool inDocenteIds = docenteIds != null && docenteIds.contains(docenteSeleccionado);
+             bool inDocentesObjs = docentes != null && docentes.any((d) => d['id'] == docenteSeleccionado);
+             
+             matchDocente = inDocenteIds || inDocentesObjs;
+        }
+
+        return matchCarrera && matchDocente;
+      }).toList();
+
+      // Deduplicar
+      final seenIds = <int>{};
+      materiasFiltradas = [];
+      for(var m in filteredRaw) {
+          final id = m['id'];
+          if (id is int && !seenIds.contains(id)) {
+              seenIds.add(id);
+              materiasFiltradas.add(m);
+          }
+      }
+      
+      if (materiaSeleccionada != null && !seenIds.contains(materiaSeleccionada)) {
+          // Si la materia seleccionada ya no es válida tras el filtro, 
+          // verificar si la MANTENEMOS (para no perderla mientras editamos)
+          // O la limpiamos. En el contexto de "cambiar filtros" usuario activo, mejor limpiar.
+          // Pero si es carga inicial, debe mantenerse.
+          
+          // Aquí estamos en _filtrarMaterias llamada por usuario -> Limpiar si no coincide
+          materiaSeleccionada = null;
+      }
+    });
   }
 
   Future<void> _guardar() async {
@@ -391,7 +482,12 @@ class _HorarioAulaFormState extends State<HorarioAulaForm> {
             value: d['id'],
             child: Text("${d['apellidos']} ${d['nombres']}"),
           )).toList(),
-          onChanged: (v) => setState(() => docenteSeleccionado = v),
+          onChanged: (v) {
+             setState(() {
+                docenteSeleccionado = v;
+                _filtrarMaterias();
+             });
+          },
         ),
 
         const SizedBox(height: 20),
@@ -413,28 +509,14 @@ class _HorarioAulaFormState extends State<HorarioAulaForm> {
             setState(() {
               carreraSeleccionada = v;
               cursoSeleccionado = null; // Resetear curso al cambiar carrera
-              materiaSeleccionada = null; // Resetear materia al cambiar carrera
               
               if (v == null) {
                 cursosFiltrados = cursos ?? [];
-                materiasFiltradas = materias ?? [];
               } else {
                 cursosFiltrados = (cursos ?? []).where((c) => c['carrera_id'] == v).toList();
-                // Filtrar materias - verificar tanto carrera_ids como carreras
-                materiasFiltradas = (materias ?? []).where((m) {
-                  // Intentar con carrera_ids primero
-                  final carreraIds = m['carrera_ids'] as List?;
-                  if (carreraIds != null && carreraIds.contains(v)) return true;
-                  
-                  // Intentar con carreras (array de objetos)
-                  final carreras = m['carreras'] as List?;
-                  if (carreras != null) {
-                    return carreras.any((c) => c['id'] == v);
-                  }
-                  
-                  return false;
-                }).toList();
               }
+              
+              _filtrarMaterias();
             });
           },
         ),

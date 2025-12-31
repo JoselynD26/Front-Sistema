@@ -23,6 +23,7 @@ class _HorarioAulaExcelImportScreenState extends State<HorarioAulaExcelImportScr
   List<dynamic> _materias = [];
   List<dynamic> _aulas = [];
   List<dynamic> _cursos = [];
+  List<dynamic> _carreras = []; // New list for careers
   
   // Cache de horarios existentes para detectar conflictos: AulaID -> Lista de horarios
   Map<int, List<dynamic>> _horariosExistentesPorAula = {};
@@ -48,12 +49,14 @@ class _HorarioAulaExcelImportScreenState extends State<HorarioAulaExcelImportScr
         _api.listarMateriasPorSede(widget.idSede),
         _api.listarAulasPorSede(widget.idSede),
         _api.listarCursosPorSede(widget.idSede),
+        _api.listarCarreras(), // Fetch all careers
       ]);
       
       _docentes = res[0] as List;
       _materias = res[1] as List;
       _aulas = res[2] as List;
       _cursos = res[3] as List;
+      _carreras = res[4] as List;
 
       print("--- DEBUG DATA CARGADA ---");
       // print("Aulas: ${_aulas.length}");
@@ -63,17 +66,10 @@ class _HorarioAulaExcelImportScreenState extends State<HorarioAulaExcelImportScr
       // Estrategia: Cargar horarios de TODOS los docentes y organizarlos por aula
       final List<dynamic> recurrentesTotal = [];
       
-      // Batch loading to avoid timeouts if many teachers
-      // Assuming a reasonable number for now, or use parallel limits
-      final teacherSchedules = await Future.wait(
-        _docentes.map((d) => _api.obtenerHorarioDocente(d["id"]))
-      );
-
-      for (var list in teacherSchedules) {
-        if (list != null) {
-          recurrentesTotal.addAll(list);
-        }
-      }
+      // Cargar TODO el horario docente de la sede en una sola petición (Optimizado)
+      // Esto evita el error "Failed to fetch" por saturación de conexiones
+      final allSchedules = await _api.listarHorariosDocentesPorSede(widget.idSede);
+      recurrentesTotal.addAll(allSchedules);
 
       // Agrupar por aula
       for (var h in recurrentesTotal) {
@@ -105,6 +101,7 @@ class _HorarioAulaExcelImportScreenState extends State<HorarioAulaExcelImportScr
     // Headers
     List<String> headers = [
       'aula_nombre', 
+      'carrera_nombre', // Nuevo
       'docente_cedula', 
       'curso_nombre', 
       'curso_paralelo', 
@@ -121,6 +118,7 @@ class _HorarioAulaExcelImportScreenState extends State<HorarioAulaExcelImportScr
     // Ejemplo
     sheet.appendRow([
       TextCellValue("Laboratorio 1"),
+      TextCellValue("Desarrollo de Software"), // Ejemplo carrera
       TextCellValue("1234567890"),
       TextCellValue("1ro"),
       TextCellValue("A"),
@@ -135,6 +133,7 @@ class _HorarioAulaExcelImportScreenState extends State<HorarioAulaExcelImportScr
     Sheet refSheet = excel['REFERENCIAS_VALIDAS'];
     refSheet.appendRow([
       TextCellValue("AULAS DISPONIBLES"),
+      TextCellValue("CARRERAS"),
       TextCellValue("CURSOS"),
       TextCellValue("PARALELOS"),
       TextCellValue("DÍAS"),
@@ -155,13 +154,17 @@ class _HorarioAulaExcelImportScreenState extends State<HorarioAulaExcelImportScr
     final List<String> cursosUnicos = cursosUnicosSet.toList()..sort();
     
     // Determinar el máximo de filas necesarias
-    int maxRows = [_aulas.length, cursosUnicos.length, _materias.length, dias.length].reduce((curr, next) => curr > next ? curr : next);
+    int maxRows = [_aulas.length, _carreras.length, cursosUnicos.length, _materias.length, dias.length].reduce((curr, next) => curr > next ? curr : next);
     
     for (int i = 0; i < maxRows; i++) {
         List<CellValue?> row = [];
         
         // Aulas
         if (i < _aulas.length) row.add(TextCellValue(_aulas[i]['nombre'] ?? ""));
+        else row.add(null);
+
+        // Carreras
+        if (i < _carreras.length) row.add(TextCellValue(_carreras[i]['nombre'] ?? ""));
         else row.add(null);
 
         // Cursos (Nombre único)
@@ -252,14 +255,15 @@ class _HorarioAulaExcelImportScreenState extends State<HorarioAulaExcelImportScr
         String getVal(int idx) => idx < row.length ? (row[idx]?.value?.toString().trim() ?? "") : "";
 
         String aulaNombre = getVal(0);
-        String docenteCedula = getVal(1);
-        String cursoNombre = getVal(2);
-        String cursoParalelo = getVal(3);
-        String materiaNombre = getVal(4);
-        String dia = getVal(5);
-        String horaInicio = getVal(6); // Puede venir como decimal de Excel o string
-        String horaFin = getVal(7);
-        String jornada = getVal(8);
+        String carreraNombre = getVal(1); // Columna Nueva
+        String docenteCedula = getVal(2);
+        String cursoNombre = getVal(3);
+        String cursoParalelo = getVal(4);
+        String materiaNombre = getVal(5);
+        String dia = getVal(6);
+        String horaInicio = getVal(7);
+        String horaFin = getVal(8);
+        String jornada = getVal(9);
         
         // --- Normalización de Horas (Excel a veces usa decimales para tiempo) ---
         String normalizarHora(String raw) {
@@ -279,6 +283,7 @@ class _HorarioAulaExcelImportScreenState extends State<HorarioAulaExcelImportScr
 
         registro['data'] = {
            'aula_nombre': aulaNombre,
+           'carrera_nombre': carreraNombre,
            'docente_cedula': docenteCedula,
            'curso_nombre': cursoNombre,
            'curso_paralelo': cursoParalelo,
@@ -296,7 +301,13 @@ class _HorarioAulaExcelImportScreenState extends State<HorarioAulaExcelImportScr
         var aula = _aulas.cast<Map>().where((a) => (a['nombre']?.toString().toLowerCase() == aulaNombre.toLowerCase())).firstOrNull;
         if (aula == null) errs.add("Aula no encontrada: $aulaNombre");
 
-        // 2. Docente
+        // 2. Carrera
+        var carrera = _carreras.cast<Map>().where((c) => (c['nombre']?.toString().toLowerCase() == carreraNombre.toLowerCase())).firstOrNull;
+        if (carrera == null) {
+           errs.add("Carrera no encontrada: $carreraNombre");
+        }
+
+        // 3. Docente
         var docente = _docentes.cast<Map>().where((d) => (d['cedula']?.toString() == docenteCedula)).firstOrNull;
         if (docente == null) {
            errs.add("Docente no encontrado (Cédula): $docenteCedula");
@@ -304,26 +315,39 @@ class _HorarioAulaExcelImportScreenState extends State<HorarioAulaExcelImportScr
            print("DEBUG IMPORT: Cédula $docenteCedula corresponde a Docente ID: ${docente['id']} - ${docente['nombres']}");
         }
 
-        // 3. Curso
-        var curso = _cursos.cast<Map>().where((c) => 
-          (c['nombre']?.toString().toLowerCase() == cursoNombre.toLowerCase()) && 
-          (c['paralelo']?.toString().toLowerCase() == cursoParalelo.toLowerCase())
-        ).firstOrNull;
-        if (curso == null) errs.add("Curso no encontrado: $cursoNombre $cursoParalelo");
+        // 4. Curso (Match cursoNombre + paralelo + carrera_id)
+        var curso = _cursos.cast<Map>().where((c) {
+           bool matchNom = c['nombre']?.toString().toLowerCase() == cursoNombre.toLowerCase();
+           bool matchPar = c['paralelo']?.toString().toLowerCase() == cursoParalelo.toLowerCase();
+           // Si tenemos carrera válida, validamos que el curso pertenezca a ella
+           bool matchCarrera = true;
+           if (carrera != null) {
+              matchCarrera = c['carrera_id'] == carrera['id'];
+           }
+           return matchNom && matchPar && matchCarrera;
+        }).firstOrNull;
 
-        // 4. Materia
+        if (curso == null) {
+           if (carrera != null) {
+             errs.add("Curso '$cursoNombre' ($cursoParalelo) no encontrado en carrera '${carreraNombre}'");
+           } else {
+             errs.add("Curso no encontrado: $cursoNombre $cursoParalelo");
+           }
+        }
+
+        // 5. Materia
         var materia = _materias.cast<Map>().where((m) => (m['nombre']?.toString().toLowerCase() == materiaNombre.toLowerCase())).firstOrNull;
         if (materia == null) errs.add("Materia no encontrada: $materiaNombre");
 
-        // 5. Día
+        // 6. Día
         final diasValidos = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
         if (!diasValidos.contains(dia)) errs.add("Día inválido: $dia");
 
-        // 6. Jornada
+        // 7. Jornada
         final jornadasValidas = ["Matutina", "Vespertina", "Nocturna"];
         if (!jornadasValidas.contains(jornada)) errs.add("Jornada inválida: $jornada");
 
-        // 7. Horas
+        // 8. Horas
         final timeRegex = RegExp(r'^([01]\d|2[0-3]):([0-5]\d)$');
         if (!timeRegex.hasMatch(horaInicio)) errs.add("Hora inicio inválida (HH:MM): $horaInicio");
         if (!timeRegex.hasMatch(horaFin)) errs.add("Hora fin inválida (HH:MM): $horaFin");
@@ -360,6 +384,7 @@ class _HorarioAulaExcelImportScreenState extends State<HorarioAulaExcelImportScr
              'aula_id': aula?['id'],
              'curso_id': curso?['id'],
              'materia_id': materia?['id'],
+             'carrera_id': carrera?['id'], // Add carrera_id to parsed data
              'dia': dia,
              'hora_inicio': horaInicio,
              'hora_fin': horaFin,
@@ -391,16 +416,23 @@ class _HorarioAulaExcelImportScreenState extends State<HorarioAulaExcelImportScr
     for (var h in existentes) {
       if (h["dia"] != dia) continue;
       
+      // Normalizar horas de DB (pueden venir como HH:MM:SS) a HH:MM para comparación estricta de strings
+      String hIni = (h["hora_inicio"] ?? "").toString();
+      String hFin = (h["hora_fin"] ?? "").toString();
+      
+      if (hIni.length > 5) hIni = hIni.substring(0, 5);
+      if (hFin.length > 5) hFin = hFin.substring(0, 5);
+      
       // Overlap check
-      if (ini.compareTo(h["hora_fin"]) < 0 && fin.compareTo(h["hora_inicio"]) > 0) {
+      if (ini.compareTo(hFin) < 0 && fin.compareTo(hIni) > 0) {
         // Check for exact duplicate (same teacher, same time)
         if (docenteId != null && h["docente_id"] == docenteId && 
-            ini == h["hora_inicio"] && fin == h["hora_fin"]) {
+            ini == hIni && fin == hFin) {
              print("DEBUG CONFLICTO: DUPLICADO EXACTO detectado para Docente $docenteId");
              return true; 
         }
         
-        print("DEBUG CONFLICTO: DocenteImport: $docenteId vs DocenteExistente: ${h['docente_id']} (Dia: $dia, ${h['hora_inicio']}-${h['hora_fin']})");
+        print("DEBUG CONFLICTO: DocenteImport: $docenteId vs DocenteExistente: ${h['docente_id']} (Dia: $dia, $hIni-$hFin vs $ini-$fin)");
         return true;
       }
     }

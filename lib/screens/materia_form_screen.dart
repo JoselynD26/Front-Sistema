@@ -229,15 +229,20 @@ class _MateriaFormScreenState extends State<MateriaFormScreen> {
           spacing: 8,
           runSpacing: 8,
           children: carrerasSeleccionadas.map((id) {
-            final c = carrerasDisponibles.firstWhere((x) => x["id"] == id);
+            final c = carrerasDisponibles.firstWhere(
+              (x) => x["id"] == id, 
+              orElse: () => null
+            );
+            if (c == null) return const SizedBox.shrink();
+            
             return Chip(
-              label: Text(c["nombre"]),
+              label: Text(c["nombre"] ?? "Sin Nombre"),
               backgroundColor: _primaryColor.withOpacity(0.1),
               deleteIconColor: _primaryColor,
               onDeleted: () => setState(() => carrerasSeleccionadas.remove(id)),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             );
-          }).toList(),
+          }).whereType<Widget>().toList(),
         ),
       ],
     );
@@ -268,7 +273,12 @@ class _MateriaFormScreenState extends State<MateriaFormScreen> {
           spacing: 8,
           runSpacing: 8,
           children: docentesSeleccionados.map((id) {
-            final d = docentesDisponibles.firstWhere((x) => x["id"] == id);
+            final d = docentesDisponibles.firstWhere(
+              (x) => x["id"] == id, 
+              orElse: () => null
+            );
+            if (d == null) return const SizedBox.shrink();
+
             return Chip(
               label: Text("${d["apellidos"]} ${d["nombres"]}"),
               backgroundColor: _primaryColor.withOpacity(0.1),
@@ -276,7 +286,7 @@ class _MateriaFormScreenState extends State<MateriaFormScreen> {
               onDeleted: () => setState(() => docentesSeleccionados.remove(id)),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             );
-          }).toList(),
+          }).whereType<Widget>().toList(),
         ),
       ],
     );

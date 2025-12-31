@@ -140,6 +140,119 @@ class _PdfHorariosScreenState extends State<PdfHorariosScreen> {
     }
   }
 
+  Future<void> _editarPdf(Map<String, dynamic> horario) async {
+    final controller = TextEditingController(text: horario['titulo'] ?? horario['nombre']);
+    
+    // Para web, usamos PlatformFile
+    // file_picker retorna PlatformFile que tiene 'bytes' en web.
+    // Necesitamos importar 'package:file_picker/file_picker.dart' que ya está.
+    var resultPicker; 
+
+    await showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (ctx, setModalState) => AlertDialog(
+          title: const Text("Editar Horario PDF"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller,
+                decoration: const InputDecoration(
+                  labelText: "Título del Horario",
+                  hintText: "Ej. Horario 2024 - v2",
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                "Para actualizar, es necesario subir el archivo nuevamente.",
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () async {
+                   final res = await FilePicker.platform.pickFiles(
+                    type: FileType.custom,
+                    allowedExtensions: ['pdf'],
+                  );
+                  if (res != null) {
+                    setModalState(() => resultPicker = res);
+                  }
+                },
+                icon: const Icon(Icons.upload_file),
+                label: Text(resultPicker != null 
+                  ? "Archivo: ${resultPicker.files.first.name}" 
+                  : "Seleccionar nuevo PDF"),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text("Cancelar"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (resultPicker == null) {
+                   ScaffoldMessenger.of(dialogContext).showSnackBar(
+                     const SnackBar(content: Text("Por favor seleccione el nuevo archivo PDF.")),
+                   );
+                   return;
+                }
+                Navigator.pop(dialogContext);
+                
+                // 1. ELIMINAR EL ANTERIOR
+                try {
+                  final urlDel = Uri.parse("${_apiService.baseUrl}/pdf-horarios/eliminar/${widget.sedeId}/${horario['archivo']}");
+                  await html.HttpRequest.request(urlDel.toString(), method: 'DELETE');
+                } catch(e) {
+                  print("Error eliminando anterior (puede que no exista o error red): $e");
+                  // Continuamos intentando subir el nuevo
+                }
+
+                // 2. SUBIR EL NUEVO
+                try {
+                  final file = resultPicker.files.first;
+                  final nombre = controller.text;
+                  final tipo = horario['tipo'];
+                  
+                  final urlUp = Uri.parse("${_apiService.baseUrl}/pdf-horarios/subir/${widget.sedeId}/$tipo?nombre=$nombre");
+                  final request = html.HttpRequest();
+                  request.open('POST', urlUp.toString());
+                  
+                  final formData = html.FormData();
+                  formData.appendBlob('file', html.Blob([file.bytes!]), file.name);
+                  
+                  request.send(formData);
+                  
+                  request.onLoadEnd.listen((e) {
+                    if (!mounted) return;
+                    if (request.status == 200) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Horario actualizado con éxito')),
+                      );
+                      _cargarHorarios();
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Error al subir el nuevo archivo')),
+                      );
+                    }
+                  });
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error al actualizar: $e')),
+                  );
+                }
+              },
+              child: const Text("Actualizar"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _eliminarPdf(String archivo) async {
     try {
       final url = Uri.parse("${_apiService.baseUrl}/pdf-horarios/eliminar/${widget.sedeId}/$archivo");
@@ -207,12 +320,18 @@ class _PdfHorariosScreenState extends State<PdfHorariosScreen> {
                       onPressed: (horario['archivo'] ?? '').isNotEmpty ? () => _verPdf(horario['archivo']) : null,
                       tooltip: 'Ver PDF',
                     ),
-                    if (widget.rol.toLowerCase() == 'admin')
+                    if (widget.rol.toLowerCase() == 'admin') ...[
+                      IconButton(
+                         icon: const Icon(Icons.edit_outlined, color: Colors.indigo),
+                         onPressed: () => _editarPdf(horario),
+                         tooltip: 'Editar PDF',
+                      ),
                       IconButton(
                         icon: const Icon(Icons.delete_outline, color: Colors.red),
                         onPressed: (horario['archivo'] ?? '').isNotEmpty ? () => _eliminarPdf(horario['archivo']) : null,
                         tooltip: 'Eliminar PDF',
                       ),
+                    ],
                   ],
                 )),
               ]);
