@@ -567,21 +567,48 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
                               ],
                             ),
                           ),
-                          if (reserva["estado"] == "pendiente")
+                          if (reserva["estado"] == "pendiente" || reserva["estado"] == "aprobada")
                             IconButton(
-                              icon: const Icon(Icons.cancel_outlined, color: Colors.red),
+                              icon:  Icon(Icons.cancel_outlined, color: reserva["estado"] == "aprobada" ? Colors.orange : Colors.red),
                               onPressed: () async {
-                                final success = await _apiService.cancelarReservaAula(
-                                    reserva["id"], widget.docenteId);
-                                if (success) {
-                                  Navigator.pop(context);
-                                  _cargarDatos();
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text("Reserva cancelada")),
-                                  );
+                                final message = reserva["estado"] == "aprobada" 
+                                   ? "¿Deseas liberar esta aula? Volverá a estar disponible para otros docentes."
+                                   : "¿Deseas cancelar esta solicitud?";
+                                
+                                final confirm = await showDialog<bool>(
+                                  context: context,
+                                  builder: (_) => AlertDialog(
+                                    title: Text(reserva["estado"] == "aprobada" ? "Liberar Aula" : "Cancelar Solicitud"),
+                                    content: Text(message),
+                                    actions: [
+                                      TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("No")),
+                                      TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Sí, proceder", style: TextStyle(color: Colors.red))),
+                                    ],
+                                  ),
+                                );
+
+                                if (confirm == true) {
+                                  bool success;
+                                  if (reserva["estado"] == "aprobada") {
+                                    // Para aprobadas, usamos eliminar (DELETE) porque el endpoint cancelar (POST) 
+                                    // prohibe cancelar aprobadas en el backend actual.
+                                    success = await _apiService.eliminarReserva(reserva["id"]);
+                                  } else {
+                                    success = await _apiService.cancelarReservaAula(reserva["id"], widget.docenteId);
+                                  }
+
+                                  if (success) {
+                                    Navigator.pop(context);
+                                    _cargarDatos();
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(reserva["estado"] == "aprobada" 
+                                          ? "Aula liberada exitosamente" 
+                                          : "Solicitud cancelada exitosamente")),
+                                    );
+                                  }
                                 }
                               },
-                              tooltip: "Cancelar reserva",
+                              tooltip: reserva["estado"] == "aprobada" ? "Liberar aula" : "Cancelar solicitud",
                             ),
                           // Botón de eliminar (Basurero)
                           IconButton(

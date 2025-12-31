@@ -80,11 +80,11 @@ class _DisponibilidadAulasScreenState extends State<DisponibilidadAulasScreen> {
         final docente = docentesMap[dId];
         final hIdMateria = h["id_materia"] ?? h["materia_id"];
         
-        recurrentesTotal.add({
-          ...h,
-          "docente_nombre": docente != null ? "${docente['apellidos']} ${docente['nombres']}" : "Docente #$dId",
-          "materia_nombre": h["materia_nombre"] ?? mMap[hIdMateria],
-        });
+        final Map<String, dynamic> recurrenteMap = Map<String, dynamic>.from(h);
+        recurrenteMap["docente_nombre"] = docente != null ? "${docente['apellidos']} ${docente['nombres']}" : "Docente #$dId";
+        recurrenteMap["materia_nombre"] = h["materia_nombre"] ?? mMap[hIdMateria];
+
+        recurrentesTotal.add(recurrenteMap);
       }
 
       // Procesar reservas aprobadas del historial
@@ -103,14 +103,40 @@ class _DisponibilidadAulasScreenState extends State<DisponibilidadAulasScreen> {
                  hFin = parts[1].trim();
                }
             }
+
+            // Normalizar fecha (tomar 10 primeros chars por si es ISO)
+            final rawFecha = r["fecha"] ?? r["fecha_reserva"];
+            String fechaStr = "";
+            if (rawFecha != null) {
+              fechaStr = rawFecha.toString();
+              if (fechaStr.length > 10) fechaStr = fechaStr.substring(0, 10);
+            }
             
-            reservasAprobadas.add({
-               ...r,
-               "hora_inicio": hInicio,
-               "hora_fin": hFin,
-               // Asegurar ID de aula para match
-               "id_aula": r["aula_id"] ?? r["id_aula"], 
-            });
+            final Map<String, dynamic> reservaMap = Map<String, dynamic>.from(r);
+
+            // RESOLVE ID
+            dynamic resolvedAulaId = r["aula_id"] ?? r["id_aula"];
+            
+            // Fallback: search by name
+            if (resolvedAulaId == null && r["aula_nombre"] != null) {
+               final nameToFind = r["aula_nombre"].toString().toLowerCase().trim();
+               try {
+                  final foundAula = aulasList.firstWhere((a) => 
+                     (a["nombre"] ?? "").toString().toLowerCase().trim() == nameToFind, 
+                     orElse: () => null
+                  );
+                  if (foundAula != null) {
+                     resolvedAulaId = foundAula["id"];
+                  }
+               } catch(e) { }
+            }
+
+            reservaMap["fecha"] = fechaStr;
+            reservaMap["hora_inicio"] = hInicio;
+            reservaMap["hora_fin"] = hFin;
+            reservaMap["id_aula"] = resolvedAulaId;
+
+            reservasAprobadas.add(reservaMap);
          }
       }
 

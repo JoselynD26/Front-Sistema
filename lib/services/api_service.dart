@@ -1103,9 +1103,10 @@ Future<List<dynamic>> listarSedes() async {
 
       final res = await http.post(
         url,
-        headers: {"Content-Type": "application/json"},
+        headers: await _headers(),
         body: jsonEncode({
           "docente_id": docenteId,
+          "id_docente": docenteId,
         }),
       );
         

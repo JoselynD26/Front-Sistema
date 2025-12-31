@@ -47,7 +47,9 @@ class _DocenteCroquisContentState extends State<DocenteCroquisContent> {
 
   Future<void> _cargarCroquis() async {
     try {
-      final data = await _api.obtenerMiCroquis(widget.docenteId);
+      // Use obtenerMiEscritorio which is the standard method for this module
+      final data = await _api.obtenerMiEscritorio(widget.docenteId);
+      
       if (mounted) {
         setState(() {
           croquis = data;
@@ -103,18 +105,32 @@ class _DocenteCroquisContentState extends State<DocenteCroquisContent> {
                   child: const Icon(Icons.desk, color: Colors.green),
                 ),
                 const SizedBox(width: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                     Text(
-                      'Escritorio: ${croquis!['escritorio']}',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                    Text(
-                      'Sala: ${croquis!['sala']}',
-                      style: TextStyle(color: Colors.grey[700]),
-                    ),
-                  ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: (croquis!['escritorio'] == null || croquis!['escritorio'].toString().toLowerCase() == 'null')
+                        ? [
+                            const Text(
+                              'Aún no te han asignado una sala ni un escritorio',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15, // Slightly smaller to fit better
+                                color: Color(0xFF1E293B), // Slate 800
+                              ),
+                            ),
+                          ]
+                        : [
+                            Text(
+                              'Escritorio: ${croquis!['escritorio']}',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                            Text(
+                              'Sala: ${croquis!['sala']}',
+                              style: TextStyle(color: Colors.grey[700]),
+                            ),
+                          ],
+                  ),
                 ),
               ],
             ),
@@ -135,22 +151,42 @@ class _DocenteCroquisContentState extends State<DocenteCroquisContent> {
                 child: InteractiveViewer(
                   maxScale: 4.0,
                   minScale: 0.5,
-                  child: Image.network(
-                    croquis!['croquis_url'],
-                    fit: BoxFit.contain,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return const Center(child: CircularProgressIndicator());
+                  child: Builder(
+                    builder: (context) {
+                       final String? imgUrl = croquis != null ? croquis!['croquis_url']?.toString() : null;
+                       final bool validUrl = imgUrl != null && imgUrl.isNotEmpty && imgUrl != "null";
+                       
+                       if (validUrl) {
+                          return Image.network(
+                            imgUrl!,
+                            fit: BoxFit.contain,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return const Center(child: CircularProgressIndicator());
+                            },
+                            errorBuilder: (_, __, ___) => const Center(
+                              child: Text('Error al cargar la imagen del croquis'),
+                            ),
+                          );
+                       }
+                       
+                       return const Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.broken_image_rounded, size: 64, color: Colors.grey),
+                                SizedBox(height: 16),
+                                Text("No hay imagen de croquis disponible"),
+                              ],
+                            ),
+                          );
                     },
-                    errorBuilder: (_, __, ___) => const Center(
-                      child: Text('Error al cargar la imagen del croquis'),
-                    ),
                   ),
-                ),
               ),
             ),
           ),
-        ],
+        ),
+      ],
       ),
     );
   }

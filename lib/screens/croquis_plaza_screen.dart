@@ -39,8 +39,27 @@ class _CroquisPlazaScreenState extends State<CroquisPlazaScreen> {
     try {
       final data = await _api.listarPlazasPorSede(widget.sedeId);
 
-      // Ordenar plazas por nombre
-      data.sort((a, b) => (a["nombre"] ?? "").toString().toLowerCase().compareTo((b["nombre"] ?? "").toString().toLowerCase()));
+      // Custom sort order
+      final order = {
+        "planta baja": 0,
+        "planta alta": 1,
+        "bloque b1 pa": 2,
+        "bloque b1 pb": 3,
+        "plaza guabos": 4,
+        "sala 2": 5,
+      };
+
+      data.sort((a, b) {
+         final nameA = (a["nombre"] ?? "").toString().trim().toLowerCase();
+         final nameB = (b["nombre"] ?? "").toString().trim().toLowerCase();
+         // If name starts with the key, match it (relaxed matching) or exact match?
+         // Exact match is safer.
+         final indexA = order[nameA] ?? 999;
+         final indexB = order[nameB] ?? 999;
+         
+         if (indexA != indexB) return indexA.compareTo(indexB);
+         return nameA.compareTo(nameB);
+      });
 
       setState(() {
         plazas = data;
@@ -385,6 +404,26 @@ class _CroquisPlazaContentState extends State<CroquisPlazaContent> {
   Future<void> _cargarPlazas() async {
     try {
       final data = await _api.listarPlazasPorSede(widget.sedeId);
+      
+      // Custom sort order
+      final order = {
+        "planta baja": 0,
+        "planta alta": 1,
+        "bloque b1 pa": 2,
+        "bloque b1 pb": 3,
+        "plaza guabos": 4,
+        "sala 2": 5,
+      };
+
+      data.sort((a, b) {
+         final nameA = (a["nombre"] ?? "").toString().trim().toLowerCase();
+         final nameB = (b["nombre"] ?? "").toString().trim().toLowerCase();
+         final indexA = order[nameA] ?? 999;
+         final indexB = order[nameB] ?? 999;
+         
+         if (indexA != indexB) return indexA.compareTo(indexB);
+         return nameA.compareTo(nameB);
+      });
       if (mounted) {
         setState(() {
           plazasConCroquis = data
