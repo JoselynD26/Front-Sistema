@@ -1762,5 +1762,21 @@ Future<List<dynamic>> listarSedes() async {
       throw Exception('Error al obtener croquis');
     }
   }
- 
+
+// ==============================
+// PUBLIC STORAGE ACCESS (WEB + MOBILE)
+// ==============================
+
+Future<String?> readStorage(String key) async {
+  return await _storageRead(key: key);
+}
+
+Future<void> writeStorage(String key, String value) async {
+  await _storageWrite(key: key, value: value);
+}
+
+Future<void> clearStorage() async {
+  await _storageDeleteAll();
+}
+
 }

@@ -38,11 +38,11 @@ class _LoginScreenState extends State<LoginScreen> with SafeStateMixin {
     });
 
     if (success) {
-      final rol = await _apiService.storage.read(key: "rol");
-      final nombres = await _apiService.storage.read(key: "nombres");
-      final apellidos = await _apiService.storage.read(key: "apellidos");
-      final docenteId = await _apiService.storage.read(key: "docente_id");
-      final email = await _apiService.storage.read(key: "email");
+      final rol = await _apiService.readStorage("rol");
+      final nombres = await _apiService.readStorage("nombres");
+      final apellidos = await _apiService.readStorage("apellidos");
+      final docenteId = await _apiService.readStorage("docente_id");
+      final email = await _apiService.readStorage("email");
       
       debugPrint("LOGIN_SCREEN: Just logged in!");
       debugPrint(" - Rol: $rol");
