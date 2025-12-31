@@ -1,6 +1,8 @@
 [build]
-  command = "flutter build web"
+  command = "flutter build web --dart-define=API_URL=$API_URL"
   publish = "build/web"
 
 [build.environment]
-  FLUTTER_VERSION = "3.22.0"
+  FLUTTER_VERSION = "3.24.0"
+
+  API_URL = "https://sistema-de-gestion-act-bj8j.onrender.com"

@@ -5,23 +5,53 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http_parser/http_parser.dart';
 
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 class ApiService {
-  // Servidor local para web
   // Servidor local para web o Prod desde environment
   final String baseUrl = const String.fromEnvironment('API_URL', defaultValue: "http://localhost:8000");
-  final FlutterSecureStorage storage = const FlutterSecureStorage();
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+
+  // 🔒 STORAGE HELPERS (Conditional Web/Mobile)
+  
+  Future<void> _storageWrite({required String key, required String value}) async {
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(key, value);
+    } else {
+      await _secureStorage.write(key: key, value: value);
+    }
+  }
+
+  Future<String?> _storageRead({required String key}) async {
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(key);
+    } else {
+      return await _secureStorage.read(key: key);
+    }
+  }
+
+  Future<void> _storageDeleteAll() async {
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+    } else {
+      await _secureStorage.deleteAll();
+    }
+  }
 
   // -------------------- AUTH --------------------
   Future<bool> login(String username, String password) async {
     try {
-      // Limpiar datos previos para evitar contaminación de roles/datos
-      await storage.deleteAll();
+      // Limpiar datos previos
+      await _storageDeleteAll();
 
       final url = Uri.parse("$baseUrl/login/");
       final body = jsonEncode({"correo": username, "contrasena": password});
 
       print("[LOGIN] Intentando conectar a: $url");
-      print("[LOGIN] Body: $body");
       
       final response = await http.post(url, headers: {
         "Content-Type": "application/json",
@@ -33,30 +63,25 @@ class ApiService {
         final data = jsonDecode(response.body);
         final token = data["access_token"];
         if (token != null) {
-          await storage.write(key: "jwt", value: token);
+          await _storageWrite(key: "jwt", value: token);
           if (data.containsKey("rol")) {
-            final rolRecibido = data["rol"].toString();
-            print("[LOGIN] Escribiendo rol: $rolRecibido");
-            await storage.write(key: "rol", value: rolRecibido);
+            await _storageWrite(key: "rol", value: data["rol"].toString());
           }
           if (data.containsKey("id")) {
-            await storage.write(key: "usuario_id", value: data["id"].toString());
+            await _storageWrite(key: "usuario_id", value: data["id"].toString());
           }
           if (data.containsKey("nombres")) {
-            await storage.write(key: "nombres", value: data["nombres"].toString());
+            await _storageWrite(key: "nombres", value: data["nombres"].toString());
           }
           if (data.containsKey("apellidos")) {
-            await storage.write(key: "apellidos", value: data["apellidos"].toString());
+            await _storageWrite(key: "apellidos", value: data["apellidos"].toString());
           }
           if (data.containsKey("docente_id") && data["docente_id"] != null) {
             final dId = data["docente_id"].toString();
-            print("[LOGIN] Escribiendo docente_id: $dId");
-            await storage.write(key: "docente_id", value: dId);
-          } else {
-            print("[LOGIN] No hay docente_id en la respuesta.");
+            await _storageWrite(key: "docente_id", value: dId);
           }
           // Guardar correo
-          await storage.write(key: "email", value: username);
+          await _storageWrite(key: "email", value: username);
           return true;
         }
       }
@@ -68,11 +93,11 @@ class ApiService {
   }
 
   Future<void> logout() async {
-    await storage.deleteAll();
+    await _storageDeleteAll();
   }
 
   Future<String?> getToken() async {
-    return await storage.read(key: "jwt");
+    return await _storageRead(key: "jwt");
   }
 
   // Helper: headers con o sin token
