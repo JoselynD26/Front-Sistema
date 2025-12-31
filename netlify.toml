@@ -1,8 +1,6 @@
 [build]
-  command = "flutter build web --dart-define=API_URL=$API_URL"
+  command = "bash .netlify/install_flutter_and_build.sh"
   publish = "build/web"
 
 [build.environment]
-  FLUTTER_VERSION = "3.24.0"
-
-  API_URL = "https://sistema-de-gestion-act-bj8j.onrender.com"
+  FLUTTER_VERSION = "stable"
