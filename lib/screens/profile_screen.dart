@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+// import 'package:flutter_secure_storage/flutter_secure_storage.dart'; // Removed
 import '../services/api_service.dart';
 import '../utils/mouse_tracker_fix.dart';
 import '../widgets/web_layout.dart';
@@ -14,7 +14,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final _storage = const FlutterSecureStorage();
+  // final _storage = const FlutterSecureStorage(); // REMOVED
   final _api = ApiService();
   
   bool _isLoading = true;
@@ -37,20 +37,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _cargarDatos() async {
-    final names = await _storage.read(key: "nombres") ?? "";
-    final lastNames = await _storage.read(key: "apellidos") ?? "";
-    final email = await _storage.read(key: "email") ?? "";
-    final rol = await _storage.read(key: "rol") ?? "Sin rol";
-    final userIdStr = await _storage.read(key: "usuario_id");
+    final names = await _api.readStorage("nombres") ?? "";
+    final lastNames = await _api.readStorage("apellidos") ?? "";
+    final email = await _api.readStorage("email") ?? "";
+    final rol = await _api.readStorage("rol") ?? "Sin rol";
+    final userIdStr = await _api.readStorage("usuario_id");
 
-    setState(() {
-      _nombresController.text = names;
-      _apellidosController.text = lastNames;
-      _emailController.text = email;
-      _rol = rol.toUpperCase();
-      _userId = userIdStr != null ? int.tryParse(userIdStr) : null;
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _nombresController.text = names;
+        _apellidosController.text = lastNames;
+        _emailController.text = email;
+        _rol = rol.toUpperCase();
+        _userId = userIdStr != null ? int.tryParse(userIdStr) : null;
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _guardarCambios() async {
@@ -70,9 +72,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (exito) {
       // Update local storage
-      await _storage.write(key: "nombres", value: data["nombres"]);
-      await _storage.write(key: "apellidos", value: data["apellidos"]);
-      await _storage.write(key: "email", value: data["correo"]);
+      await _api.writeStorage("nombres", data["nombres"]!);
+      await _api.writeStorage("apellidos", data["apellidos"]!);
+      await _api.writeStorage("email", data["correo"]!);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -292,9 +294,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: FloatingActionButton.extended(
                 onPressed: () async {
                   final isDocente = _rol.toLowerCase() == 'docente' || _rol.toLowerCase() == 'profesor';
-                  final dIdStr = await _storage.read(key: "docente_id");
-                  final n = await _storage.read(key: "nombres") ?? "Profesor";
-                  final a = await _storage.read(key: "apellidos") ?? "";
+                  final dIdStr = await _api.readStorage("docente_id");
+                  final n = await _api.readStorage("nombres") ?? "Profesor";
+                  final a = await _api.readStorage("apellidos") ?? "";
                   
                   if (!mounted) return;
 
