@@ -9,9 +9,9 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  // Servidor local por defecto, o Prod si se especifica.
-  // CAMBIO PROVISIONAL: Usando Render por defecto para evitar error local.
-  final String baseUrl = const String.fromEnvironment('API_URL', defaultValue: "https://sistema-de-gestion-act-bj8j.onrender.com");
+  // Servidor de Producción (Hardcoded para garantizar conexión)
+  final String baseUrl = "https://sistema-de-gestion-act-bj8j.onrender.com";
+  // final String baseUrl = const String.fromEnvironment('API_URL', defaultValue: "https://sistema-de-gestion-act-bj8j.onrender.com");
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
   // 🔒 STORAGE HELPERS (Conditional Web/Mobile)
@@ -856,9 +856,9 @@ Future<List<dynamic>> listarSedes() async {
       
       print("[API] Carga por lotes completada. Total horarios: ${todosLosHorarios.length}");
       return todosLosHorarios;
-      
+
     } catch (e) {
-      print("[API] Error grave en fallback por lotes: $e");
+      print("[API] Error fatal en fallback: $e");
       return [];
     }
   }

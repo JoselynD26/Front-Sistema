@@ -1825,19 +1825,17 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
       final docentes = resultsBasicos[2] as List<dynamic>;
       final horarioDiario = resultsBasicos[3] as List<dynamic>;
 
-      // 2. Obtener Horarios Recurrentes de TODOS los docentes (Pesado pero necesario)
-      print("DEBUG: Fetcheando horarios de ${docentes.length} docentes...");
+      // 2. Obtener Horarios Recurrentes de TODOS los docentes (Optimizado)
+      print("DEBUG: Fetcheando horarios recurrentes (Bulk)...");
+      // Usamos el endpoint optimizado que ya tiene fallback
+      final horarioRecurrenteTotal = await _apiService.listarHorariosDocentesPorSede(1);
+      
+      /* 
+      // LEGACY: Lógica ineficiente N+1 eliminada
       final teacherSchedules = await Future.wait(
         docentes.map((d) => _apiService.obtenerHorarioDocente(d["id"]))
       );
-
-      // 3. Aplanar la lista de recurrentes
-      final List<dynamic> horarioRecurrenteTotal = [];
-      for (var list in teacherSchedules) {
-        if (list != null) {
-          horarioRecurrenteTotal.addAll(list as List<dynamic>);
-        }
-      }
+      */
       
       print("DEBUG: Total Recurrentes Globales: ${horarioRecurrenteTotal.length}");
       print("DEBUG: Total Eventos Por Fecha: ${eventosPorFecha.length}");
