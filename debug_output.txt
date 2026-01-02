@@ -1,0 +1,45 @@
+--- STEP 1: FIND THE TARGET SCHEDULE ID ---
+Fetching from: http://localhost:8000/horario-docente/sede/1
+Total schedules found: 41
+ID=12 | Dia=Jueves | Hora=12:00:00 | Doc=DocenteID: 3 | Mat=Unknown
+ID=70 | Dia=Lunes | Hora=07:00:00 | Doc=DocenteID: 3 | Mat=Unknown
+ID=79 | Dia=Lunes | Hora=17:00:00 | Doc=DocenteID: 3 | Mat=Unknown
+ID=9 | Dia=Martes | Hora=07:00:00 | Doc=DocenteID: 3 | Mat=Unknown
+ID=73 | Dia=Miércoles | Hora=12:00:00 | Doc=DocenteID: 3 | Mat=Unknown
+ID=22 | Dia=Viernes | Hora=07:00:00 | Doc=DocenteID: 3 | Mat=Unknown
+ID=85 | Dia=Lunes | Hora=15:00:00 | Doc=DocenteID: 4 | Mat=Unknown
+ID=11 | Dia=Jueves | Hora=07:00:00 | Doc=DocenteID: 6 | Mat=Unknown
+ID=14 | Dia=Lunes | Hora=07:00:00 | Doc=DocenteID: 6 | Mat=Unknown
+ID=15 | Dia=Lunes | Hora=10:00:00 | Doc=DocenteID: 6 | Mat=Unknown
+ID=16 | Dia=Martes | Hora=07:00:00 | Doc=DocenteID: 6 | Mat=Unknown
+ID=41 | Dia=Martes | Hora=11:00:00 | Doc=DocenteID: 6 | Mat=Unknown
+ID=57 | Dia=Miércoles | Hora=10:00:00 | Doc=DocenteID: 6 | Mat=Unknown
+ID=36 | Dia=Viernes | Hora=10:00:00 | Doc=DocenteID: 6 | Mat=Unknown
+ID=83 | Dia=Lunes | Hora=10:00:00 | Doc=DocenteID: 7 | Mat=Unknown
+ID=33 | Dia=Jueves | Hora=12:00:00 | Doc=DocenteID: 30 | Mat=Unknown
+ID=17 | Dia=Martes | Hora=12:00:00 | Doc=DocenteID: 30 | Mat=Unknown
+ID=42 | Dia=Martes | Hora=14:00:00 | Doc=DocenteID: 30 | Mat=Unknown
+ID=29 | Dia=Miércoles | Hora=07:00:00 | Doc=DocenteID: 30 | Mat=Unknown
+ID=38 | Dia=Lunes | Hora=07:00:00 | Doc=DocenteID: 41 | Mat=Unknown
+ID=13 | Dia=Viernes | Hora=08:00:00 | Doc=DocenteID: 41 | Mat=Unknown
+ID=24 | Dia=Lunes | Hora=17:00:00 | Doc=DocenteID: 53 | Mat=Unknown
+ID=88 | Dia=Martes | Hora=17:00:00 | Doc=DocenteID: 53 | Mat=Unknown
+ID=89 | Dia=Martes | Hora=18:40:00 | Doc=DocenteID: 53 | Mat=Unknown
+ID=19 | Dia=Miércoles | Hora=17:00:00 | Doc=DocenteID: 53 | Mat=Unknown
+ID=32 | Dia=Jueves | Hora=09:00:00 | Doc=DocenteID: 57 | Mat=Unknown
+ID=52 | Dia=Martes | Hora=07:00:00 | Doc=DocenteID: 57 | Mat=Unknown
+ID=18 | Dia=Miércoles | Hora=07:00:00 | Doc=DocenteID: 57 | Mat=Unknown
+ID=21 | Dia=Jueves | Hora=12:00:00 | Doc=DocenteID: 58 | Mat=Unknown
+ID=47 | Dia=Jueves | Hora=18:40:00 | Doc=DocenteID: 58 | Mat=Unknown
+ID=55 | Dia=Martes | Hora=19:30:00 | Doc=DocenteID: 58 | Mat=Unknown
+ID=49 | Dia=Viernes | Hora=19:30:00 | Doc=DocenteID: 58 | Mat=Unknown
+ID=87 | Dia=Martes | Hora=12:00:00 | Doc=DocenteID: 77 | Mat=Unknown
+ID=20 | Dia=Jueves | Hora=07:00:00 | Doc=DocenteID: 83 | Mat=Unknown
+ID=82 | Dia=Lunes | Hora=07:00:00 | Doc=DocenteID: 83 | Mat=Unknown
+ID=86 | Dia=Martes | Hora=07:00:00 | Doc=DocenteID: 83 | Mat=Unknown
+ID=80 | Dia=Miércoles | Hora=07:00:00 | Doc=DocenteID: 83 | Mat=Unknown
+ID=81 | Dia=Miércoles | Hora=10:00:00 | Doc=DocenteID: 83 | Mat=Unknown
+ID=35 | Dia=Viernes | Hora=07:00:00 | Doc=DocenteID: 83 | Mat=Unknown
+ID=84 | Dia=Lunes | Hora=12:00:00 | Doc=DocenteID: 91 | Mat=Unknown
+ID=90 | Dia=Miércoles | Hora=07:00:00 | Doc=DocenteID: 91 | Mat=Unknown
+❌ Target ID not found.

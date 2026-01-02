@@ -129,7 +129,7 @@ class _DetalleSedeScreenState extends State<DetalleSedeScreen> with SingleTicker
     return WebLayout(
       title: "Panel de Gestión",
       idSede: widget.idSede,
-      backgroundColor: const Color(0xFFF1F5F9), // Slate 100
+      // backgroundColor: const Color(0xFFF1F5F9), // Removed to allow theme to control it
       child: cargando
           ? const Center(
               child: Column(
@@ -147,80 +147,122 @@ class _DetalleSedeScreenState extends State<DetalleSedeScreen> with SingleTicker
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // 🔹 HERO HEADER
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(40),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [const Color(0xFF0F172A), Colors.blue.shade800],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(color: Colors.blue.shade900.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10)),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isMobile = constraints.maxWidth < 700;
+                      
+                      return Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(isMobile ? 24 : 40),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [const Color(0xFF0F172A), Colors.blue.shade800],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(color: Colors.blue.shade900.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10)),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.white24,
-                                borderRadius: BorderRadius.circular(16),
+                            if (isMobile)
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white24,
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    child: const Icon(Icons.business_rounded, color: Colors.white, size: 32),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  const Text(
+                                    "GESTIÓN DE SEDE",
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white70,
+                                      letterSpacing: 2,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    widget.nombre.toUpperCase(),
+                                    style: const TextStyle(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                      height: 1.1,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            else
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white24,
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    child: const Icon(Icons.business_rounded, color: Colors.white, size: 32),
+                                  ),
+                                  const SizedBox(width: 20),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        "GESTIÓN DE SEDE",
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white70,
+                                          letterSpacing: 2,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        widget.nombre.toUpperCase(),
+                                        style: const TextStyle(
+                                          fontSize: 36,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                          height: 1.1,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
-                              child: const Icon(Icons.business_rounded, color: Colors.white, size: 32),
-                            ),
-                            const SizedBox(width: 20),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  "GESTIÓN DE SEDE",
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white70,
-                                    letterSpacing: 2,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  widget.nombre.toUpperCase(),
-                                  style: const TextStyle(
-                                    fontSize: 36,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                    height: 1.1,
-                                  ),
-                                ),
-                              ],
+                            
+                            SizedBox(height: isMobile ? 16 : 24),
+                            Text(
+                              "Seleccione un módulo para comenzar a administrar recursos, horarios y personal.",
+                              style: TextStyle(fontSize: isMobile ? 14 : 16, color: Colors.white70),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 24),
-                        const Text(
-                          "Seleccione un módulo para comenzar a administrar recursos, horarios y personal.",
-                          style: TextStyle(fontSize: 16, color: Colors.white70),
-                        ),
-                      ],
-                    ),
+                      );
+                    }
                   ),
 
                   const SizedBox(height: 40),
 
                   // 🔹 SECTION TITLE
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.only(left: 8.0, bottom: 24),
                     child: Text(
                       "Módulos Administrativos",
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF1E293B),
+                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1E293B),
                       ),
                     ),
                   ),

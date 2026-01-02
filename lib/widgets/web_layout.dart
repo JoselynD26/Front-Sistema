@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../utils/mouse_tracker_fix.dart';
 import '../services/api_service.dart';
 // import 'package:flutter_secure_storage/flutter_secure_storage.dart'; // Removed direct usage
+import '../utils/theme_manager.dart';
 import '../screens/sede_screen.dart';
 import '../screens/carrera_screen.dart';
 import '../screens/aula_screen.dart';
@@ -27,6 +28,7 @@ class WebLayout extends StatefulWidget {
   final Color? backgroundColor;
   final int? idSede;
   final bool scrollable;
+  final VoidCallback? onBack;
 
   const WebLayout({
     super.key,
@@ -36,6 +38,7 @@ class WebLayout extends StatefulWidget {
     this.backgroundColor,
     this.idSede,
     this.scrollable = true,
+    this.onBack,
   });
 
   @override
@@ -43,7 +46,9 @@ class WebLayout extends StatefulWidget {
 }
 
 class _WebLayoutState extends State<WebLayout> with SafeStateMixin {
-  bool _isDarkMode = false;
+  // bool _isDarkMode = false; // Removed local state
+  bool get _isDarkMode => Theme.of(context).brightness == Brightness.dark;
+
   String? _nombreUsuario;
   String? _emailUsuario;
   String? _rolUsuario;
@@ -88,9 +93,7 @@ class _WebLayoutState extends State<WebLayout> with SafeStateMixin {
   bool get _isAdmin => _rolUsuario == 'admin';
 
   void _toggleTheme() {
-    safeSetState(() {
-      _isDarkMode = !_isDarkMode;
-    });
+    ThemeManager().toggleTheme();
   }
 
   void _navigateTo(Widget page) {
@@ -126,10 +129,10 @@ class _WebLayoutState extends State<WebLayout> with SafeStateMixin {
 
   Widget _buildWebLayout(BuildContext context) {
     // 🔹 Modern Palette
-    final backgroundColor = _isDarkMode ? const Color(0xFF0F172A) : const Color(0xFFF3F4F6);
-    final surfaceColor = _isDarkMode ? const Color(0xFF1E293B) : Colors.white;
-    final textColor = _isDarkMode ? Colors.white : const Color(0xFF1E293B);
-
+    // Use theme colors if not overridden
+    final backgroundColor = widget.backgroundColor ?? Theme.of(context).scaffoldBackgroundColor;
+    final surfaceColor = Theme.of(context).cardColor; // Use theme card color
+    
     return MouseTrackerFix(
        child: Scaffold(
         backgroundColor: backgroundColor,
@@ -269,6 +272,10 @@ class _WebLayoutState extends State<WebLayout> with SafeStateMixin {
                   color: textColor,
                   tooltip: _isDocente ? "Volver al panel docente" : "Volver al panel de la sede",
                   onPressed: () {
+                    if (widget.onBack != null) {
+                      widget.onBack!();
+                      return;
+                    }
                     if (_isDocente) {
                        _navigateTo(ProfesorDashboard(
                           docenteId: _docenteId ?? 0,

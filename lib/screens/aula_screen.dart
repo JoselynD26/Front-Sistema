@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../widgets/admin_crud_layout.dart';
 import '../widgets/admin_table.dart';
+import '../widgets/custom_dialog.dart';
 import 'aula_form_screen.dart';
 import 'horario_aula_excel_import_screen.dart';
 import 'horario_aula_screen.dart';
@@ -55,38 +56,60 @@ class _AulasScreenState extends State<AulasScreen> {
   }
 
   Future<void> _eliminarAula(int id) async {
-    final ok = await _apiService.eliminarAula(id);
-    if (ok) {
-      _cargarAulas();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Aula eliminada")),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error al eliminar aula")),
-      );
-    }
-  }
-
-  void _confirmarEliminar(int id) {
+    // Show confirmation
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Eliminar Aula"),
-        content: const Text("¿Estás seguro de eliminar esta aula?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancelar"),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _eliminarAula(id);
-            },
-            child: const Text("Eliminar"),
-          ),
-        ],
+      builder: (dialogContext) => CustomDialog(
+        title: "Eliminar Aula",
+        description: "¿Estás seguro de eliminar esta aula? Se perderán sus horarios vinculados.",
+        type: DialogType.warning,
+        confirmText: "Eliminar",
+        showCancel: true,
+        onConfirm: () async {
+          Navigator.pop(dialogContext); // Close confirmation
+
+          // Show loading
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (loadingContext) => const CustomDialog(
+              title: "Eliminando...",
+              description: "Por favor espera",
+              type: DialogType.info,
+              isLoading: true,
+            ),
+          );
+
+          final ok = await _apiService.eliminarAula(id).catchError((_) => false);
+          
+          if (mounted) {
+            Navigator.pop(context); // Close loading
+
+            if (ok) {
+              _cargarAulas();
+              showDialog(
+                context: context,
+                builder: (successContext) => CustomDialog(
+                  title: "¡Éxito!",
+                  description: "El aula ha sido eliminada correctamente.",
+                  type: DialogType.success,
+                  confirmText: "Aceptar",
+                  onConfirm: () => Navigator.pop(successContext),
+                ),
+              );
+            } else {
+              showDialog(
+                context: this.context,
+                builder: (errorContext) => const CustomDialog(
+                  title: "Error",
+                  description: "No se pudo eliminar el aula. Verifica si tiene recursos asociados.",
+                  type: DialogType.error,
+                  confirmText: "Aceptar",
+                ),
+              );
+            }
+          }
+        },
       ),
     );
   }
@@ -104,11 +127,15 @@ class _AulasScreenState extends State<AulasScreen> {
 
     if (result == true) {
       _cargarAulas();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(aula == null ? "Aula creada" : "Aula actualizada"),
-          backgroundColor: Colors.green,
-        ),
+      showDialog(
+        context: context,
+        builder: (_) => CustomDialog(
+          title: "¡Éxito!",
+          description: aula == null ? "El aula ha sido creada correctamente." : "El aula ha sido actualizada correctamente.",
+          type: DialogType.success,
+          onConfirm: () => Navigator.pop(context),
+          confirmText: "Aceptar",
+        )
       );
     }
   }
@@ -180,7 +207,7 @@ class _AulasScreenState extends State<AulasScreen> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.delete_outline, color: Colors.red),
-                    onPressed: () => _confirmarEliminar(aula["id"]),
+                    onPressed: () => _eliminarAula(aula["id"]),
                     tooltip: "Eliminar",
                   ),
                 ],

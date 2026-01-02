@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../widgets/admin_crud_layout.dart';
 import '../widgets/admin_table.dart';
+import '../widgets/custom_dialog.dart';
 import 'materia_form_screen.dart';
 import 'materia_excel_import_screen.dart';
 
@@ -16,7 +17,9 @@ class MateriasScreen extends StatefulWidget {
 class _MateriasScreenState extends State<MateriasScreen> {
   final ApiService _apiService = ApiService();
   List<dynamic> materias = [];
+  List<dynamic> filteredMaterias = [];
   bool cargando = true;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -29,16 +32,99 @@ class _MateriasScreenState extends State<MateriasScreen> {
       final data = await _apiService.listarMateriasPorSede(widget.idSede);
       setState(() {
         materias = data;
+        filteredMaterias = data;
         cargando = false;
       });
+      _filtrarMaterias();
     } catch (e) {
       if (mounted) setState(() => cargando = false);
     }
   }
 
   Future<void> _eliminarMateria(int id) async {
-    final ok = await _apiService.eliminarMateria(id);
-    if (ok) _cargarTodo();
+    showDialog(
+      context: context,
+      builder: (dialogContext) => CustomDialog(
+        title: "Eliminar Materia",
+        description: "¿Estás seguro de eliminar esta materia? Esta acción no se puede deshacer.",
+        type: DialogType.warning,
+        confirmText: "Eliminar",
+        showCancel: true,
+        onConfirm: () async {
+          Navigator.pop(dialogContext); // Close confirmation
+
+          // Show loading
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (loadingContext) => const CustomDialog(
+              title: "Eliminando...",
+              description: "Por favor espera",
+              type: DialogType.info,
+              isLoading: true,
+            ),
+          );
+
+          final ok = await _apiService.eliminarMateria(id).catchError((_) => false);
+          
+          if (mounted) {
+            Navigator.pop(context); // Close loading
+
+            if (ok) {
+              _cargarTodo();
+              showDialog(
+                context: context,
+                builder: (successContext) => CustomDialog(
+                  title: "¡Éxito!",
+                  description: "La materia ha sido eliminada correctamente.",
+                  type: DialogType.success,
+                  confirmText: "Aceptar",
+                  onConfirm: () => Navigator.pop(successContext),
+                ),
+              );
+            } else {
+              showDialog(
+                context: context,
+                builder: (errorContext) => const CustomDialog(
+                  title: "Error",
+                  description: "No se pudo eliminar la materia.",
+                  type: DialogType.error,
+                  confirmText: "Aceptar",
+                ),
+              );
+            }
+          }
+        },
+      ),
+    );
+  }
+
+  void _filtrarMaterias() {
+    final query = _searchController.text.toLowerCase().trim();
+    if (query.isEmpty) {
+      setState(() => filteredMaterias = List.from(materias));
+      return;
+    }
+
+    setState(() {
+      filteredMaterias = materias.where((m) {
+        final nombreMateria = (m["nombre"] ?? "").toString().toLowerCase();
+        
+        // Buscar en docentes asignados
+        bool matchDocente = false;
+        if (m["docentes"] != null && m["docentes"] is List) {
+          for (var d in m["docentes"]) {
+            final nombreCompleto = "${d["nombres"]} ${d["apellidos"]}".toLowerCase();
+            if (nombreCompleto.contains(query)) {
+              matchDocente = true;
+              break;
+            }
+          }
+        }
+
+        return nombreMateria.contains(query) || matchDocente;
+      }).toList();
+    });
   }
 
   void _abrirFormulario({Map<String, dynamic>? materia}) async {
@@ -64,6 +150,22 @@ class _MateriasScreenState extends State<MateriasScreen> {
       subtitle: "Asignación de materias, carreras y docentes",
       idSede: widget.idSede,
       onAdd: () => _abrirFormulario(),
+      filters: Column(
+        children: [
+          TextField(
+            controller: _searchController,
+            onChanged: (_) => _filtrarMaterias(),
+            decoration: InputDecoration(
+              hintText: "Buscar por materia o profesor...",
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              filled: true,
+              fillColor: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
       actions: [
         ElevatedButton.icon(
           onPressed: () async {
@@ -89,10 +191,10 @@ class _MateriasScreenState extends State<MateriasScreen> {
   }
 
   Widget _buildGroupedList() {
-    // 1. Agrupar materias por carrera
+    // 1. Agrupar materias (filtradas) por carrera
     Map<String, List<dynamic>> agrupadas = {};
     
-    for (var m in materias) {
+    for (var m in filteredMaterias) {
       List carreras = m["carreras"] ?? [];
       if (carreras.isEmpty) {
         agrupadas.putIfAbsent("Sin Carrera Asignada", () => []).add(m);
@@ -170,28 +272,7 @@ class _MateriasScreenState extends State<MateriasScreen> {
                         ),
                         IconButton(
                           icon: const Icon(Icons.delete_outline, color: Colors.red),
-                          onPressed: () {
-                             showDialog(
-                               context: context,
-                               builder: (ctx) => AlertDialog(
-                                 title: const Text("Confirmar Eliminación"),
-                                 content: Text("¿Estás seguro de eliminar la materia ${m["nombre"]}?\nEsta acción no se puede deshacer."),
-                                 actions: [
-                                   TextButton(
-                                     onPressed: () => Navigator.pop(ctx),
-                                     child: const Text("Cancelar"),
-                                   ),
-                                   TextButton(
-                                      onPressed: () {
-                                        Navigator.pop(ctx);
-                                        _eliminarMateria(m["id"]);
-                                      },
-                                      child: const Text("Eliminar", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-                                   ),
-                                 ],
-                               ),
-                             );
-                          },
+                          onPressed: () => _eliminarMateria(m["id"]),
                           tooltip: "Eliminar",
                         ),
                       ],

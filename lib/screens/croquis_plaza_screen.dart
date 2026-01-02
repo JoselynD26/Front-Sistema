@@ -3,6 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import '../services/api_service.dart';
 import '../widgets/admin_crud_layout.dart';
 import '../widgets/croquis_viewer_dialog.dart';
+import '../widgets/custom_dialog.dart';
 
 class CroquisPlazaScreen extends StatefulWidget {
   final int sedeId;
@@ -126,28 +127,61 @@ class _CroquisPlazaScreenState extends State<CroquisPlazaScreen> {
   }
 
   void _eliminarPlaza(int plazaId) async {
-    final confirm = await showDialog<bool>(
+    showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Eliminar Plaza'),
-        content: const Text('¿Seguro que deseas eliminar esta plaza?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Eliminar'),
-          ),
-        ],
+      builder: (dialogContext) => CustomDialog(
+        title: "Eliminar Plaza",
+        description: "¿Estás seguro de eliminar esta plaza? Se perderán el nombre y el croquis asociado.",
+        type: DialogType.warning,
+        confirmText: "Eliminar",
+        showCancel: true,
+        onConfirm: () async {
+          Navigator.pop(dialogContext); // Close confirmation
+
+          // Show loading
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (loadingContext) => const CustomDialog(
+              title: "Eliminando...",
+              description: "Por favor espera",
+              type: DialogType.info,
+              isLoading: true,
+            ),
+          );
+
+          final ok = await _api.eliminarPlaza(plazaId).catchError((_) => false);
+          
+          if (mounted) {
+            Navigator.pop(context); // Close loading
+
+            if (ok) {
+              _cargarPlazas();
+              showDialog(
+                context: context,
+                builder: (successContext) => CustomDialog(
+                  title: "¡Éxito!",
+                  description: "La plaza ha sido eliminada correctamente.",
+                  type: DialogType.success,
+                  confirmText: "Aceptar",
+                  onConfirm: () => Navigator.pop(successContext),
+                ),
+              );
+            } else {
+              showDialog(
+                context: context,
+                builder: (errorContext) => const CustomDialog(
+                  title: "Error",
+                  description: "No se pudo eliminar la plaza.",
+                  type: DialogType.error,
+                  confirmText: "Aceptar",
+                ),
+              );
+            }
+          }
+        },
       ),
     );
-
-    if (confirm == true) {
-      await _api.eliminarPlaza(plazaId);
-      _cargarPlazas();
-    }
   }
 
   Future<void> _subirCroquisPlaza(int plazaId) async {

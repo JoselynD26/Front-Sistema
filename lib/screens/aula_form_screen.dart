@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/api_service.dart';
 import '../widgets/admin_form_layout.dart';
 
@@ -102,35 +103,79 @@ class _AulaFormScreenState extends State<AulaFormScreen> {
           key: _formKey,
           child: Column(
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _numeroCtrl,
-                      decoration: premiumInputDecoration(
-                        label: "Número / Código",
-                        hint: "Ej. 101",
-                        icon: Icons.pin_invoke,
-                        primaryColor: _primaryColor,
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  if (constraints.maxWidth < 600) {
+                    return Column(
+                      children: [
+                        TextFormField(
+                          controller: _numeroCtrl,
+                          decoration: premiumInputDecoration(
+                            label: "Número / Código",
+                            hint: "Ej. 101",
+                            icon: Icons.pin_invoke,
+                            primaryColor: _primaryColor,
+                          ),
+                          validator: (v) => v!.trim().isEmpty ? "Requerido" : null,
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _capacidadCtrl,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          decoration: premiumInputDecoration(
+                            label: "Capacidad",
+                            hint: "Ej. 40",
+                            icon: Icons.groups_rounded,
+                            primaryColor: _primaryColor,
+                          ),
+                          validator: (v) {
+                             if (v == null || v.trim().isEmpty) return "Requerido";
+                             final n = int.tryParse(v);
+                             if (n == null || n <= 0) return "Debe ser > 0";
+                             return null;
+                          },
+                        ),
+                      ],
+                    );
+                  }
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _numeroCtrl,
+                          decoration: premiumInputDecoration(
+                            label: "Número / Código",
+                            hint: "Ej. 101",
+                            icon: Icons.pin_invoke,
+                            primaryColor: _primaryColor,
+                          ),
+                          validator: (v) => v!.trim().isEmpty ? "Requerido" : null,
+                        ),
                       ),
-                      validator: (v) => v!.trim().isEmpty ? "Requerido" : null,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _capacidadCtrl,
-                      keyboardType: TextInputType.number,
-                      decoration: premiumInputDecoration(
-                        label: "Capacidad",
-                        hint: "Ej. 40",
-                        icon: Icons.groups_rounded,
-                        primaryColor: _primaryColor,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _capacidadCtrl,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          decoration: premiumInputDecoration(
+                            label: "Capacidad",
+                            hint: "Ej. 40",
+                            icon: Icons.groups_rounded,
+                            primaryColor: _primaryColor,
+                          ),
+                          validator: (v) {
+                             if (v == null || v.trim().isEmpty) return "Requerido";
+                             final n = int.tryParse(v);
+                             if (n == null || n <= 0) return "Debe ser > 0";
+                             return null;
+                          },
+                        ),
                       ),
-                      validator: (v) => v!.trim().isEmpty ? "Requerido" : null,
-                    ),
-                  ),
-                ],
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 24),
               TextFormField(

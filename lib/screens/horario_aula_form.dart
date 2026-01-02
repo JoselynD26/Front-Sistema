@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../widgets/admin_form_layout.dart';
+import '../widgets/conflict_dialog.dart';
+import '../widgets/custom_dialog.dart';
 
 class HorarioAulaForm extends StatefulWidget {
   final int idSede;
@@ -301,6 +303,17 @@ class _HorarioAulaFormState extends State<HorarioAulaForm> {
     int fallidos = 0;
     List<String> errores = [];
 
+    int _parseHoraNumeric(String h) {
+      if (h.isEmpty) return 0;
+      try {
+        final parts = h.split(":");
+        final val = int.parse(parts[0]) * 100 + int.parse(parts[1]);
+        return val;
+      } catch (_) {
+        return 0;
+      }
+    }
+
     // Helper para normalizar hora "HH:mm:ss" -> "HH:mm"
     // Helper para normalizar hora "HH:mm:ss" -> "HH:mm"
     String normalizarHora(String? h) {
@@ -358,30 +371,74 @@ class _HorarioAulaFormState extends State<HorarioAulaForm> {
       }
     } else {
       // MODO CREACIÓN
+      
+      // 1. Cargar horario actual del docente para validar choques globales
+      List<dynamic> horarioDocenteActual = [];
+      try {
+         final res = await _apiService.obtenerHorarioDocente(docenteSeleccionado!);
+         if (res is List) horarioDocenteActual = res;
+      } catch (_) {}
+
       for (String dia in diasSeleccionados) {
-          // Validar traslape localmente
+          // Validar traslape localmente (con otros horarios en ESTA aula)
           final inicioNuevo = normalizarHora(_horaInicioController.text);
           final finNuevo = normalizarHora(_horaFinController.text);
 
-          bool hayTraslape = existentes.any((h) {
-            // Validar condicionales de fecha y hora
+          bool hayTraslapeAula = existentes.any((h) {
             final hDia = (h["dia"] ?? "").toString();
             if (hDia.toLowerCase().trim() != dia.toLowerCase().trim()) return false;
             
             final hInicio = normalizarHora(h["hora_inicio"]);
             final hFin = normalizarHora(h["hora_fin"]);
             
-             // (Inicio1 < Fin2) AND (Fin1 > Inicio2) => Overlap
-            bool cond1 = inicioNuevo.compareTo(hFin) < 0; // New Start < Old End
-            bool cond2 = finNuevo.compareTo(hInicio) > 0; // New End > Old Start
+            bool cond1 = inicioNuevo.compareTo(hFin) < 0; 
+            bool cond2 = finNuevo.compareTo(hInicio) > 0; 
             
             return cond1 && cond2;
           });
 
-        if (hayTraslape) {
+        if (hayTraslapeAula) {
           fallidos++;
-          errores.add("El día $dia: Esta hora ya está ocupada ($inicioNuevo-$finNuevo), por favor selecciona otra.");
+          errores.add("El día $dia: El AULA ya tiene clase a esta hora ($inicioNuevo-$finNuevo).");
           continue;
+        }
+        
+        // Validar traslape con OTROS clases del Docente (ConflictDialog)
+        final conflictivo = horarioDocenteActual.firstWhere((h) {
+             final hDia = h['dia']?.toString() ?? "";
+             final start = _parseHoraNumeric(h['hora_inicio'] ?? "");
+             final end = _parseHoraNumeric(h['hora_fin'] ?? "");
+             
+             final startNuevoNum = _parseHoraNumeric(_horaInicioController.text);
+             final endNuevoNum = _parseHoraNumeric(_horaFinController.text);
+             
+             if (hDia.toLowerCase().trim() != dia.toLowerCase().trim()) return false;
+             
+             return (startNuevoNum < end && endNuevoNum > start);
+        }, orElse: () => null);
+
+        if (conflictivo != null) {
+            // MOSTRAR DIÁLOGO (Es blocking, necesitamos async await dentro del loop)
+             final confirm = await showDialog<bool>(
+              context: context,
+              barrierDismissible: false,
+              builder: (ctx) => ConflictDialog(
+                aulaNombre: conflictivo['aula_nombre'] ?? "Aula Desconocida",
+                horario: "${conflictivo['hora_inicio']} - ${conflictivo['hora_fin']}",
+                dia: dia,
+                docenteNombre: "${conflictivo['docente_nombre'] ?? 'Este docente'}",
+                onCancel: () => Navigator.pop(ctx, false),
+                onLiberar: () => Navigator.pop(ctx, true),
+              )
+            );
+            
+            if (confirm != true) {
+               fallidos++; 
+               continue; // Skip this day
+            }
+            
+            // Liberar
+            await _apiService.eliminarHorarioDocente(conflictivo['id']);
         }
 
         final ok = await _apiService.crearHorarioAdmin(
@@ -404,8 +461,9 @@ class _HorarioAulaFormState extends State<HorarioAulaForm> {
         // Mostrar Alerta de Errores
         showDialog(
           context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text("Conflicto de Horarios"),
+          builder: (ctx) => CustomDialog(
+            title: "Conflicto de Horarios",
+            type: DialogType.warning,
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -423,12 +481,8 @@ class _HorarioAulaFormState extends State<HorarioAulaForm> {
                 )).toList(),
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text("Entendido"),
-              ),
-            ],
+            confirmText: "Entendido",
+            onConfirm: () => Navigator.pop(ctx),
           ),
         );
       } else if (fallidos > 0 && creados == 0) {
@@ -580,36 +634,69 @@ class _HorarioAulaFormState extends State<HorarioAulaForm> {
 
         const SizedBox(height: 20),
 
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _horaInicioController,
-                decoration: premiumInputDecoration(label: "Hora Inicio", hint: "07:00", icon: Icons.access_time, primaryColor: _primaryColor),
-                onTap: () async {
-                  TimeOfDay? picked = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 7, minute: 0));
-                  if (picked != null) {
-                    _horaInicioController.text = "${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}";
-                  }
-                },
-                readOnly: true,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: TextField(
-                controller: _horaFinController,
-                decoration: premiumInputDecoration(label: "Hora Fin", hint: "09:00", icon: Icons.access_time_filled, primaryColor: _primaryColor),
-                onTap: () async {
-                  TimeOfDay? picked = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 9, minute: 0));
-                  if (picked != null) {
-                    _horaFinController.text = "${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}";
-                  }
-                },
-                readOnly: true,
-              ),
-            ),
-          ],
+        LayoutBuilder(
+          builder: (context, constraints) {
+            if (constraints.maxWidth < 600) {
+              return Column(
+                children: [
+                  TextField(
+                    controller: _horaInicioController,
+                    decoration: premiumInputDecoration(label: "Hora Inicio", hint: "07:00", icon: Icons.access_time, primaryColor: _primaryColor),
+                    onTap: () async {
+                      TimeOfDay? picked = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 7, minute: 0));
+                      if (picked != null) {
+                        _horaInicioController.text = "${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}";
+                      }
+                    },
+                    readOnly: true,
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _horaFinController,
+                    decoration: premiumInputDecoration(label: "Hora Fin", hint: "09:00", icon: Icons.access_time_filled, primaryColor: _primaryColor),
+                    onTap: () async {
+                      TimeOfDay? picked = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 9, minute: 0));
+                      if (picked != null) {
+                        _horaFinController.text = "${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}";
+                      }
+                    },
+                    readOnly: true,
+                  ),
+                ],
+              );
+            }
+            return Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _horaInicioController,
+                    decoration: premiumInputDecoration(label: "Hora Inicio", hint: "07:00", icon: Icons.access_time, primaryColor: _primaryColor),
+                    onTap: () async {
+                      TimeOfDay? picked = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 7, minute: 0));
+                      if (picked != null) {
+                        _horaInicioController.text = "${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}";
+                      }
+                    },
+                    readOnly: true,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: TextField(
+                    controller: _horaFinController,
+                    decoration: premiumInputDecoration(label: "Hora Fin", hint: "09:00", icon: Icons.access_time_filled, primaryColor: _primaryColor),
+                    onTap: () async {
+                      TimeOfDay? picked = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 9, minute: 0));
+                      if (picked != null) {
+                        _horaFinController.text = "${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}";
+                      }
+                    },
+                    readOnly: true,
+                  ),
+                ),
+              ],
+            );
+          },
         ),
 
         const SizedBox(height: 30),

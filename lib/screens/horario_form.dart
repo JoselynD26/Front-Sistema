@@ -278,32 +278,61 @@ class _HorarioFormState extends State<HorarioForm> {
               ),
             ),
             const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _horaInicioController,
-                    decoration: premiumInputDecoration(
-                      label: "Hora Inicio",
-                      hint: "HH:MM",
-                      icon: Icons.access_time_rounded,
-                      primaryColor: _primaryColor,
+            LayoutBuilder(
+              builder: (context, constraints) {
+                if (constraints.maxWidth < 600) {
+                  return Column(
+                    children: [
+                      TextField(
+                        controller: _horaInicioController,
+                        decoration: premiumInputDecoration(
+                          label: "Hora Inicio",
+                          hint: "HH:MM",
+                          icon: Icons.access_time_rounded,
+                          primaryColor: _primaryColor,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _horaFinController,
+                        decoration: premiumInputDecoration(
+                          label: "Hora Fin",
+                          hint: "HH:MM",
+                          icon: Icons.access_time_filled_rounded,
+                          primaryColor: _primaryColor,
+                        ),
+                      ),
+                    ],
+                  );
+                }
+                return Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _horaInicioController,
+                        decoration: premiumInputDecoration(
+                          label: "Hora Inicio",
+                          hint: "HH:MM",
+                          icon: Icons.access_time_rounded,
+                          primaryColor: _primaryColor,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: TextField(
-                    controller: _horaFinController,
-                    decoration: premiumInputDecoration(
-                      label: "Hora Fin",
-                      hint: "HH:MM",
-                      icon: Icons.access_time_filled_rounded,
-                      primaryColor: _primaryColor,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: TextField(
+                        controller: _horaFinController,
+                        decoration: premiumInputDecoration(
+                          label: "Hora Fin",
+                          hint: "HH:MM",
+                          icon: Icons.access_time_filled_rounded,
+                          primaryColor: _primaryColor,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              ],
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 24),
             DropdownButtonFormField<String>(

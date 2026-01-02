@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../widgets/admin_crud_layout.dart';
+import '../widgets/custom_dialog.dart';
+import 'aula_screen.dart';
 import 'horario_aula_form.dart';
 import 'horario_form.dart';
 
@@ -140,21 +142,72 @@ class _HorarioAulaScreenState extends State<HorarioAulaScreen> {
   }
 
   Future<void> _eliminarHorario(dynamic h) async {
-    bool ok = false;
-    final id = h["id"];
-    
-    if (h["tipo"] == "Recurrente") {
-      ok = await _apiService.eliminarHorarioDocente(id);
-    } else {
-      ok = await _apiService.eliminarHorario(id);
-    }
-    
-    if (ok) {
-      _cargarHorarios();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Horario eliminado exitosamente")),
-      );
-    }
+    showDialog(
+      context: context,
+      builder: (dialogContext) => CustomDialog(
+        title: "Eliminar Horario",
+        description: "¿Estás seguro de eliminar este horario? Esta acción liberará el espacio en este bloque.",
+        type: DialogType.warning,
+        confirmText: "Eliminar",
+        showCancel: true,
+        onConfirm: () async {
+          Navigator.pop(dialogContext); // Close confirmation
+
+          // Show loading
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (loadingContext) => const CustomDialog(
+              title: "Eliminando...",
+              description: "Por favor espera",
+              type: DialogType.info,
+              isLoading: true,
+            ),
+          );
+
+          bool ok = false;
+          final id = h["id"];
+          
+          try {
+            if (h["tipo"] == "Recurrente") {
+              ok = await _apiService.eliminarHorarioDocente(id);
+            } else {
+              ok = await _apiService.eliminarHorario(id);
+            }
+          } catch (_) {
+            ok = false;
+          }
+          
+          if (mounted) {
+            Navigator.pop(context); // Close loading
+
+            if (ok) {
+              _cargarHorarios();
+              showDialog(
+                context: context,
+                builder: (successContext) => CustomDialog(
+                  title: "¡Éxito!",
+                  description: "El horario ha sido eliminado correctamente.",
+                  type: DialogType.success,
+                  confirmText: "Aceptar",
+                  onConfirm: () => Navigator.pop(successContext),
+                ),
+              );
+            } else {
+              showDialog(
+                context: context,
+                builder: (errorContext) => const CustomDialog(
+                  title: "Error",
+                  description: "No se pudo eliminar el horario.",
+                  type: DialogType.error,
+                  confirmText: "Aceptar",
+                ),
+              );
+            }
+          }
+        },
+      ),
+    );
   }
 
   void _abrirEdicion(dynamic h) async {
@@ -214,6 +267,12 @@ class _HorarioAulaScreenState extends State<HorarioAulaScreen> {
       onAdd: _abrirFormulario,
       addLabel: "Agregar Ocupación",
       scrollable: false,
+      onBack: () {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => AulasScreen(idSede: widget.idSede)),
+        );
+      },
       child: cargando
           ? const Center(child: CircularProgressIndicator())
           : horarios.isEmpty

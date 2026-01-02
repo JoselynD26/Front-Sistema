@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../widgets/admin_crud_layout.dart';
 import '../widgets/admin_table.dart';
+import '../widgets/custom_dialog.dart';
 import 'carrera_form.dart';
 
 class CarrerasScreen extends StatefulWidget {
@@ -43,29 +44,61 @@ class _CarrerasScreenState extends State<CarrerasScreen> {
   }
 
   Future<void> _eliminarCarrera(int id) async {
-    final confirmar = await showDialog<bool>(
+    showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Eliminar carrera"),
-        content: const Text("¿Estás seguro de eliminar esta carrera?"),
-        actions: [
-          TextButton(
-            child: const Text("Cancelar"),
-            onPressed: () => Navigator.pop(context, false),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text("Eliminar"),
-            onPressed: () => Navigator.pop(context, true),
-          ),
-        ],
+      builder: (dialogContext) => CustomDialog(
+        title: "Eliminar Carrera",
+        description: "¿Estás seguro de eliminar esta carrera? Esto podría afectar a los cursos y materias vinculados.",
+        type: DialogType.warning,
+        confirmText: "Eliminar",
+        showCancel: true,
+        onConfirm: () async {
+          Navigator.pop(dialogContext); // Cerrar confirmación
+
+          // Mostrar carga
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (loadingContext) => const CustomDialog(
+              title: "Eliminando...",
+              description: "Por favor espera",
+              type: DialogType.info,
+              isLoading: true,
+            ),
+          );
+
+          final ok = await _apiService.eliminarCarrera(id).catchError((_) => false);
+          
+          if (mounted) {
+            Navigator.pop(context); // Cerrar carga (estable)
+
+            if (ok) {
+              _cargarCarreras();
+              showDialog(
+                context: context,
+                builder: (successContext) => CustomDialog(
+                  title: "¡Éxito!",
+                  description: "La carrera ha sido eliminada correctamente.",
+                  type: DialogType.success,
+                  confirmText: "Aceptar",
+                  onConfirm: () => Navigator.pop(successContext),
+                ),
+              );
+            } else {
+              showDialog(
+                context: context,
+                builder: (errorContext) => const CustomDialog(
+                  title: "Error",
+                  description: "No se pudo eliminar la carrera. Verifica si tiene dependencias.",
+                  type: DialogType.error,
+                  confirmText: "Aceptar",
+                ),
+              );
+            }
+          }
+        },
       ),
     );
-
-    if (confirmar == true) {
-      await _apiService.eliminarCarrera(id);
-      _cargarCarreras();
-    }
   }
 
   void _abrirFormulario({Map<String, dynamic>? carrera}) async {
@@ -81,11 +114,16 @@ class _CarrerasScreenState extends State<CarrerasScreen> {
 
     if (result == true) {
       _cargarCarreras();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(carrera == null ? "Carrera creada" : "Carrera actualizada"),
-          backgroundColor: Colors.green,
-        ),
+      _cargarCarreras();
+      showDialog(
+        context: context,
+        builder: (_) => CustomDialog(
+          title: "¡Éxito!",
+          description: carrera == null ? "La carrera ha sido creada correctamente." : "La carrera ha sido actualizada correctamente.",
+          type: DialogType.success,
+          onConfirm: () => Navigator.pop(context),
+          confirmText: "Aceptar",
+        )
       );
     }
   }

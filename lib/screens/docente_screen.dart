@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../widgets/admin_crud_layout.dart';
 import '../widgets/admin_table.dart';
+import '../widgets/custom_dialog.dart';
 import 'docente_form_screen.dart';
 import 'docente_excel_import_screen.dart';
 
@@ -80,17 +81,61 @@ class _DocentesScreenState extends State<DocentesScreen> {
   }
 
   Future<void> _eliminarDocente(int id) async {
-    final ok = await _apiService.eliminarDocente(id);
-    if (ok) {
-      _cargarDocentes();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Docente eliminado")),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error al eliminar docente")),
-      );
-    }
+    showDialog(
+      context: context,
+      builder: (dialogContext) => CustomDialog(
+        title: "Eliminar Docente",
+        description: "¿Estás seguro de eliminar a este docente? Se perderán sus vinculaciones con materias y horarios.",
+        type: DialogType.warning,
+        confirmText: "Eliminar",
+        showCancel: true,
+        onConfirm: () async {
+          Navigator.pop(dialogContext); // Close confirmation
+
+          // Show loading
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (loadingContext) => const CustomDialog(
+              title: "Eliminando...",
+              description: "Por favor espera",
+              type: DialogType.info,
+              isLoading: true,
+            ),
+          );
+
+          final ok = await _apiService.eliminarDocente(id).catchError((_) => false);
+          
+          if (mounted) {
+            Navigator.pop(context); // Close loading (using stable context)
+
+            if (ok) {
+              _cargarDocentes();
+              showDialog(
+                context: context,
+                builder: (successContext) => CustomDialog(
+                  title: "¡Éxito!",
+                  description: "El docente ha sido eliminado correctamente.",
+                  type: DialogType.success,
+                  confirmText: "Aceptar",
+                  onConfirm: () => Navigator.pop(successContext),
+                ),
+              );
+            } else {
+              showDialog(
+                context: context,
+                builder: (errorContext) => const CustomDialog(
+                  title: "Error",
+                  description: "No se pudo eliminar al docente. Verifica si tiene horarios activos.",
+                  type: DialogType.error,
+                  confirmText: "Aceptar",
+                ),
+              );
+            }
+          }
+        },
+      ),
+    );
   }
 
   void _filterDocentes() {
@@ -123,11 +168,16 @@ class _DocentesScreenState extends State<DocentesScreen> {
 
     if (result == true) {
       _cargarDocentes();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(docente == null ? "Docente creado" : "Docente actualizado"),
-          backgroundColor: Colors.green,
-        ),
+      _cargarDocentes();
+      showDialog(
+        context: context,
+        builder: (_) => CustomDialog(
+          title: "¡Éxito!",
+          description: docente == null ? "El docente ha sido registrado correctamente." : "Los datos del docente han sido actualizados.",
+          type: DialogType.success,
+          onConfirm: () => Navigator.pop(context),
+          confirmText: "Aceptar",
+        )
       );
     }
   }
@@ -147,13 +197,14 @@ class _DocentesScreenState extends State<DocentesScreen> {
       builder: (_) {
         return StatefulBuilder(
           builder: (context, setStateDialog) {
-            return AlertDialog(
-              title: Text("Crear cuenta para ${docente["nombres"]}"),
+            return CustomDialog(
+              title: "Crear cuenta para ${docente["nombres"]}",
+              type: DialogType.info,
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(controller: _correo, decoration: const InputDecoration(labelText: "Correo")),
-
+                  const SizedBox(height: 12),
                   TextField(
                     controller: _clave,
                     obscureText: !mostrarClave,
@@ -165,7 +216,7 @@ class _DocentesScreenState extends State<DocentesScreen> {
                       ),
                     ),
                   ),
-
+                  const SizedBox(height: 12),
                   TextField(
                     controller: _confirmacion,
                     obscureText: !mostrarConfirmacion,
@@ -179,47 +230,44 @@ class _DocentesScreenState extends State<DocentesScreen> {
                   ),
                 ],
               ),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancelar")),
-                ElevatedButton(
-                  onPressed: guardando
-                      ? null
-                      : () async {
-                          if (_clave.text != _confirmacion.text) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Las contraseñas no coinciden")),
-                            );
-                            return;
-                          }
+              confirmText: "Crear cuenta",
+              cancelText: "Cancelar",
+              showCancel: true,
+              isLoading: guardando,
+              onCancel: () => Navigator.pop(context),
+              onConfirm: () async {
+                  if (_clave.text != _confirmacion.text) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Las contraseñas no coinciden")),
+                    );
+                    return;
+                  }
 
-                          final datos = {
-                            "nombres": docente["nombres"],
-                            "apellidos": docente["apellidos"],
-                            "correo": _correo.text.trim(),
-                            "contrasena": _clave.text.trim(),
-                            "rol": "docente",
-                            "id_docente": docente["id"],
-                          };
+                  final datos = {
+                    "nombres": docente["nombres"],
+                    "apellidos": docente["apellidos"],
+                    "correo": _correo.text.trim(),
+                    "contrasena": _clave.text.trim(),
+                    "rol": "docente",
+                    "id_docente": docente["id"],
+                  };
 
-                          setStateDialog(() => guardando = true);
-                          final ok = await _apiService.crearCuentaDocente(datos);
-                          setStateDialog(() => guardando = false);
+                  setStateDialog(() => guardando = true);
+                  final ok = await _apiService.crearCuentaDocente(datos);
+                  setStateDialog(() => guardando = false);
 
-                          if (ok) {
-                            Navigator.pop(context);
-                            _cargarDocentes();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Cuenta creada con éxito")),
-                            );
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Error al crear cuenta")),
-                            );
-                          }
-                        },
-                  child: const Text("Crear cuenta"),
-                ),
-              ],
+                  if (ok) {
+                    Navigator.pop(context);
+                    _cargarDocentes();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Cuenta creada con éxito")),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Error al crear cuenta")),
+                    );
+                  }
+                },
             );
           },
         );
@@ -241,12 +289,13 @@ class _DocentesScreenState extends State<DocentesScreen> {
       builder: (_) {
         return StatefulBuilder(
           builder: (context, setStateDialog) {
-            return AlertDialog(
-              title: Text("Cambiar contraseña de ${docente["nombres"]}"),
+            return CustomDialog(
+              title: "Cambiar contraseña de ${docente["nombres"]}",
+              type: DialogType.info,
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  TextField(
+                   TextField(
                     controller: _nueva,
                     obscureText: !mostrarNueva,
                     decoration: InputDecoration(
@@ -257,7 +306,7 @@ class _DocentesScreenState extends State<DocentesScreen> {
                       ),
                     ),
                   ),
-
+                  const SizedBox(height: 12),
                   TextField(
                     controller: _confirmacion,
                     obscureText: !mostrarConfirmacion,
@@ -271,40 +320,37 @@ class _DocentesScreenState extends State<DocentesScreen> {
                   ),
                 ],
               ),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancelar")),
-                ElevatedButton(
-                  onPressed: guardando
-                      ? null
-                      : () async {
-                          if (_nueva.text != _confirmacion.text) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Las contraseñas no coinciden")),
-                            );
-                            return;
-                          }
+              confirmText: "Actualizar",
+              cancelText: "Cancelar",
+              showCancel: true,
+              isLoading: guardando,
+              onCancel: () => Navigator.pop(context),
+              onConfirm: () async {
+                  if (_nueva.text != _confirmacion.text) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Las contraseñas no coinciden")),
+                    );
+                    return;
+                  }
 
-                          setStateDialog(() => guardando = true);
-                          final ok = await _apiService.actualizarContrasenaDocente(
-                            docente["id"],
-                            _nueva.text.trim(),
-                          );
-                          setStateDialog(() => guardando = false);
+                  setStateDialog(() => guardando = true);
+                  final ok = await _apiService.actualizarContrasenaDocente(
+                    docente["id"],
+                    _nueva.text.trim(),
+                  );
+                  setStateDialog(() => guardando = false);
 
-                          if (ok) {
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Contraseña actualizada")),
-                            );
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Error al actualizar contraseña")),
-                            );
-                          }
-                        },
-                  child: const Text("Actualizar"),
-                ),
-              ],
+                  if (ok) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Contraseña actualizada")),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Error al actualizar contraseña")),
+                    );
+                  }
+                },
             );
           },
         );
@@ -410,28 +456,7 @@ class _DocentesScreenState extends State<DocentesScreen> {
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: const Text("Confirmar Eliminación"),
-                        content: Text("¿Estás seguro de eliminar al docente ${docente["nombres"]} ${docente["apellidos"]}?\nEsta acción no se puede deshacer."),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx),
-                            child: const Text("Cancelar"),
-                          ),
-                          TextButton(
-                             onPressed: () {
-                               Navigator.pop(ctx);
-                               _eliminarDocente(docente["id"]);
-                             },
-                             child: const Text("Eliminar", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+                  onPressed: () => _eliminarDocente(docente["id"]),
                   tooltip: "Eliminar",
                 ),
                 const SizedBox(width: 8),

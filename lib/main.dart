@@ -15,6 +15,7 @@ import 'screens/horario_screen.dart';
 import 'screens/horarios_pdf_screen.dart';
 import 'screens/croquis_screen.dart';
 import 'screens/docente_croquis_screen.dart';
+import 'utils/theme_manager.dart';
 
 void main() {
   runApp(const GestionAcademicaApp());
@@ -25,14 +26,19 @@ class GestionAcademicaApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Sistema de Gestión Académica',
-      debugShowCheckedModeBanner: false,
-      theme: _buildWebTheme(),
-      home: const LoginScreen(),
+    return AnimatedBuilder(
+      animation: ThemeManager(),
+      builder: (context, _) {
+        return MaterialApp(
+          title: 'Sistema de Gestión Académica',
+          debugShowCheckedModeBanner: false,
+          theme: _buildWebTheme(),
+          darkTheme: _buildDarkTheme(),
+          themeMode: ThemeManager().themeMode,
+          home: const LoginScreen(),
 
-      /// 🔹 RUTAS CENTRALIZADAS
-      onGenerateRoute: (settings) {
+          /// 🔹 RUTAS CENTRALIZADAS
+          onGenerateRoute: (settings) {
         switch (settings.name) {
           case '/home':
             return MaterialPageRoute(
@@ -95,6 +101,8 @@ class GestionAcademicaApp extends StatelessWidget {
           default:
             return null;
         }
+          }
+        );
       },
     );
   }
@@ -190,6 +198,88 @@ class GestionAcademicaApp extends StatelessWidget {
         backgroundColor: surfaceColor,
         elevation: 8,
       ),
+    );
+  }
+  ThemeData _buildDarkTheme() {
+    const primaryColor = Color(0xFF3B82F6); // Lighter blue for dark mode
+    const secondaryColor = Color(0xFFF97316);
+    const backgroundColor = Color(0xFF0F172A); // Slate 900
+    const surfaceColor = Color(0xFF1E293B); // Slate 800
+    const textColor = Colors.white;
+
+    return ThemeData(
+      useMaterial3: true,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: primaryColor,
+        primary: primaryColor,
+        secondary: secondaryColor,
+        surface: surfaceColor,
+        background: backgroundColor,
+        brightness: Brightness.dark,
+      ),
+      scaffoldBackgroundColor: backgroundColor,
+      // dividerColor: Colors.grey.shade700,
+      appBarTheme: const AppBarTheme(
+        elevation: 0,
+        centerTitle: false,
+        backgroundColor: surfaceColor,
+        foregroundColor: textColor,
+        titleTextStyle: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+          color: textColor,
+          letterSpacing: -0.5,
+        ),
+        iconTheme: IconThemeData(color: Colors.white70),
+      ),
+      cardTheme: CardThemeData(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: Colors.grey.shade700),
+        ),
+        margin: const EdgeInsets.all(12),
+        color: surfaceColor,
+        clipBehavior: Clip.antiAlias,
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: primaryColor,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.5),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: const Color(0xFF334155), // Slate 700
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.grey.shade600),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.grey.shade700),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: primaryColor, width: 2),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        labelStyle: TextStyle(color: Colors.grey.shade400),
+        prefixIconColor: Colors.grey.shade400,
+        hintStyle: TextStyle(color: Colors.grey.shade500),
+      ),
+      dialogTheme: DialogThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: surfaceColor,
+        elevation: 8,
+        titleTextStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+        contentTextStyle: TextStyle(fontSize: 14, color: Colors.grey.shade300, height: 1.5),
+      ),
+      iconTheme: const IconThemeData(color: Colors.white70),
     );
   }
 }

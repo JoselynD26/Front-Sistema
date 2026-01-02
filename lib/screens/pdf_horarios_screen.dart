@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../widgets/admin_crud_layout.dart';
 import '../widgets/admin_table.dart';
+import '../widgets/custom_dialog.dart';
 
 class PdfHorariosScreen extends StatefulWidget {
   final int sedeId;
@@ -262,24 +263,76 @@ class _PdfHorariosScreenState extends State<PdfHorariosScreen> {
   }
 
   Future<void> _eliminarPdf(String archivo) async {
-    try {
-      final success = await _apiService.eliminarPdfHorario(widget.sedeId, archivo);
-      
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('PDF eliminado exitosamente')),
-        );
-        _cargarHorarios();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error al eliminar PDF')),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al eliminar PDF: $e')),
-      );
-    }
+    showDialog(
+      context: context,
+      builder: (dialogContext) => CustomDialog(
+        title: "Eliminar PDF",
+        description: "¿Estás seguro de eliminar este archivo horario?",
+        type: DialogType.warning,
+        confirmText: "Eliminar",
+        showCancel: true,
+        onConfirm: () async {
+          Navigator.pop(dialogContext); // Close confirmation
+
+          // Show loading
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (loadingContext) => const CustomDialog(
+              title: "Eliminando...",
+              description: "Por favor espera",
+              type: DialogType.info,
+              isLoading: true,
+            ),
+          );
+
+          try {
+            final success = await _apiService.eliminarPdfHorario(widget.sedeId, archivo).catchError((_) => false);
+            
+            if (mounted) {
+              Navigator.pop(context); // Close loading
+
+              if (success) {
+                _cargarHorarios();
+                showDialog(
+                  context: context,
+                  builder: (successContext) => CustomDialog(
+                    title: "¡Éxito!",
+                    description: "El archivo ha sido eliminado correctamente.",
+                    type: DialogType.success,
+                    confirmText: "Aceptar",
+                    onConfirm: () => Navigator.pop(successContext),
+                  ),
+                );
+              } else {
+                showDialog(
+                  context: context,
+                  builder: (errorContext) => const CustomDialog(
+                    title: "Error",
+                    description: "No se pudo eliminar el archivo.",
+                    type: DialogType.error,
+                    confirmText: "Aceptar",
+                  ),
+                );
+              }
+            }
+          } catch (e) {
+            if (mounted) {
+              Navigator.pop(context); // Close loading
+              showDialog(
+                context: context,
+                builder: (errorContext) => CustomDialog(
+                  title: "Error",
+                  description: "Error al eliminar: $e",
+                  type: DialogType.error,
+                  confirmText: "Aceptar",
+                ),
+              );
+            }
+          }
+        },
+      ),
+    );
   }
 
   Widget _buildSeccionTipo(String tipo, String titulo, IconData icono) {

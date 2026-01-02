@@ -5,6 +5,7 @@ import '../widgets/web_layout.dart';
 import '../utils/mouse_tracker_fix.dart';
 import 'detalle_sede_screen.dart';
 import 'form_sede_screen.dart';
+import 'sedes_management_screen.dart';
 import '../widgets/admin_card.dart';
 
 class SedeScreen extends StatefulWidget {
@@ -44,17 +45,37 @@ class _SedeScreenState extends State<SedeScreen> with SafeStateMixin {
   Widget build(BuildContext context) {
     return WebLayout(
       title: "Selecciona una sede",
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final resultado = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const FormSedeScreen()),
-          );
-          if (resultado == true) {
-            _cargarSedes();
-          }
-        },
-        child: const Icon(Icons.add),
+      floatingActionButton: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton.extended(
+            heroTag: "fab_gestionar",
+            onPressed: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SedesManagementScreen()),
+              );
+              _cargarSedes(); // Reload in case changes were made
+            },
+            label: const Text("Gestionar"),
+            icon: const Icon(Icons.settings),
+            backgroundColor: Colors.blueGrey,
+          ),
+          const SizedBox(width: 16),
+          FloatingActionButton(
+             heroTag: "fab_agregar",
+            onPressed: () async {
+              final resultado = await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const FormSedeScreen()),
+              );
+              if (resultado == true) {
+                _cargarSedes();
+              }
+            },
+            child: const Icon(Icons.add),
+          ),
+        ],
       ),
       child: cargando
           ? const Center(

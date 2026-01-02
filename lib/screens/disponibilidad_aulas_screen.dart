@@ -21,10 +21,31 @@ class _DisponibilidadAulasScreenState extends State<DisponibilidadAulasScreen> {
   bool cargando = true;
   DateTime fechaSeleccionada = DateTime.now();
 
+  List<dynamic> _cancelados = []; // Nueva lista para excepciones
+
   @override
   void initState() {
     super.initState();
     _cargarDatos();
+    _fetchCancelados();
+  }
+
+  Future<void> _fetchCancelados() async {
+    try {
+      final fechaStr = "${fechaSeleccionada.year}-${fechaSeleccionada.month.toString().padLeft(2,'0')}-${fechaSeleccionada.day.toString().padLeft(2,'0')}";
+      final cancelados = await _apiService.listarHorariosCancelados(widget.idSede, fechaStr);
+      if (mounted) {
+        setState(() {
+          _cancelados = cancelados;
+        });
+        print("DEBUG: Cancelados recibidos para $fechaStr: ${_cancelados.length}");
+        for(var c in _cancelados) {
+           print("  -> Cancelado: ID=${c['id']} horario_id=${c['horario_id']} fecha=${c['fecha']}");
+        }
+      }
+    } catch (e) {
+      print("Error fetching cancelados: $e");
+    }
   }
 
   Future<void> _cargarDatos() async {
@@ -209,6 +230,7 @@ class _DisponibilidadAulasScreenState extends State<DisponibilidadAulasScreen> {
                   fechaSeleccionada = fechaSeleccionada.subtract(const Duration(days: 2));
                 }
               });
+              _fetchCancelados();
             },
           ),
           Column(
@@ -235,6 +257,7 @@ class _DisponibilidadAulasScreenState extends State<DisponibilidadAulasScreen> {
                   fechaSeleccionada = fechaSeleccionada.add(const Duration(days: 1));
                 }
               });
+              _fetchCancelados();
             },
           ),
         ],
@@ -266,7 +289,43 @@ class _DisponibilidadAulasScreenState extends State<DisponibilidadAulasScreen> {
         // 2. Ocupación por horario recurrente (match por día)
         final ocupacionRecurrentes = (horariosRecurrentes ?? []).where((h) {
           final hIdAula = h["id_aula"] ?? h["aula_id"];
-          return h != null && hIdAula?.toString() == idAula?.toString() && h["dia"] == dia;
+          
+          if (h == null || hIdAula?.toString() != idAula?.toString() || h["dia"] != dia) {
+            return false;
+          }
+
+           // Check de cancelación (Excepción)
+             // Check de cancelación (Excepción)
+            final esCancelado = _cancelados.any((c) {
+               // 1. Match Directo por ID
+               final matchId = c['horario_id'].toString() == h['id'].toString() || 
+                             c['id_horario'].toString() == h['id'].toString();
+               if (matchId) { // debugPrint omitted to reduce noise
+                  return true;
+               }
+
+               // 2. Fallback: Match por Aula + Hora (Ignorando segundos)
+               // Esto cubre casos donde el ID no cruza correctamente pero es la misma clase
+               try {
+                 final cAula = c['aula_id'] ?? c['id_aula'];
+                 if (cAula != null && cAula.toString() != idAula.toString()) return false;
+
+                 String cHora = (c['hora_inicio'] ?? "").toString().split(":").take(2).join(":"); // "07:00:00" -> "07:00"
+                 String hHora = (h['hora_inicio'] ?? "").toString().split(":").take(2).join(":"); 
+                 
+                 final matchTime = (cHora == hHora) && cHora.isNotEmpty;
+                 if (matchTime) {
+                    print("DEBUG: Filtro cancelado por TIEMPO! Aula: ${aula['nombre']} Hora: $hHora");
+                 }
+                 return matchTime;
+               } catch (e) {
+                 return false;
+               }
+            });
+          
+          if (esCancelado) return false;
+
+          return true;
         }).toList();
 
         // Unificar y mapear datos extra
@@ -292,6 +351,7 @@ class _DisponibilidadAulasScreenState extends State<DisponibilidadAulasScreen> {
           final hIdCurso = h["id_curso"] ?? h["curso_id"];
           final curso = cursosMap[hIdCurso];
           final carName = carrerasMap[curso?["carrera_id"]] ?? (h["carrera_nombre"] ?? "");
+          
           ocupacionHoy.add({
             ...h,
             "tipo": "Recurrente",

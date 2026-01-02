@@ -5,6 +5,7 @@ import 'pdf_horarios_screen.dart';
 import 'croquis_screen.dart';
 import 'docente_croquis_screen.dart';
 import 'croquis_plaza_screen.dart';
+import '../widgets/custom_dialog.dart';
 
 class ProfesorDashboard extends StatefulWidget {
   final int docenteId;
@@ -85,6 +86,9 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : const Color(0xFF1E293B);
+    
     return WebLayout(
       title: "Panel Docente",
       child: cargando
@@ -114,62 +118,117 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
                       ),
                     ],
                   ),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 40,
-                        backgroundColor: Colors.white.withOpacity(0.2),
-                        child: Text(
-                          widget.nombreProfesor.substring(0, 1).toUpperCase(),
-                          style: const TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 24),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isMobile = constraints.maxWidth < 600;
+                      
+                      if (isMobile) {
+                        return Column(
                           children: [
-                            GestureDetector(
-                              onTap: _editarPerfil,
-                              child: Text(
+                             CircleAvatar(
+                                radius: 40,
+                                backgroundColor: Colors.white.withOpacity(0.2),
+                                child: Text(
+                                  widget.nombreProfesor.substring(0, 1).toUpperCase(),
+                                  style: const TextStyle(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
                                 "Hola, ${widget.nombreProfesor}",
                                 style: const TextStyle(
                                   color: Colors.white,
-                                  fontSize: 32,
+                                  fontSize: 24,
                                   fontWeight: FontWeight.bold,
                                   letterSpacing: -0.5,
                                   decoration: TextDecoration.underline,
                                   decorationColor: Colors.white70,
                                 ),
+                                textAlign: TextAlign.center,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: const Text(
-                                "Panel de Gestión Académica",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
+                              const SizedBox(height: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Text(
+                                  "Panel de Gestión Académica",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               ),
-                            ),
                           ],
-                        ),
-                      ),
-                    ], // Closes Row
-                  ), // Closes Container child
-                ), // Closes Container
+                        );
+                      }
+
+                      return Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 40,
+                            backgroundColor: Colors.white.withOpacity(0.2),
+                            child: Text(
+                              widget.nombreProfesor.substring(0, 1).toUpperCase(),
+                              style: const TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 24),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                GestureDetector(
+                                  onTap: _editarPerfil,
+                                  child: Text(
+                                    "Hola, ${widget.nombreProfesor}",
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: -0.5,
+                                      decoration: TextDecoration.underline,
+                                      decorationColor: Colors.white70,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: const Text(
+                                    "Panel de Gestión Académica",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ], 
+                      );
+                    },
+                  ), 
+                ), 
                 
                 const SizedBox(height: 40),
                 
@@ -178,15 +237,15 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
                     Icon(
                       Icons.grid_view_rounded,
                       size: 28,
-                      color: const Color(0xFF1E293B),
+                      color: textColor,
                     ),
                     const SizedBox(width: 12),
-                    const Text(
+                    Text(
                       "Accesos Rápidos",
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF1E293B),
+                        color: textColor,
                       ),
                     ),
                   ],
@@ -199,7 +258,11 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
                     return GridView.count(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      crossAxisCount: constraints.maxWidth > 1000 ? 4 : (constraints.maxWidth > 600 ? 3 : 2),
+                      crossAxisCount: constraints.maxWidth > 1000 
+                          ? 4 
+                          : (constraints.maxWidth > 700 
+                              ? 3 
+                              : (constraints.maxWidth > 500 ? 2 : 1)),
                       crossAxisSpacing: 32,
                       mainAxisSpacing: 32,
                       childAspectRatio: 1.2,
@@ -279,22 +342,22 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                color.withOpacity(0.1),
-                color.withOpacity(0.05),
+                color.withOpacity(0.06),
+                color.withOpacity(0.02),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: color.withOpacity(0.2), width: 1.5),
+            border: Border.all(color: color.withOpacity(0.15), width: 1.5),
             boxShadow: [
               BoxShadow(
-                color: color.withOpacity(0.3),
-                blurRadius: 15,
+                color: color.withOpacity(0.15),
+                blurRadius: 20,
                 offset: const Offset(0, 8),
               ),
               BoxShadow(
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withOpacity(0.5),
                 blurRadius: 15,
                 offset: const Offset(0, -8),
               ),
@@ -577,21 +640,21 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
                                 
                                 final confirm = await showDialog<bool>(
                                   context: context,
-                                  builder: (_) => AlertDialog(
-                                    title: Text(reserva["estado"] == "aprobada" ? "Liberar Aula" : "Cancelar Solicitud"),
-                                    content: Text(message),
-                                    actions: [
-                                      TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("No")),
-                                      TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Sí, proceder", style: TextStyle(color: Colors.red))),
-                                    ],
+                                  builder: (_) => CustomDialog(
+                                    title: reserva["estado"] == "aprobada" ? "Liberar Aula" : "Cancelar Solicitud",
+                                    description: message,
+                                    type: DialogType.warning,
+                                    onConfirm: () => Navigator.pop(context, true),
+                                    onCancel: () => Navigator.pop(context, false),
+                                    confirmText: "Sí, proceder",
+                                    cancelText: "No",
+                                    showCancel: true,
                                   ),
                                 );
 
-                                if (confirm == true) {
+                              if (confirm == true) {
                                   bool success;
                                   if (reserva["estado"] == "aprobada") {
-                                    // Para aprobadas, usamos eliminar (DELETE) porque el endpoint cancelar (POST) 
-                                    // prohibe cancelar aprobadas en el backend actual.
                                     success = await _apiService.eliminarReserva(reserva["id"]);
                                   } else {
                                     success = await _apiService.cancelarReservaAula(reserva["id"], widget.docenteId);
@@ -600,10 +663,17 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
                                   if (success) {
                                     Navigator.pop(context);
                                     _cargarDatos();
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text(reserva["estado"] == "aprobada" 
-                                          ? "Aula liberada exitosamente" 
-                                          : "Solicitud cancelada exitosamente")),
+                                    showDialog(
+                                      context: context,
+                                      builder: (ctx) => CustomDialog(
+                                        title: "¡Éxito!",
+                                        description: reserva["estado"] == "aprobada" 
+                                            ? "Aula liberada exitosamente" 
+                                            : "Solicitud cancelada exitosamente",
+                                        type: DialogType.success,
+                                        confirmText: "Aceptar",
+                                        onConfirm: () => Navigator.pop(ctx),
+                                      )
                                     );
                                   }
                                 }
@@ -616,33 +686,38 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
                             onPressed: () async {
                               final confirm = await showDialog<bool>(
                                 context: context,
-                                builder: (_) => AlertDialog(
-                                  title: const Text("Eliminar Reserva"),
-                                  content: const Text("¿Estás seguro? Se eliminará del historial permanentemente."),
-                                  actions: [
-                                    TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancelar")),
-                                    TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Eliminar", style: TextStyle(color: Colors.red))),
-                                  ],
+                                builder: (_) => CustomDialog(
+                                  title: "Eliminar Reserva",
+                                  description: "¿Estás seguro? Se eliminará del historial permanentemente.",
+                                  type: DialogType.error,
+                                  confirmText: "Eliminar",
+                                  cancelText: "Cancelar",
+                                  showCancel: true,
+                                  onConfirm: () => Navigator.pop(context, true),
+                                  onCancel: () => Navigator.pop(context, false),
                                 ),
                               );
                               
                               if (confirm == true) {
                                 final success = await _apiService.eliminarReserva(reserva["id"]);
                                 if (success) {
-                                  // Refresh local list closing dialog and reopening or just refreshing if state management allowed (Dialog is general dialog).
-                                  // Since it's a dialog with local list 'reservas', I need to refresh it.
-                                  // But `reservas` comes from `_cargarDatos`. If I close and reopen or setState...
-                                  // This is inside `_mostrarReservas` which uses `reservas` from the parent widget state.
-                                  // I should close the dialog and reload or ideally setState inside this builder if it were stateful.
-                                  // For simplicity and matching current flow: Close and Reload.
                                   Navigator.pop(context); 
                                   _cargarDatos();
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text("Reserva eliminada")),
+                                  showDialog(
+                                    context: context,
+                                    builder: (ctx) => CustomDialog(
+                                      title: "¡Éxito!",
+                                      description: "Reserva eliminada del historial",
+                                      type: DialogType.success,
+                                      confirmText: "Aceptar",
+                                      onConfirm: () => Navigator.pop(ctx),
+                                    )
                                   );
                                 } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text("Error al eliminar")),
+                                  _showPremiumSnackBar(
+                                    "Error al eliminar la reserva",
+                                    icon: Icons.error_outline_rounded,
+                                    color: Colors.red
                                   );
                                 }
                               }
@@ -754,53 +829,18 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
 
   void _cancelarClase(int horarioId) async {
     // Mostrar confirmación
-    // Mostrar confirmación
-    final confirmar = await showGeneralDialog<bool>(
+    final confirmar = await showDialog<bool>(
       context: context,
-      barrierDismissible: true,
-      barrierLabel: "Cerrar",
-      transitionDuration: const Duration(milliseconds: 300),
-      pageBuilder: (context, anim1, anim2) {
-        return _PremiumDialog(
-          title: "Cancelar Clase",
-          subtitle: "¿Estás seguro de que quieres cancelar esta clase?",
-          icon: Icons.warning_amber_rounded,
-          color: Colors.red,
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  "Esta acción notificará a los estudiantes y administrativos. No se puede deshacer.",
-                  style: TextStyle(color: Colors.grey, fontSize: 16),
-                ),
-                const SizedBox(height: 32),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text("Mantener Clase"),
-                    ),
-                    const SizedBox(width: 16),
-                    ElevatedButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      child: const Text("Sí, Cancelar"),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+      builder: (_) => CustomDialog(
+        title: "Cancelar Clase",
+        description: "Esta acción notificará a los estudiantes y administrativos. No se puede deshacer.",
+        type: DialogType.error,
+        confirmText: "Sí, Cancelar",
+        cancelText: "Mantener Clase",
+        showCancel: true,
+        onConfirm: () => Navigator.pop(context, true),
+        onCancel: () => Navigator.pop(context, false),
+      ),
     );
 
     if (confirmar == true) {
@@ -809,21 +849,48 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
       
       if (success) {
         _cargarDatos();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Clase cancelada exitosamente"),
-            backgroundColor: Colors.orange,
-          ),
+        showDialog(
+          context: context,
+          builder: (ctx) => CustomDialog(
+            title: "¡Éxito!",
+            description: "Clase cancelada exitosamente",
+            type: DialogType.success,
+            confirmText: "Aceptar",
+            onConfirm: () => Navigator.pop(ctx),
+          )
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Error al cancelar la clase"),
-            backgroundColor: Colors.red,
-          ),
+        _showPremiumSnackBar(
+          "Error al cancelar la clase",
+          icon: Icons.error_outline_rounded,
+          color: Colors.red
         );
       }
     }
+  }
+
+  void _showPremiumSnackBar(String message, {Color color = const Color(0xFF1E3A8A), IconData icon = Icons.info_outline_rounded}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
+              child: Icon(icon, color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
+          ],
+        ),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 6,
+        margin: const EdgeInsets.all(20),
+        duration: const Duration(seconds: 4),
+      )
+    );
   }
 }
 
@@ -1067,8 +1134,8 @@ class _HorarioCalendarioDialogState extends State<_HorarioCalendarioDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
         padding: const EdgeInsets.all(24),
-        width: 1000,
-        height: 800,
+        width: MediaQuery.of(context).size.width > 1000 ? 1000 : MediaQuery.of(context).size.width * 0.95,
+        height: MediaQuery.of(context).size.height * 0.9,
         child: Column(
           children: [
             Row(
@@ -1155,7 +1222,12 @@ class _HorarioCalendarioDialogState extends State<_HorarioCalendarioDialog> {
     ];
 
     return SingleChildScrollView(
-      child: Table(
+      scrollDirection: Axis.vertical,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: SizedBox(
+          width: 1000, // Fixed width to ensure calendar looks good
+          child: Table(
         border: TableBorder.all(color: Colors.grey.shade300),
         columnWidths: const {
           0: FixedColumnWidth(80),
@@ -1232,6 +1304,9 @@ class _HorarioCalendarioDialogState extends State<_HorarioCalendarioDialog> {
           )).toList(),
         ],
       ),
+          ),
+
+        ),
     );
   }
   
@@ -1413,6 +1488,16 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
   bool cargando = false;
   bool buscandoAulas = false;
 
+  String _normalize(String s) {
+    return s.toLowerCase()
+        .replaceAll('á', 'a')
+        .replaceAll('é', 'e')
+        .replaceAll('í', 'i')
+        .replaceAll('ó', 'o')
+        .replaceAll('ú', 'u')
+        .trim();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -1465,75 +1550,153 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: InkWell(
-                            onTap: () async {
-                              final fecha = await showDatePicker(
-                                context: context,
-                                initialDate: DateTime.now(),
-                                firstDate: DateTime.now(),
-                                lastDate: DateTime.now().add(const Duration(days: 365)),
-                              );
-                              if (fecha != null) {
-                                setState(() {
-                                  _fechaController.text = fecha.toString().split(' ')[0];
-                                });
-                              }
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.grey),
-                                borderRadius: BorderRadius.circular(4),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        if (constraints.maxWidth < 600) {
+                          return Column(
+                            children: [
+                              InkWell(
+                                onTap: () async {
+                                  final fecha = await showDatePicker(
+                                    context: context,
+                                    initialDate: DateTime.now(),
+                                    firstDate: DateTime.now(),
+                                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                                  );
+                                  if (fecha != null) {
+                                    setState(() {
+                                      _fechaController.text = fecha.toString().split(' ')[0];
+                                    });
+                                  }
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: Colors.grey),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.calendar_today, color: Colors.blue),
+                                      const SizedBox(width: 12),
+                                      Text(
+                                        _fechaController.text.isEmpty 
+                                            ? "Seleccionar fecha" 
+                                            : _fechaController.text,
+                                        style: TextStyle(
+                                          color: _fechaController.text.isEmpty 
+                                              ? Colors.grey 
+                                              : Colors.black,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
-                              child: Row(
+                              const SizedBox(height: 16),
+                              Row(
                                 children: [
-                                  const Icon(Icons.calendar_today, color: Colors.blue),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    _fechaController.text.isEmpty 
-                                        ? "Seleccionar fecha" 
-                                        : _fechaController.text,
-                                    style: TextStyle(
-                                      color: _fechaController.text.isEmpty 
-                                          ? Colors.grey 
-                                          : Colors.black,
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _horaInicioController,
+                                      readOnly: true,
+                                      onTap: () => _seleccionarHora(_horaInicioController),
+                                      decoration: const InputDecoration(
+                                        labelText: "Hora Inicio",
+                                        hintText: "14:00",
+                                        prefixIcon: Icon(Icons.access_time),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _horaFinController,
+                                      readOnly: true,
+                                      onTap: () => _seleccionarHora(_horaFinController),
+                                      decoration: const InputDecoration(
+                                        labelText: "Hora Fin",
+                                        hintText: "16:00",
+                                        prefixIcon: Icon(Icons.access_time_filled),
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
+                            ],
+                          );
+                        }
+                        return Row(
+                          children: [
+                            Expanded(
+                              child: InkWell(
+                                onTap: () async {
+                                  final fecha = await showDatePicker(
+                                    context: context,
+                                    initialDate: DateTime.now(),
+                                    firstDate: DateTime.now(),
+                                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                                  );
+                                  if (fecha != null) {
+                                    setState(() {
+                                      _fechaController.text = fecha.toString().split(' ')[0];
+                                    });
+                                  }
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: Colors.grey),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.calendar_today, color: Colors.blue),
+                                      const SizedBox(width: 12),
+                                      Text(
+                                        _fechaController.text.isEmpty 
+                                            ? "Seleccionar fecha" 
+                                            : _fechaController.text,
+                                        style: TextStyle(
+                                          color: _fechaController.text.isEmpty 
+                                              ? Colors.grey 
+                                              : Colors.black,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: TextField(
-                            controller: _horaInicioController,
-                            readOnly: true,
-                            onTap: () => _seleccionarHora(_horaInicioController),
-                            decoration: const InputDecoration(
-                              labelText: "Hora Inicio",
-                              hintText: "14:00",
-                              prefixIcon: Icon(Icons.access_time),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: TextField(
+                                controller: _horaInicioController,
+                                readOnly: true,
+                                onTap: () => _seleccionarHora(_horaInicioController),
+                                decoration: const InputDecoration(
+                                  labelText: "Hora Inicio",
+                                  hintText: "14:00",
+                                  prefixIcon: Icon(Icons.access_time),
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: TextField(
-                            controller: _horaFinController,
-                            readOnly: true,
-                            onTap: () => _seleccionarHora(_horaFinController),
-                            decoration: const InputDecoration(
-                              labelText: "Hora Fin",
-                              hintText: "16:00",
-                              prefixIcon: Icon(Icons.access_time_filled),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: TextField(
+                                controller: _horaFinController,
+                                readOnly: true,
+                                onTap: () => _seleccionarHora(_horaFinController),
+                                decoration: const InputDecoration(
+                                  labelText: "Hora Fin",
+                                  hintText: "16:00",
+                                  prefixIcon: Icon(Icons.access_time_filled),
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                      ],
+                          ],
+                        );
+                      },
                     ),
                     const SizedBox(height: 16),
                     SizedBox(
@@ -1571,119 +1734,151 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
               const SizedBox(height: 8),
               Expanded(
                 child: Card(
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF1E3A8A),
-                          borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
-                        ),
-                        child: const Row(
-                          children: [
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                "Aula",
-                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isMobile = constraints.maxWidth < 600;
+                      return Column(
+                        children: [
+                          // Header (Only on Desktop)
+                          if (!isMobile)
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF1E3A8A),
+                                borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+                              ),
+                              child: const Row(
+                                children: [
+                                  Expanded(
+                                    flex: 2,
+                                    child: Text(
+                                      "Aula",
+                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Text(
+                                      "Capacidad",
+                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Text(
+                                      "Tipo",
+                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Text(
+                                      "Seleccionar",
+                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            Expanded(
-                              child: Text(
-                                "Capacidad",
-                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            Expanded(
-                              child: Text(
-                                "Tipo",
-                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            Expanded(
-                              child: Text(
-                                "Seleccionar",
-                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        child: ListView.builder(
-                          itemCount: aulasDisponibles.length,
-                          itemBuilder: (context, index) {
-                            final aula = aulasDisponibles[index];
-                            final isSelected = aulaSeleccionada == aula["id"];
                             
-                            return Container(
-                              decoration: BoxDecoration(
-                                color: isSelected ? const Color(0xFFFF6B35).withOpacity(0.1) : null,
-                                border: Border(
-                                  bottom: BorderSide(color: Colors.grey.shade300),
-                                ),
-                              ),
-                              child: ListTile(
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                title: Row(
-                                  children: [
-                                    Expanded(
-                                      flex: 2,
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            Icons.meeting_room,
-                                            color: isSelected ? const Color(0xFFFF6B35) : Colors.grey,
-                                            size: 20,
+                          // List Body
+                          Expanded(
+                            child: ListView.builder(
+                              itemCount: aulasDisponibles.length,
+                              itemBuilder: (context, index) {
+                                final aula = aulasDisponibles[index];
+                                final isSelected = aulaSeleccionada == aula["id"];
+                                
+                                if (isMobile) {
+                                  // Mobile Layout: Simple ListTile
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                      color: isSelected ? const Color(0xFFFF6B35).withOpacity(0.1) : null,
+                                      border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
+                                    ),
+                                    child: RadioListTile<int>(
+                                      value: aula["id"],
+                                      groupValue: aulaSeleccionada,
+                                      onChanged: (value) => setState(() => aulaSeleccionada = value),
+                                      activeColor: const Color(0xFFFF6B35),
+                                      title: Text(aula["nombre"], style: const TextStyle(fontWeight: FontWeight.bold)),
+                                      subtitle: Text("Cap: ${aula["capacidad"]} | ${aula["tipo"] ?? "Aula"}"),
+                                      secondary: Icon(
+                                        Icons.meeting_room, 
+                                        color: isSelected ? const Color(0xFFFF6B35) : Colors.grey
+                                      ),
+                                    ),
+                                  );
+                                }
+                                
+                                // Desktop Layout: Tabular Row
+                                return Container(
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? const Color(0xFFFF6B35).withOpacity(0.1) : null,
+                                    border: Border(
+                                      bottom: BorderSide(color: Colors.grey.shade300),
+                                    ),
+                                  ),
+                                  child: ListTile(
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                    title: Row(
+                                      children: [
+                                        Expanded(
+                                          flex: 2,
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.meeting_room,
+                                                color: isSelected ? const Color(0xFFFF6B35) : Colors.grey,
+                                                size: 20,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                aula["nombre"],
+                                                style: TextStyle(
+                                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                                  color: isSelected ? const Color(0xFFFF6B35) : null,
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            aula["nombre"],
-                                            style: TextStyle(
-                                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                              color: isSelected ? const Color(0xFFFF6B35) : null,
+                                        ),
+                                        Expanded(
+                                          child: Text("${aula["capacidad"]} personas"),
+                                        ),
+                                        Expanded(
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: Colors.blue.shade100,
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            child: Text(
+                                              aula["tipo"] ?? "Aula",
+                                              style: TextStyle(fontSize: 12, color: Colors.blue.shade700),
+                                              textAlign: TextAlign.center,
                                             ),
                                           ),
-                                        ],
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: Text("${aula["capacidad"]} personas"),
-                                    ),
-                                    Expanded(
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: Colors.blue.shade100,
-                                          borderRadius: BorderRadius.circular(12),
                                         ),
-                                        child: Text(
-                                          aula["tipo"] ?? "Aula",
-                                          style: TextStyle(fontSize: 12, color: Colors.blue.shade700),
-                                          textAlign: TextAlign.center,
+                                        Expanded(
+                                          child: Center(
+                                            child: Radio<int>(
+                                              value: aula["id"],
+                                              groupValue: aulaSeleccionada,
+                                              onChanged: (value) => setState(() => aulaSeleccionada = value),
+                                              activeColor: const Color(0xFFFF6B35),
+                                            ),
+                                          ),
                                         ),
-                                      ),
+                                      ],
                                     ),
-                                    Expanded(
-                                      child: Center(
-                                        child: Radio<int>(
-                                          value: aula["id"],
-                                          groupValue: aulaSeleccionada,
-                                          onChanged: (value) => setState(() => aulaSeleccionada = value),
-                                          activeColor: const Color(0xFFFF6B35),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                onTap: () => setState(() => aulaSeleccionada = aula["id"]),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
+                                    onTap: () => setState(() => aulaSeleccionada = aula["id"]),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ),
@@ -1699,6 +1894,17 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
                   border: OutlineInputBorder(),
                 ),
                 maxLines: 2,
+              ),
+              const SizedBox(height: 12),
+              
+              // Opción para liberar aula actual
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text("Liberar mi aula actual por falta de capacidad"),
+                subtitle: const Text("Si tienes clase a esta hora, se cancelará para que otro use el aula."),
+                value: _liberarAulaActual, 
+                activeColor: const Color(0xFFFF6B35),
+                onChanged: (val) => setState(() => _liberarAulaActual = val ?? false),
               ),
             ] else if (!buscandoAulas && _fechaController.text.isNotEmpty) ...[
               Expanded(
@@ -1741,31 +1947,63 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
             
             // Botones de acción
             const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("Cancelar"),
-                ),
-                const SizedBox(width: 16),
-                ElevatedButton.icon(
-                  onPressed: (aulaSeleccionada != null && !cargando) ? _crearReserva : null,
-                  icon: cargando
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.check),
-                  label: Text(cargando ? "Creando..." : "Confirmar Reserva"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1E3A8A),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  ),
-                ),
-              ],
+            LayoutBuilder(
+              builder: (context, constraints) {
+                if (constraints.maxWidth < 500) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: (aulaSeleccionada != null && !cargando) ? _crearReserva : null,
+                        icon: cargando
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.check),
+                        label: Text(cargando ? "Creando..." : "Confirmar Reserva"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1E3A8A),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text("Cancelar"),
+                      ),
+                    ],
+                  );
+                }
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text("Cancelar"),
+                    ),
+                    const SizedBox(width: 16),
+                    ElevatedButton.icon(
+                      onPressed: (aulaSeleccionada != null && !cargando) ? _crearReserva : null,
+                      icon: cargando
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.check),
+                      label: Text(cargando ? "Creando..." : "Confirmar Reserva"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1E3A8A),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ],
         ),
@@ -1775,10 +2013,15 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
 
   double _parseHora(String hora) {
     if (hora.isEmpty) return 0.0;
-    final parts = hora.split(':');
-    final h = int.tryParse(parts[0]) ?? 0;
-    final m = int.tryParse(parts[1]) ?? 0;
-    return h + (m / 60.0);
+    try {
+      final parts = hora.split(':');
+      final h = int.tryParse(parts[0]) ?? 0;
+      final m = (parts.length > 1) ? (int.tryParse(parts[1]) ?? 0) : 0;
+      return h + (m / 60.0);
+    } catch (e) {
+      debugPrint("Error parsing hora '$hora': $e");
+      return 0.0;
+    }
   }
 
   String _getDayName(int weekday) {
@@ -1796,9 +2039,7 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
 
   Future<void> _buscarAulasDisponibles() async {
     if (_fechaController.text.isEmpty || _horaInicioController.text.isEmpty || _horaFinController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Ingresa fecha, hora de inicio y hora de fin")),
-      );
+       _showPremiumSnackBar("Ingresa fecha, hora de inicio y hora de fin", color: Colors.orange);
       return;
     }
 
@@ -1812,34 +2053,29 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
 
       print("DEBUG: Iniciando Busqueda Exhaustiva para $diaSemana ${_fechaController.text} ($inicioSolicitado - $finSolicitado)");
 
-      // 1. Obtener datos basicos: Aulas, Eventos y Horario Diario (Reservas + Ocupación)
+      // 1. Obtener datos basicos: Aulas, Eventos y Horario Diario (Reservas + Ocupación) y CANCELACIONES
       final resultsBasicos = await Future.wait([
         _apiService.listarAulasPorSede(1),
         _apiService.listarHorariosPorSede(1), // Eventos con fecha especifica
         _apiService.listarDocentesPorSede(1), // Lista de todos los profes para ver sus recurrentes
-        _apiService.obtenerHorarioAulas(1, _fechaController.text), // NUEVO: Horario diario consolidado
+        _apiService.obtenerHorarioAulas(1, _fechaController.text), // Horario diario consolidado
+        _apiService.listarHorariosCancelados(1, _fechaController.text), // NUEVO: Cancelaciones para esta fecha
+        _apiService.listarReservasPorSede(1), // NUEVO: Reservas aprobadas
       ]);
 
       final todasLasAulas = resultsBasicos[0] as List<dynamic>;
       final eventosPorFecha = resultsBasicos[1] as List<dynamic>;
       final docentes = resultsBasicos[2] as List<dynamic>;
       final horarioDiario = resultsBasicos[3] as List<dynamic>;
+      final cancelacionesFecha = resultsBasicos[4] as List<dynamic>; // Lista de cancelados
+      final todasLasReservas = resultsBasicos[5] as List<dynamic>; // Lista reservas
 
       // 2. Obtener Horarios Recurrentes de TODOS los docentes (Optimizado)
       print("DEBUG: Fetcheando horarios recurrentes (Bulk)...");
-      // Usamos el endpoint optimizado que ya tiene fallback
       final horarioRecurrenteTotal = await _apiService.listarHorariosDocentesPorSede(1);
       
-      /* 
-      // LEGACY: Lógica ineficiente N+1 eliminada
-      final teacherSchedules = await Future.wait(
-        docentes.map((d) => _apiService.obtenerHorarioDocente(d["id"]))
-      );
-      */
-      
       print("DEBUG: Total Recurrentes Globales: ${horarioRecurrenteTotal.length}");
-      print("DEBUG: Total Eventos Por Fecha: ${eventosPorFecha.length}");
-      print("DEBUG: Items Horario Diario: ${horarioDiario.length}");
+      print("DEBUG: Total Cancelaciones Fecha: ${cancelacionesFecha.length}");
 
       // 4. Filtrar aulas disponibles
       final disponibles = todasLasAulas.where((aula) {
@@ -1848,12 +2084,23 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
         // --- A. Revisar Horario Recurrente (Clases Semanales) ---
         final clasesRecurrentesAula = horarioRecurrenteTotal.where((h) {
           final hAulaId = h['aula_id'] ?? h['id_aula'];
-          final hDia = h['dia'];
+          final hDia = h['dia']?.toString() ?? "";
           return hAulaId.toString() == aula['id'].toString() && 
-                 hDia.toString().toLowerCase() == diaSemana.toLowerCase();
+                 _normalize(hDia) == _normalize(diaSemana);
         });
 
         for (var clase in clasesRecurrentesAula) {
+          // CHECK: Si la clase está cancelada para esta fecha, la ignoramos (liberamos el aula)
+          final esCancelada = cancelacionesFecha.any((c) => 
+            c['horario_id'].toString() == clase['id'].toString() || 
+            (c['id_horario'] != null && c['id_horario'].toString() == clase['id'].toString())
+          );
+
+          if (esCancelada) {
+             print("   --- Clase Recurrente ${clase['id']} en ${aula['nombre']} está CANCELADA hoy. Ignorando conflicto.");
+             continue; // Saltamos esta clase, no ocupa el aula
+          }
+
           final start = _parseHora(clase['hora_inicio']);
           final end = _parseHora(clase['hora_fin']);
           
@@ -1875,6 +2122,9 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
         });
 
         for (var evento in eventosFechaAula) {
+          // Verificar si el evento NO es 'cancelado' (por si acaso el backend devuelve status)
+          if (evento['estado'] == 'cancelado') continue; 
+
           final start = _parseHora(evento['hora_inicio']);
           final end = _parseHora(evento['hora_fin']);
 
@@ -1886,8 +2136,35 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
         }
         if (ocupada) return false;
 
+        // --- B2. Revisar Reservas Aprobadas (Bloqueo entre pares) ---
+        final reservasAula = todasLasReservas.where((r) {
+           final rAulaId = r['aula_id'] ?? r['id_aula'];
+           final rFecha = r['fecha'];
+           final rEstado = (r['estado'] ?? '').toString().toLowerCase();
+           
+           return rAulaId.toString() == aula['id'].toString() && 
+                  rFecha == _fechaController.text &&
+                  rEstado == 'aprobada';
+        });
+
+        for (var res in reservasAula) {
+           // Si soy yo mismo el de la reserva, NO debería contar como ocupado (para permitirme editar o ver),
+           // PERO si estoy creando una NUEVA, técnicamente ya tengo ocupada esa hora.
+           // La regla de negocio dice: "no volverle a aparecer a otro profe". 
+           // Si es mi propia reserva, ya está aprobada, así que el aula ESTÁ ocupada por mí.
+           
+           final start = _parseHora(res['hora_inicio']);
+           final end = _parseHora(res['hora_fin']);
+
+           if (inicioSolicitado < end && finSolicitado > start) {
+             print("   >>> CONFLICTO RESERVA APROBADA en ${aula['nombre']}: ${res['hora_inicio']} - ${res['hora_fin']}");
+             ocupada = true;
+             break;
+           }
+        }
+        if (ocupada) return false;
+
         // --- C. Revisar Ocupación Diaria de Aulas (Consolidado: Reservas + Otros) ---
-        // Buscamos el objeto correspondiente a esta aula en horarioDiario
         final infoAula = horarioDiario.firstWhere(
           (item) => item['id'].toString() == aula['id'].toString(),
           orElse: () => null
@@ -1896,6 +2173,18 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
         if (infoAula != null && infoAula['ocupaciones'] != null) {
           final ocupaciones = infoAula['ocupaciones'] as List<dynamic>;
           for (var ocup in ocupaciones) {
+             // Si la ocupación coincide con una recurrente cancelada, la ignoramos
+             // (Esto puede ser tricky si 'ocupaciones' ya viene filtrado o no del backend. 
+             // Asumimos que el backend puede mandar todo. Intentamos filtrar si tenemos ID)
+             
+             // Si viene de 'ocupaciones', suele ser una vista final. 
+             // Pero si el backend no filtro la cancelada, aqui podria reaparecer.
+             // Sin embargo, 'horarioDiario' suele ser la vista 'real'. 
+             // Vamos a confiar en que Block A era el problema principal, 
+             // pero agregaremos logica defensiva si ocup tiene referencia al horario original.
+             
+             if (ocup['estado'] == 'cancelado') continue;
+
              final start = _parseHora(ocup['hora_inicio']);
              final end = _parseHora(ocup['hora_fin']);
              
@@ -1911,6 +2200,9 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
         return true; 
       }).toList();
 
+      // Sort alphabetically
+      disponibles.sort((a, b) => (a['nombre'] ?? "").toString().compareTo(b['nombre'] ?? ""));
+
       print("DEBUG: Aulas Disponibles Final: ${disponibles.length}");
 
       setState(() {
@@ -1920,51 +2212,216 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
       });
 
       if (disponibles.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("No hay aulas disponibles en ese horario")),
-        );
+        _showPremiumSnackBar("No hay aulas disponibles en ese horario", color: Colors.orange);
       }
     } catch (e) {
       setState(() => buscandoAulas = false);
       print("ERROR DETECTADO: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error al buscar disponibilidad: $e")),
-      );
+      _showPremiumSnackBar("Error al buscar disponibilidad: $e", color: Colors.red, icon: Icons.error_outline_rounded);
     }
   }
+
+  void _showPremiumSnackBar(String message, {Color color = const Color(0xFF1E3A8A), IconData icon = Icons.info_outline_rounded}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
+              child: Icon(icon, color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
+          ],
+        ),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 6,
+        margin: const EdgeInsets.all(20),
+        duration: const Duration(seconds: 4),
+      )
+    );
+  }
+
+  bool _liberarAulaActual = false;
 
   Future<void> _crearReserva() async {
     setState(() => cargando = true);
 
     try {
+      final inicioNuevo = _parseHora(_horaInicioController.text);
+      final finNuevo = _parseHora(_horaFinController.text);
+      final fechaStr = _fechaController.text;
+      
+      // 0. VALIDACIÓN DE CONFLICTOS
+      // A. Verificar clases regulares (Horarios Fijos)
+      final horariosDocente = await _apiService.obtenerHorarioDocente(widget.docenteId);
+      Map<String, dynamic> claseConflictiva = {};
+
+      if (horariosDocente != null && horariosDocente is List) {
+        final date = DateTime.parse(fechaStr);
+        final diaSemana = _getDayName(date.weekday);
+
+        claseConflictiva = horariosDocente.cast<Map<String, dynamic>>().firstWhere((h) {
+          final hDia = h['dia']?.toString() ?? "";
+          if (_normalize(hDia) != _normalize(diaSemana)) return false;
+          
+          final start = _parseHora(h['hora_inicio']);
+          final end = _parseHora(h['hora_fin']);
+          return (inicioNuevo < end && finNuevo > start);
+        }, orElse: () => {});
+      }
+      
+      
+      
+      // B. Verificar OTRAS RESERVAS (Duplicate Booking Check)
+      final misReservas = await _apiService.obtenerMisReservas(widget.docenteId);
+      
+      // Helper Function for parsing times
+      Map<String, String> extraerHoras(Map<String, dynamic> r) {
+          String findKey(Map map, List<String> candidates) {
+            for (var k in candidates) {
+               if (map.containsKey(k) && map[k] != null) return map[k].toString().trim();
+            }
+            return "";
+         }
+         
+         String start = findKey(r, ['hora_inicio', 'horaInicio', 'inicio', 'start_time', 'startTime']);
+         String end = findKey(r, ['hora_fin', 'horaFin', 'fin', 'end_time', 'endTime']);
+         
+         if (start.isEmpty || end.isEmpty) {
+             final horaCombined = findKey(r, ['hora', 'horario']);
+             if (horaCombined.contains('-')) {
+                final parts = horaCombined.split('-');
+                if (parts.length == 2) {
+                   start = parts[0].trim();
+                   end = parts[1].trim();
+                }
+             }
+         }
+         return {"start": start, "end": end};
+      }
+
+      final reservasConflictivas = misReservas.cast<Map<String,dynamic>>().where((r) {
+         final rFecha = (r['fecha']?.toString() ?? "").trim();
+         final rEstado = (r['estado']?.toString() ?? "").trim().toUpperCase();
+         final times = extraerHoras(r);
+         final rInicioStr = times["start"]!;
+         final rFinStr = times["end"]!;
+
+         try {
+           final rDate = DateTime.parse(rFecha);
+           final targetDate = DateTime.parse(fechaStr);
+           
+           final isSameDay = (rDate.year == targetDate.year && 
+                              rDate.month == targetDate.month && 
+                              rDate.day == targetDate.day);
+                              
+           if (!isSameDay) return false;
+         } catch(e) {
+           if (!rFecha.startsWith(fechaStr.trim())) return false;
+         }
+         
+         if (rEstado == 'RECHAZADA' || rEstado == 'CANCELADO' || rEstado == 'CANCELADA') return false;
+         
+         if (rInicioStr.isEmpty || rFinStr.isEmpty) return false;
+         
+         final rStart = _parseHora(rInicioStr);
+         final rEnd = _parseHora(rFinStr);
+         
+         return (inicioNuevo < rEnd && finNuevo > rStart);
+      }).toList();
+      
+      if (reservasConflictivas.isNotEmpty) {
+         setState(() => cargando = false);
+         final rConflicto = reservasConflictivas.first;
+         
+         final times = extraerHoras(rConflicto); // Use correct extraction for display
+         final horaStr = "${times['start']} - ${times['end']}";
+         final estadoStr = rConflicto['estado']?.toString().toUpperCase() ?? "PENDIENTE";
+         
+         showDialog(
+           context: context,
+           builder: (ctx) => CustomDialog(
+              title: "Conflicto de Reserva",
+              description: "Ya tienes una solicitud $estadoStr para el $fechaStr a las $horaStr.\nNo es posible crear otra en el mismo horario.",
+              type: DialogType.error,
+              confirmText: "Entendido",
+              onConfirm: () => Navigator.pop(ctx),
+           )
+         );
+         return;
+      }
+
+      // 2. Conflicto con CLASE REGULARES (Regular Class Conflict)
+      if (claseConflictiva.isNotEmpty && !_liberarAulaActual) {
+        setState(() => cargando = false);
+        
+        final nombreMateria = claseConflictiva['materia_nombre'] ?? 'otra clase';
+        final aulaActual = claseConflictiva['aula_nombre'] ?? 'su aula actual';
+        
+        // Mostrar Dialogo de Advertencia con Opción de Liberar
+        showDialog(
+          context: context,
+          builder: (ctx) => CustomDialog(
+            title: "Conflicto de Horario",
+            description: "Tienes clase de $nombreMateria en $aulaActual a esta hora.\n¿Deseas liberar tu aula actual para ocupar esta nueva sala?",
+            type: DialogType.warning,
+            confirmText: "Sí, Liberar y Reservar",
+            showCancel: true,
+            cancelText: "Cancelar",
+            onConfirm: () {
+              Navigator.pop(ctx);
+              setState(() => _liberarAulaActual = true);
+              _crearReserva(); // Reintentar inmediatamente
+            },
+          ),
+        );
+        return;
+      }
+
+      String motivoFinal = _motivoController.text;
+      if (_liberarAulaActual && claseConflictiva.isNotEmpty) {
+         motivoFinal = "$motivoFinal [SOLICITUD LIBERACION]";
+      }
+
       final success = await _apiService.crearReservaAulaConRango(
         _fechaController.text,
         _horaInicioController.text,
         _horaFinController.text,
         aulaSeleccionada!,
         widget.docenteId,
-        _motivoController.text,
+        motivoFinal,
       );
 
       setState(() => cargando = false);
 
       if (success) {
         Navigator.pop(context, true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Reserva creada exitosamente")),
+        showDialog(
+          context: context,
+          builder: (ctx) => CustomDialog(
+            title: "¡Éxito!",
+            description: _liberarAulaActual && claseConflictiva.isNotEmpty
+                ? "Solicitud enviada (Con liberación de aula)"
+                : "Reserva creada exitosamente",
+            type: DialogType.success,
+            confirmText: "Aceptar",
+            onConfirm: () => Navigator.pop(ctx),
+          )
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Error al crear reserva")),
-        );
+        _showPremiumSnackBar("Error al crear reserva", color: Colors.red, icon: Icons.error_outline_rounded);
       }
     } catch (e) {
       setState(() => cargando = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
+      _showPremiumSnackBar("Error: $e", color: Colors.red);
     }
   }
+
+
 }
 
 class _EditarPerfilDialog extends StatefulWidget {
@@ -2059,32 +2516,65 @@ class _EditarPerfilDialogState extends State<_EditarPerfilDialog> {
               ),
             ),
             const SizedBox(height: 32),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("Cancelar"),
-                ),
-                const SizedBox(width: 16),
-                ElevatedButton.icon(
-                  onPressed: cargando ? null : _guardarCambios,
-                  icon: cargando
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Icon(Icons.save),
-                  label: Text(cargando ? "Guardando..." : "Guardar Cambios"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1E3A8A),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-              ],
+            LayoutBuilder(
+              builder: (context, constraints) {
+                if (constraints.maxWidth < 500) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: cargando ? null : _guardarCambios,
+                        icon: cargando
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Icon(Icons.save),
+                        label: Text(cargando ? "Guardando..." : "Guardar Cambios"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1E3A8A),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text("Cancelar"),
+                      ),
+                    ],
+                  );
+                }
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text("Cancelar"),
+                    ),
+                    const SizedBox(width: 16),
+                    ElevatedButton.icon(
+                      onPressed: cargando ? null : _guardarCambios,
+                      icon: cargando
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Icon(Icons.save),
+                      label: Text(cargando ? "Guardando..." : "Guardar Cambios"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1E3A8A),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ],
         ),
@@ -2160,14 +2650,20 @@ class _PremiumDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Calculamos dimensiones responsivas y más grandes
+    // Gradient lists based on simple mapping from the passed 'color' or hardcoded logic
+    // But since 'color' is passed, we'll try to create a gradient from it.
+    // However, to strictly match Admin style (Gradients), let's map known colors
+    // or just generate a nice gradient from the base color.
+    
+    final gradientColors = [color, color.withOpacity(0.8)];
+
     final size = MediaQuery.of(context).size;
     final width = size.width > 900 ? 900.0 : size.width * 0.95;
     final height = size.height > 800 ? 800.0 : size.height * 0.9;
 
     return Dialog(
       backgroundColor: Colors.transparent,
-      elevation: 0,
+      elevation: 16,
       child: Container(
         width: width,
         height: height,
@@ -2175,38 +2671,35 @@ class _PremiumDialog extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2), // Sombra más fuerte
-              blurRadius: 30,
-              offset: const Offset(0, 15),
-            ),
+             BoxShadow(
+               color: Colors.black.withOpacity(0.25),
+               blurRadius: 32,
+               offset: const Offset(0, 16),
+             )
           ],
         ),
         child: Column(
           children: [
-            // Header
+            // Premium Gradient Header
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.08),
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                gradient: LinearGradient(
+                  colors: gradientColors,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
               ),
               child: Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                         BoxShadow(
-                            color: color.withOpacity(0.2),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                         ),
-                      ],
+                      color: Colors.white.withOpacity(0.2),
+                      shape: BoxShape.circle,
                     ),
-                    child: Icon(icon, color: color, size: 28),
+                    child: Icon(icon, color: Colors.white, size: 28),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -2215,47 +2708,36 @@ class _PremiumDialog extends StatelessWidget {
                       children: [
                         Text(
                           title,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
-                            color: Colors.grey[900],
+                            color: Colors.white,
                             letterSpacing: -0.5,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          subtitle,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                            height: 1.2,
+                        if (subtitle.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              subtitle,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.white.withOpacity(0.9),
+                                height: 1.2,
+                              ),
+                            ),
                           ),
-                        ),
                       ],
                     ),
                   ),
-                  Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () => Navigator.pop(context),
-                      borderRadius: BorderRadius.circular(50),
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.grey.withOpacity(0.2)),
-                        ),
-                        child: Icon(Icons.close, size: 20, color: Colors.grey[600]),
-                      ),
-                    ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close, color: Colors.white),
                   ),
                 ],
               ),
             ),
             
-            // Divider suave
-            Container(height: 1, color: Colors.grey.withOpacity(0.1)),
-
             // Body
             Expanded(
               child: ClipRRect(

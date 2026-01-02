@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../widgets/admin_crud_layout.dart';
+import '../widgets/custom_dialog.dart';
 import 'horario_form.dart';
 import 'horario_semanal_form.dart';
 import 'horario_import_screen.dart';
@@ -40,13 +41,61 @@ class _HorarioScreenState extends State<HorarioScreen> {
   }
 
   Future<void> _eliminarClase(int id) async {
-    final ok = await _apiService.eliminarHorario(id);
-    if (ok) {
-      _cargarClases();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Clase eliminada")),
-      );
-    }
+    showDialog(
+      context: context,
+      builder: (dialogContext) => CustomDialog(
+        title: "Eliminar Clase",
+        description: "¿Estás seguro de eliminar esta clase puntual?",
+        type: DialogType.warning,
+        confirmText: "Eliminar",
+        showCancel: true,
+        onConfirm: () async {
+          Navigator.pop(dialogContext); // Close confirmation
+
+          // Show loading
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (loadingContext) => const CustomDialog(
+              title: "Eliminando...",
+              description: "Por favor espera",
+              type: DialogType.info,
+              isLoading: true,
+            ),
+          );
+
+          final ok = await _apiService.eliminarHorario(id).catchError((_) => false);
+          
+          if (mounted) {
+            Navigator.pop(context); // Close loading
+
+            if (ok) {
+              _cargarClases();
+              showDialog(
+                context: context,
+                builder: (successContext) => CustomDialog(
+                  title: "¡Éxito!",
+                  description: "La clase ha sido eliminada correctamente.",
+                  type: DialogType.success,
+                  confirmText: "Aceptar",
+                  onConfirm: () => Navigator.pop(successContext),
+                ),
+              );
+            } else {
+              showDialog(
+                context: context,
+                builder: (errorContext) => const CustomDialog(
+                  title: "Error",
+                  description: "No se pudo eliminar la clase.",
+                  type: DialogType.error,
+                  confirmText: "Aceptar",
+                ),
+              );
+            }
+          }
+        },
+      ),
+    );
   }
 
   void _abrirFormulario({Map<String, dynamic>? clase}) {
@@ -102,7 +151,9 @@ class _HorarioScreenState extends State<HorarioScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 12,
                 children: [
                   ElevatedButton.icon(
                     icon: const Icon(Icons.calendar_today, size: 16),
@@ -115,7 +166,6 @@ class _HorarioScreenState extends State<HorarioScreen> {
                     ),
                     onPressed: () => _abrirFormulario(),
                   ),
-                  const SizedBox(width: 12),
                   ElevatedButton.icon(
                     icon: const Icon(Icons.auto_fix_high, size: 16),
                     label: const Text("IMPORTAR DESDE PDF"),

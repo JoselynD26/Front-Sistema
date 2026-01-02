@@ -39,17 +39,22 @@ class AdminTable extends StatelessWidget {
       );
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Theme(
       data: Theme.of(context).copyWith(
+        dividerColor: isDark ? Colors.grey.shade700 : Colors.grey.shade200,
         dataTableTheme: DataTableThemeData(
-          headingTextStyle: const TextStyle(
+          headingTextStyle: TextStyle(
             fontWeight: FontWeight.bold,
-            color: Color(0xFF1E293B),
+            color: isDark ? Colors.white : const Color(0xFF1E293B),
           ),
-          dataTextStyle: const TextStyle(
-            color: Color(0xFF334155),
+          dataTextStyle: TextStyle(
+            color: isDark ? Colors.grey.shade300 : const Color(0xFF334155),
           ),
-          headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
+          headingRowColor: WidgetStateProperty.all(
+            isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+          ),
         ),
       ),
       child: SizedBox(

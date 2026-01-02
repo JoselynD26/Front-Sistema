@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../widgets/admin_form_layout.dart';
+import '../widgets/custom_dialog.dart';
 
 class FormSedeScreen extends StatefulWidget {
-  const FormSedeScreen({super.key});
+  final Map<String, dynamic>? sede;
+  const FormSedeScreen({super.key, this.sede});
 
   @override
   State<FormSedeScreen> createState() => _FormSedeScreenState();
@@ -15,6 +17,15 @@ class _FormSedeScreenState extends State<FormSedeScreen> {
   final TextEditingController nombreCtrl = TextEditingController();
   final TextEditingController ubicacionCtrl = TextEditingController();
 
+  @override
+  void initState() {
+    super.initState();
+    if (widget.sede != null) {
+      nombreCtrl.text = widget.sede!['nombre'];
+      ubicacionCtrl.text = widget.sede!['ubicacion'] ?? '';
+    }
+  }
+
   bool cargando = false;
   final Color _primaryColor = const Color(0xFF6366F1);
 
@@ -23,23 +34,62 @@ class _FormSedeScreenState extends State<FormSedeScreen> {
 
     setState(() => cargando = true);
 
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => CustomDialog(
+        title: widget.sede == null ? "Creando Sede..." : "Actualizando...",
+        description: "Por favor espera un momento",
+        type: DialogType.info,
+        isLoading: true,
+      ),
+    );
+
     try {
-      await _apiService.crearSede({
+      final datos = {
         "nombre": nombreCtrl.text.trim(),
         "ubicacion": ubicacionCtrl.text.trim(),
-      });
+      };
+
+      if (widget.sede == null) {
+        await _apiService.crearSede(datos);
+      } else {
+        await _apiService.actualizarSede(widget.sede!['id'], datos);
+      }
 
       if (mounted) {
-        Navigator.pop(context, true);
+        Navigator.pop(context); // Close loading dialog
+        
+        // Show success dialog
+        showDialog(
+          context: context,
+          builder: (context) => CustomDialog(
+            title: "¡Éxito!",
+            description: widget.sede == null 
+              ? "La sede ha sido creada correctamente" 
+              : "La sede ha sido actualizada correctamente",
+            type: DialogType.success,
+            confirmText: "Aceptar",
+            onConfirm: () {
+              Navigator.pop(context); // Close success dialog
+              Navigator.pop(context, true); // Return to list
+            },
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
+        Navigator.pop(context); // Close loading dialog
         setState(() => cargando = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Error al crear sede: $e"),
-            backgroundColor: Colors.redAccent,
-            behavior: SnackBarBehavior.floating,
+        
+        showDialog(
+          context: context,
+          builder: (context) => CustomDialog(
+            title: "Error",
+            description: "No se pudo procesar la solicitud: $e",
+            type: DialogType.error,
+            confirmText: "Aceptar",
           ),
         );
       }
@@ -49,7 +99,7 @@ class _FormSedeScreenState extends State<FormSedeScreen> {
   @override
   Widget build(BuildContext context) {
     return AdminFormLayout(
-      title: "Nueva Sede",
+      title: widget.sede == null ? "Nueva Sede" : "Editar Sede",
       subtitle: "Ingrese la información básica de la sede universitaria para comenzar su gestión.",
       icon: Icons.business_rounded,
       primaryColor: _primaryColor,
@@ -95,9 +145,9 @@ class _FormSedeScreenState extends State<FormSedeScreen> {
             elevation: 8,
             shadowColor: _primaryColor.withOpacity(0.4),
           ),
-          child: const Text(
-            "GUARDAR SEDE",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1),
+          child: Text(
+            widget.sede == null ? "GUARDAR SEDE" : "ACTUALIZAR SEDE",
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1),
           ),
         ),
         const SizedBox(height: 16),

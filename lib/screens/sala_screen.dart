@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../widgets/admin_crud_layout.dart';
 import '../widgets/admin_table.dart';
+import '../widgets/custom_dialog.dart';
 import 'sala_form_screen.dart';
 
 class SalasScreen extends StatefulWidget {
@@ -44,19 +45,61 @@ class _SalasScreenState extends State<SalasScreen> {
   }
 
   Future<void> _eliminarSala(int id) async {
-    final ok = await _apiService.eliminarSala(id);
-    if (mounted) {
-      if (ok) {
-        _cargarSalas();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Sala eliminada")),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Error al eliminar sala")),
-        );
-      }
-    }
+    showDialog(
+      context: context,
+      builder: (dialogContext) => CustomDialog(
+        title: "Eliminar Sala",
+        description: "¿Estás seguro de eliminar esta sala? Esta acción no se puede deshacer.",
+        type: DialogType.warning,
+        confirmText: "Eliminar",
+        showCancel: true,
+        onConfirm: () async {
+          Navigator.pop(dialogContext); // Close confirmation
+
+          // Show loading
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (loadingContext) => const CustomDialog(
+              title: "Eliminando...",
+              description: "Por favor espera",
+              type: DialogType.info,
+              isLoading: true,
+            ),
+          );
+
+          final ok = await _apiService.eliminarSala(id).catchError((_) => false);
+          
+          if (mounted) {
+            Navigator.pop(context); // Close loading
+
+            if (ok) {
+              _cargarSalas();
+              showDialog(
+                context: context,
+                builder: (successContext) => CustomDialog(
+                  title: "¡Éxito!",
+                  description: "La sala ha sido eliminada correctamente.",
+                  type: DialogType.success,
+                  confirmText: "Aceptar",
+                  onConfirm: () => Navigator.pop(successContext),
+                ),
+              );
+            } else {
+              showDialog(
+                context: context,
+                builder: (errorContext) => const CustomDialog(
+                  title: "Error",
+                  description: "No se pudo eliminar la sala. Verifica si tiene dependencias.",
+                  type: DialogType.error,
+                  confirmText: "Aceptar",
+                ),
+              );
+            }
+          }
+        },
+      ),
+    );
   }
 
   void _abrirFormulario({Map<String, dynamic>? sala}) async {

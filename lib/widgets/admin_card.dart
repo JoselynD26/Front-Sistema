@@ -67,7 +67,7 @@ class _AdminCardState extends State<AdminCard> with SingleTickerProviderStateMix
               scale: _scaleAnimation.value,
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).cardColor, // Use theme color
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
@@ -99,56 +99,60 @@ class _AdminCardState extends State<AdminCard> with SingleTickerProviderStateMix
                         ),
                       ),
                       
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: primaryColor.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          widget.icon,
-                          size: 28,
-                          color: primaryColor,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Flexible(
-                        child: Text(
-                          widget.title,
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey[800],
+                      Positioned.fill(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: primaryColor.withOpacity(0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  widget.icon,
+                                  size: 28,
+                                  color: primaryColor,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Flexible(
+                                child: Text(
+                                  widget.title,
+                                  textAlign: TextAlign.center,
+                                  maxLines: 3,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.grey[800],
+                                    height: 1.2,
+                                  ),
+                                ),
+                              ),
+                              if (widget.subtitle != null) ...[
+                                const SizedBox(height: 8),
+                                Flexible(
+                                  child: Text(
+                                    widget.subtitle!,
+                                    textAlign: TextAlign.center,
+                                    maxLines: 3,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.grey[600],
+                                      height: 1.3,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ),
                       ),
-                      if (widget.subtitle != null) ...[
-                        const SizedBox(height: 4),
-                        Flexible(
-                          child: Text(
-                            widget.subtitle!,
-                            textAlign: TextAlign.center,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                              height: 1.2,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
                     ],
                   ),
                 ),

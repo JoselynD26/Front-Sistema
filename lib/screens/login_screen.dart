@@ -23,13 +23,21 @@ class _LoginScreenState extends State<LoginScreen> with SafeStateMixin {
   bool _recordarCredenciales = false;
 
   Future<void> _login() async {
+    final emailInput = _correoController.text;
+    if (emailInput.contains(" ")) {
+      safeSetState(() {
+        error = "El correo no debe contener espacios";
+      });
+      return;
+    }
+
     safeSetState(() {
       cargando = true;
       error = null;
     });
 
     final success = await _apiService.login(
-      _correoController.text.trim(),
+      emailInput.trim(),
       _contrasenaController.text.trim(),
     );
 

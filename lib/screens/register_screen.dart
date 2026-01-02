@@ -29,7 +29,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscureConfirmPassword = true;
 
   Future<void> _solicitarCodigo() async {
-    if (_correoController.text.trim().isEmpty || _nombresController.text.trim().isEmpty) {
+    final emailInput = _correoController.text;
+    
+    if (emailInput.contains(" ")) {
+      setState(() => error = "El correo no debe contener espacios");
+      return;
+    }
+
+    if (emailInput.trim().isEmpty || _nombresController.text.trim().isEmpty) {
       setState(() => error = "Email y nombres son requeridos");
       return;
     }

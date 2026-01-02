@@ -108,104 +108,207 @@ class _DocenteFormScreenState extends State<DocenteFormScreen> {
           key: _formKey,
           child: Column(
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _cedulaCtrl,
-                      decoration: premiumInputDecoration(
-                        label: "Cédula",
-                        hint: "ID Ciudadano",
-                        icon: Icons.badge_rounded,
-                        primaryColor: _primaryColor,
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  if (constraints.maxWidth < 600) {
+                    return Column(
+                      children: [
+                        TextFormField(
+                          controller: _cedulaCtrl,
+                          decoration: premiumInputDecoration(
+                            label: "Cédula",
+                            hint: "ID Ciudadano",
+                            icon: Icons.badge_rounded,
+                            primaryColor: _primaryColor,
+                          ),
+                          validator: (v) => v!.trim().isEmpty ? "Requerido" : null,
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _correoCtrl,
+                          decoration: premiumInputDecoration(
+                            label: "Correo",
+                            hint: "ejemplo@yavirac.edu.ec",
+                            icon: Icons.email_rounded,
+                            primaryColor: _primaryColor,
+                          ),
+                          validator: (v) => v!.trim().isEmpty ? "Requerido" : null,
+                        ),
+                      ],
+                    );
+                  }
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _cedulaCtrl,
+                          decoration: premiumInputDecoration(
+                            label: "Cédula",
+                            hint: "ID Ciudadano",
+                            icon: Icons.badge_rounded,
+                            primaryColor: _primaryColor,
+                          ),
+                          validator: (v) => v!.trim().isEmpty ? "Requerido" : null,
+                        ),
                       ),
-                      validator: (v) => v!.trim().isEmpty ? "Requerido" : null,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _correoCtrl,
-                      decoration: premiumInputDecoration(
-                        label: "Correo",
-                        hint: "ejemplo@yavirac.edu.ec",
-                        icon: Icons.email_rounded,
-                        primaryColor: _primaryColor,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _correoCtrl,
+                          decoration: premiumInputDecoration(
+                            label: "Correo",
+                            hint: "ejemplo@yavirac.edu.ec",
+                            icon: Icons.email_rounded,
+                            primaryColor: _primaryColor,
+                          ),
+                          validator: (v) => v!.trim().isEmpty ? "Requerido" : null,
+                        ),
                       ),
-                      validator: (v) => v!.trim().isEmpty ? "Requerido" : null,
-                    ),
-                  ),
-                ],
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _nombresCtrl,
-                      decoration: premiumInputDecoration(
-                        label: "Nombres",
-                        hint: "Ej. Juan Pablo",
-                        icon: Icons.person_outline_rounded,
-                        primaryColor: _primaryColor,
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  if (constraints.maxWidth < 600) {
+                    return Column(
+                      children: [
+                        TextFormField(
+                          controller: _nombresCtrl,
+                          decoration: premiumInputDecoration(
+                            label: "Nombres",
+                            hint: "Ej. Juan Pablo",
+                            icon: Icons.person_outline_rounded,
+                            primaryColor: _primaryColor,
+                          ),
+                          validator: (v) => v!.trim().isEmpty ? "Requerido" : null,
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _apellidosCtrl,
+                          decoration: premiumInputDecoration(
+                            label: "Apellidos",
+                            hint: "Ej. Pérez García",
+                            icon: Icons.person_outline_rounded,
+                            primaryColor: _primaryColor,
+                          ),
+                          validator: (v) => v!.trim().isEmpty ? "Requerido" : null,
+                        ),
+                      ],
+                    );
+                  }
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _nombresCtrl,
+                          decoration: premiumInputDecoration(
+                            label: "Nombres",
+                            hint: "Ej. Juan Pablo",
+                            icon: Icons.person_outline_rounded,
+                            primaryColor: _primaryColor,
+                          ),
+                          validator: (v) => v!.trim().isEmpty ? "Requerido" : null,
+                        ),
                       ),
-                      validator: (v) => v!.trim().isEmpty ? "Requerido" : null,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _apellidosCtrl,
-                      decoration: premiumInputDecoration(
-                        label: "Apellidos",
-                        hint: "Ej. Pérez García",
-                        icon: Icons.person_outline_rounded,
-                        primaryColor: _primaryColor,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _apellidosCtrl,
+                          decoration: premiumInputDecoration(
+                            label: "Apellidos",
+                            hint: "Ej. Pérez García",
+                            icon: Icons.person_outline_rounded,
+                            primaryColor: _primaryColor,
+                          ),
+                          validator: (v) => v!.trim().isEmpty ? "Requerido" : null,
+                        ),
                       ),
-                      validator: (v) => v!.trim().isEmpty ? "Requerido" : null,
-                    ),
-                  ),
-                ],
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      value: _regimen,
-                      items: const [
-                        DropdownMenuItem(value: "LOES", child: Text("LOES")),
-                        DropdownMenuItem(value: "Codigo de trabajo", child: Text("Código de trabajo")),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  if (constraints.maxWidth < 600) {
+                    return Column(
+                      children: [
+                        DropdownButtonFormField<String>(
+                          value: _regimen,
+                          items: const [
+                            DropdownMenuItem(value: "LOES", child: Text("LOES")),
+                            DropdownMenuItem(value: "Codigo de trabajo", child: Text("Código de trabajo")),
+                          ],
+                          onChanged: (val) => setState(() => _regimen = val),
+                          decoration: premiumInputDecoration(
+                            label: "Régimen",
+                            hint: "Seleccione...",
+                            icon: Icons.gavel_rounded,
+                            primaryColor: _primaryColor,
+                          ),
+                          validator: (v) => v == null ? "Requerido" : null,
+                        ),
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          value: _observacion,
+                          items: const [
+                            DropdownMenuItem(value: "Medio tiempo", child: Text("Medio tiempo")),
+                            DropdownMenuItem(value: "Tiempo completo", child: Text("Tiempo completo")),
+                          ],
+                          onChanged: (val) => setState(() => _observacion = val),
+                          decoration: premiumInputDecoration(
+                            label: "Dedicación",
+                            hint: "Seleccione...",
+                            icon: Icons.access_time_rounded,
+                            primaryColor: _primaryColor,
+                          ),
+                          validator: (v) => v == null ? "Requerido" : null,
+                        ),
                       ],
-                      onChanged: (val) => setState(() => _regimen = val),
-                      decoration: premiumInputDecoration(
-                        label: "Régimen",
-                        hint: "Seleccione...",
-                        icon: Icons.gavel_rounded,
-                        primaryColor: _primaryColor,
+                    );
+                  }
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: _regimen,
+                          items: const [
+                            DropdownMenuItem(value: "LOES", child: Text("LOES")),
+                            DropdownMenuItem(value: "Codigo de trabajo", child: Text("Código de trabajo")),
+                          ],
+                          onChanged: (val) => setState(() => _regimen = val),
+                          decoration: premiumInputDecoration(
+                            label: "Régimen",
+                            hint: "Seleccione...",
+                            icon: Icons.gavel_rounded,
+                            primaryColor: _primaryColor,
+                          ),
+                          validator: (v) => v == null ? "Requerido" : null,
+                        ),
                       ),
-                      validator: (v) => v == null ? "Requerido" : null,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      value: _observacion,
-                      items: const [
-                        DropdownMenuItem(value: "Medio tiempo", child: Text("Medio tiempo")),
-                        DropdownMenuItem(value: "Tiempo completo", child: Text("Tiempo completo")),
-                      ],
-                      onChanged: (val) => setState(() => _observacion = val),
-                      decoration: premiumInputDecoration(
-                        label: "Dedicación",
-                        hint: "Seleccione...",
-                        icon: Icons.access_time_rounded,
-                        primaryColor: _primaryColor,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: _observacion,
+                          items: const [
+                            DropdownMenuItem(value: "Medio tiempo", child: Text("Medio tiempo")),
+                            DropdownMenuItem(value: "Tiempo completo", child: Text("Tiempo completo")),
+                          ],
+                          onChanged: (val) => setState(() => _observacion = val),
+                          decoration: premiumInputDecoration(
+                            label: "Dedicación",
+                            hint: "Seleccione...",
+                            icon: Icons.access_time_rounded,
+                            primaryColor: _primaryColor,
+                          ),
+                          validator: (v) => v == null ? "Requerido" : null,
+                        ),
                       ),
-                      validator: (v) => v == null ? "Requerido" : null,
-                    ),
-                  ),
-                ],
+                    ],
+                  );
+                },
               ),
             ],
           ),

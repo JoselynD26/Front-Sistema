@@ -12,6 +12,7 @@ class AdminCRUDLayout extends StatelessWidget {
   final int? idSede;
   final bool scrollable;
   final List<Widget>? actions;
+  final VoidCallback? onBack;
 
   const AdminCRUDLayout({
     super.key,
@@ -24,6 +25,7 @@ class AdminCRUDLayout extends StatelessWidget {
     this.idSede,
     this.scrollable = true,
     this.actions,
+    this.onBack,
   });
 
   @override
@@ -32,53 +34,96 @@ class AdminCRUDLayout extends StatelessWidget {
       title: title,
       idSede: idSede,
       scrollable: scrollable,
+      onBack: onBack,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header Section
           Container(
             margin: const EdgeInsets.only(bottom: 32),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1E293B),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isMobile = constraints.maxWidth < 700;
+                
+                if (isMobile) {
+                  return Column(
+                     crossAxisAlignment: CrossAxisAlignment.stretch,
+                     children: [
+                        Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1E293B),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey[600],
+                        const SizedBox(height: 4),
+                        Text(
+                          subtitle,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: 16),
+                        if (actions != null) ...actions!.map((a) => Padding(padding: const EdgeInsets.only(bottom: 12), child: a)),
+                         if (onAdd != null)
+                          ElevatedButton.icon(
+                            onPressed: onAdd,
+                            icon: const Icon(Icons.add_rounded, size: 20),
+                            label: Text(addLabel),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 12,
+                              ),
+                            ),
+                          ),
+                     ],
+                  );
+                }
 
-                    ],
-                  ),
-                ),
-                if (actions != null)
-                  ...actions!.map((a) => Padding(padding: const EdgeInsets.only(right: 12), child: a)),
-                if (onAdd != null)
-                  ElevatedButton.icon(
-                    onPressed: onAdd,
-                    icon: const Icon(Icons.add_rounded, size: 20),
-                    label: Text(addLabel),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 16,
+                return Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1E293B),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            subtitle,
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-              ],
+                    if (actions != null)
+                      ...actions!.map((a) => Padding(padding: const EdgeInsets.only(right: 12), child: a)),
+                    if (onAdd != null)
+                      ElevatedButton.icon(
+                        onPressed: onAdd,
+                        icon: const Icon(Icons.add_rounded, size: 20),
+                        label: Text(addLabel),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 16,
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
             ),
           ),
           
@@ -92,18 +137,18 @@ class AdminCRUDLayout extends StatelessWidget {
           // Si es scrollable=false (pantalla completa), usamos Expanded para llenar el espacio
           // Si es scrollable=true (default), dejamos que el contenido determine su altura (dentro del SingleChildScrollView de WebLayout)
           scrollable 
-            ? _buildContentCard()
-            : Expanded(child: _buildContentCard()),
+            ? _buildContentCard(context)
+            : Expanded(child: _buildContentCard(context)),
         ],
       ),
     );
   }
 
-  Widget _buildContentCard() {
+  Widget _buildContentCard(BuildContext context) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor, // Use theme color
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -112,7 +157,11 @@ class AdminCRUDLayout extends StatelessWidget {
             offset: const Offset(0, 4),
           ),
         ],
-        border: Border.all(color: Colors.grey.shade100),
+        border: Border.all(
+          color: Theme.of(context).brightness == Brightness.dark 
+            ? Colors.grey.shade700 
+            : Colors.grey.shade100
+        ),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),

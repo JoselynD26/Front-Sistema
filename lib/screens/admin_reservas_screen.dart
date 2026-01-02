@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../widgets/admin_crud_layout.dart';
+import '../widgets/conflict_dialog.dart';
+import '../widgets/custom_dialog.dart';
 
 class AdminReservasScreen extends StatefulWidget {
   final int? idSede;
@@ -29,6 +31,42 @@ class _AdminReservasScreenState extends State<AdminReservasScreen> with SingleTi
     _cargarPendientes();
     _cargarHistorial();
   }
+
+  // --- HELPERS PARA VALIDACIÓN ---
+  int _parseHora(String h) {
+    if (h == null || h.isEmpty) return 0;
+    try {
+      final parts = h.split(":");
+      final val = int.parse(parts[0]) * 100 + int.parse(parts[1]);
+      return val;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  String _normalize(String s) {
+    return s.toLowerCase()
+        .replaceAll('á', 'a')
+        .replaceAll('é', 'e')
+        .replaceAll('í', 'i')
+        .replaceAll('ó', 'o')
+        .replaceAll('ú', 'u')
+        .trim();
+  }
+
+  String _getDayName(int weekday) {
+    switch (weekday) {
+      case 1: return "Lunes";
+      case 2: return "Martes";
+      case 3: return "Miércoles";
+      case 4: return "Jueves";
+      case 5: return "Viernes";
+      case 6: return "Sábado";
+      case 7: return "Domingo";
+      default: return "";
+    }
+  }
+  // -------------------------------
   
   @override
   void dispose() {
@@ -39,6 +77,8 @@ class _AdminReservasScreenState extends State<AdminReservasScreen> with SingleTi
   Future<void> _cargarPendientes() async {
     try {
       final data = await _apiService.obtenerReservasPendientes();
+      print("[DEBUG RESERVAS] Pendientes RAW: $data");
+      
       if (mounted) {
         setState(() {
           _pendientes = data;
@@ -107,14 +147,179 @@ class _AdminReservasScreenState extends State<AdminReservasScreen> with SingleTi
     }
   }
 
-  Future<void> _aprobarReserva(int reservaId) async {
+  void _showPremiumSnackBar(String message, {Color color = const Color(0xFF1E3A8A), IconData icon = Icons.info_outline_rounded}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
+              child: Icon(icon, color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14))),
+          ],
+        ),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 8,
+        margin: const EdgeInsets.all(20),
+        duration: const Duration(seconds: 4),
+      )
+    );
+  }
+
+  Future<void> _aprobarReserva(Map<String, dynamic> r) async {
+    final reservaId = r['id'];
+    
+    // 1. VALIDACIÓN DE CONFLICTOS Y AUTO-CANCELACIÓN
+    // Si la reserva pide liberación (indicado en motivo) o si simplemente colisiona,
+    // debemos liberar el aula anterior del docente.
+    
+    debugPrint("=== STARTING APPROVAL FOR RESERVA ID: $reservaId ===");
+    debugPrint("FULL RESERVA OBJECT: $r");
+    debugPrint("AVAILABLE KEYS: ${r.keys.toList()}");
+    
+    try {
+      dynamic docenteId = r['docente_id'] ?? r['id_docente'];
+      
+      // Fallback: Si no hay ID, buscar por nombre
+      if (docenteId == null && r['docente_nombre'] != null && widget.idSede != null) {
+          debugPrint("⚠️ Docente ID missing. Attempting lookup by name: ${r['docente_nombre']}");
+          try {
+             final docentes = await _apiService.listarDocentesPorSede(widget.idSede!);
+             final nombreBuscado = r['docente_nombre'].toString().trim().toUpperCase();
+             
+             final docenteEncontrado = docentes.firstWhere((d) {
+                final n = (d['nombres'] ?? '').toString().trim();
+                final a = (d['apellidos'] ?? '').toString().trim();
+                final nombreCompleto = "$n $a".toUpperCase(); // Formato usual: Nombres Apellidos
+                final nombreInverso = "$a $n".toUpperCase(); // Por si acaso: Apellidos Nombres
+                
+                return nombreCompleto == nombreBuscado || nombreInverso == nombreBuscado;
+             }, orElse: () => null);
+
+             if (docenteEncontrado != null) {
+                docenteId = docenteEncontrado['id'];
+                debugPrint("✅ Docente ID found via lookup: $docenteId");
+             } else {
+                debugPrint("❌ Could not find docente by name: $nombreBuscado");
+             }
+          } catch (e) {
+             debugPrint("Error looking up docente by name: $e");
+          }
+      }
+
+      debugPrint("Final Docente ID to use: $docenteId");
+      
+      if (docenteId != null) {
+         debugPrint("Fetching schedules for docente $docenteId...");
+         final horariosDocente = await _apiService.obtenerHorarioDocente(docenteId);
+         debugPrint("Schedules fetched: ${horariosDocente is List ? horariosDocente.length : 'NOT A LIST'}");
+
+         if (horariosDocente is List) {
+            String fechaStr = r['fecha'];
+            String hInicioStr = r['hora_inicio'] ?? "00:00";
+            String hFinStr = r['hora_fin'] ?? "00:00";
+
+            // Si viene en formato 'hora', parsear rango si es posible
+            if (r['hora'] != null && (r['hora_inicio'] == null) && r['hora'].toString().contains("-")) {
+                try {
+                  final parts = r['hora'].toString().split("-");
+                  if (parts.length == 2) {
+                     hInicioStr = parts[0].trim();
+                     hFinStr = parts[1].trim();
+                     debugPrint("Parsed times from string: $hInicioStr to $hFinStr");
+                  }
+                } catch (e) {
+                   debugPrint("Error parsing hora string: $e");
+                }
+            }
+
+            final date = DateTime.parse(fechaStr);
+            final diaSemana = _getDayName(date.weekday);
+            final inicioNuevo = _parseHora(hInicioStr);
+            final finNuevo = _parseHora(hFinStr);
+
+            // Buscar conflicto
+            debugPrint("ADMIN CHECK: Validando conflicto para Docente ID: $docenteId en $diaSemana ($inicioNuevo - $finNuevo)");
+            
+            if (horariosDocente.isEmpty) {
+               // Debug messages removed for production or can use premium snippet if needed
+            }
+
+
+            final claseConflictiva = horariosDocente.firstWhere((h) {
+              final hDia = h['dia']?.toString() ?? "";
+              
+              final start = _parseHora(h['hora_inicio']);
+              final end = _parseHora(h['hora_fin']);
+              
+              debugPrint("   -> Revisando clase: $hDia ($start - $end) vs $diaSemana ($inicioNuevo - $finNuevo)");
+              
+              if (_normalize(hDia) != _normalize(diaSemana)) {
+                 return false;
+              }
+              
+              final seSolapan = (inicioNuevo < end && finNuevo > start);
+              if (seSolapan) debugPrint("      [MATCH] Conflict detected!");
+              return seSolapan;
+            }, orElse: () => null);
+
+            if (claseConflictiva != null) {
+              // EXISTE CONFLICTO -> Preguntar al ADMIN antes de proceder
+              final aulaAnterior = claseConflictiva['aula_nombre'] ?? "su aula actual";
+              final horarioAnterior = "${claseConflictiva['hora_inicio']} - ${claseConflictiva['hora_fin']}";
+              
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => ConflictDialog(
+                  aulaNombre: aulaAnterior,
+                  horario: horarioAnterior,
+                  dia: diaSemana,
+                  docenteNombre: r['docente_nombre'] ?? "Docente",
+                  onCancel: () => Navigator.pop(ctx, false),
+                  onLiberar: () => Navigator.pop(ctx, true),
+                )
+              );
+
+              if (confirm != true) return; // Cancelar acción si dice que no
+
+              debugPrint("ADMIN: Cancelando clase anterior conflictiva ID: ${claseConflictiva['id']}");
+              await _apiService.crearHorarioCancelado(
+                 claseConflictiva['id'], 
+                 fechaStr, 
+                 "Cancelado por Aprobación de Reserva (Admin)",
+                 sedeId: widget.idSede
+              );
+              _showPremiumSnackBar("Clase anterior liberada automáticamente", color: Colors.indigo, icon: Icons.playlist_add_check_circle_rounded);
+            }
+         }
+      }
+    } catch (e) {
+      debugPrint("Error validando conflictos en aprobación: $e");
+    }
+
     final success = await _apiService.aprobarReserva(reservaId);
     if (success) {
       _cargarPendientes();
       _cargarHistorial(); // Refrescar historial para verla aprobada
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Reserva aprobada"), backgroundColor: Colors.green));
+      _cargarHistorial(); // Refrescar historial para verla aprobada
+      showDialog(
+        context: context,
+        builder: (_) => CustomDialog(
+          title: "¡Reserva Aprobada!",
+          description: "La reserva ha sido aprobada y agendada correctamente.",
+          type: DialogType.success,
+          onConfirm: () => Navigator.pop(context),
+          confirmText: "Aceptar",
+        )
+      );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Error al aprobar")));
+      _showPremiumSnackBar("Error al aprobar la reserva", color: Colors.red, icon: Icons.error_outline_rounded);
     }
   }
 
@@ -123,9 +328,19 @@ class _AdminReservasScreenState extends State<AdminReservasScreen> with SingleTi
     if (success) {
       _cargarPendientes();
       _cargarHistorial();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Reserva rechazada"), backgroundColor: Colors.orange));
+      _cargarHistorial();
+      showDialog(
+        context: context,
+        builder: (_) => CustomDialog(
+          title: "Reserva Rechazada",
+          description: "La solicitud ha sido rechazada.",
+          type: DialogType.info, // Or warning/success based on preference, Info seems neutral/safe
+          onConfirm: () => Navigator.pop(context),
+          confirmText: "Aceptar",
+        )
+      );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Error al rechazar")));
+      _showPremiumSnackBar("Error al rechazar la reserva", color: Colors.red, icon: Icons.error_outline_rounded);
     }
   }
   
@@ -133,23 +348,57 @@ class _AdminReservasScreenState extends State<AdminReservasScreen> with SingleTi
     // Confirm dialog
     final confirm = await showDialog<bool>(
       context: context, 
-      builder: (_) => AlertDialog(
-        title: const Text("Confirmar eliminación"),
-        content: const Text("¿Estás seguro de eliminar este registro del historial? Esta acción no se puede deshacer."),
-        actions: [
-          TextButton(onPressed: ()=> Navigator.pop(context, false), child: const Text("Cancelar")),
-          TextButton(onPressed: ()=> Navigator.pop(context, true), child: const Text("Eliminar", style: TextStyle(color: Colors.red))),
-        ],
+      builder: (dialogContext) => CustomDialog(
+        title: "Confirmar eliminación",
+        description: "¿Estás seguro de eliminar este registro del historial? Esta acción no se puede deshacer.",
+        type: DialogType.warning,
+        confirmText: "Eliminar",
+        cancelText: "Cancelar",
+        showCancel: true,
       )
     );
     
-    if (confirm == true) {
-       final success = await _apiService.eliminarReserva(reservaId);
-       if (success) {
-         _cargarHistorial();
-         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Registro eliminado"), backgroundColor: Colors.red));
-       } else {
-         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Error al eliminar")));
+    if (confirm == true && mounted) {
+       // Show loading
+       showDialog(
+         context: context,
+         barrierDismissible: false,
+         builder: (loadingContext) => const CustomDialog(
+           title: "Eliminando...",
+           description: "Por favor espera",
+           type: DialogType.info,
+           isLoading: true,
+         ),
+       );
+
+       final success = await _apiService.eliminarReserva(reservaId).catchError((_) => false);
+       
+       if (mounted) {
+         Navigator.pop(context); // Close loading (using stable context)
+
+         if (success) {
+           _cargarHistorial();
+           showDialog(
+             context: context,
+             builder: (successContext) => CustomDialog(
+               title: "¡Éxito!",
+               description: "Registro eliminado correctamente.",
+               type: DialogType.success,
+               onConfirm: () => Navigator.pop(successContext),
+               confirmText: "Aceptar",
+             )
+           );
+         } else {
+           showDialog(
+             context: context,
+             builder: (errorContext) => const CustomDialog(
+               title: "Error",
+               description: "No se pudo eliminar el registro.",
+               type: DialogType.error,
+               confirmText: "Aceptar",
+             )
+           );
+         }
        }
     }
   }
@@ -215,7 +464,10 @@ class _AdminReservasScreenState extends State<AdminReservasScreen> with SingleTi
         return _ReservaCard(
           reserva: r, 
           isHistory: false,
-          onAprove: () => _aprobarReserva(r['id']),
+          onAprove: () {
+            debugPrint("BUTTON CLICKED: Aprobar reserva ${r['id']}");
+            _aprobarReserva(r);
+          },
           onReject: () => _rechazarReserva(r['id']),
         );
       },
@@ -268,6 +520,7 @@ class _ReservaCard extends StatelessWidget {
   Widget build(BuildContext context) {
     const yaviracOrange = Color(0xFFFF6B35);
     const yaviracBlue = Color(0xFF1E3A8A);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     // Determine status style
     String estado = (reserva['estado'] ?? 'pendiente').toString().toLowerCase();
@@ -288,14 +541,23 @@ class _ReservaCard extends StatelessWidget {
       statusIcon = Icons.highlight_off;
       statusText = "CANCELADA";
     }
+    
+    final cardBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final borderColor = isDark ? Colors.grey.shade800 : Colors.grey.shade200;
+    final primaryText = isDark ? Colors.white : yaviracBlue;
+    final subText = isDark ? Colors.grey.shade400 : Colors.grey[600];
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: borderColor),
         boxShadow: [
-          BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+            color: isDark ? Colors.black.withOpacity(0.3) : Colors.grey.withOpacity(0.05), 
+            blurRadius: 10, 
+            offset: const Offset(0, 4)
+          ),
         ],
       ),
       padding: const EdgeInsets.all(20),
@@ -316,12 +578,12 @@ class _ReservaCard extends StatelessWidget {
                   children: [
                     Text(
                       "Aula: ${reserva["aula_nombre"] ?? 'Sin Aula'}",
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: yaviracBlue),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryText),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       "Profesor: ${reserva["docente_nombre"] ?? 'Desconocido'}",
-                      style: TextStyle(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w500),
+                      style: TextStyle(fontSize: 14, color: subText, fontWeight: FontWeight.w500),
                     ),
                   ],
                 ),
@@ -345,10 +607,11 @@ class _ReservaCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-          Row(
+          Wrap(
+            spacing: 16,
+            runSpacing: 8,
             children: [
               _InfoBadge(icon: Icons.calendar_today, text: reserva["fecha"] ?? "N/A"),
-              const SizedBox(width: 16),
               _InfoBadge(icon: Icons.access_time, text: reserva["hora"] ?? "${reserva['hora_inicio']} - ${reserva['hora_fin']}"),
             ],
           ),
@@ -360,8 +623,10 @@ class _ReservaCard extends StatelessWidget {
           
           // ACTIONS
           if (!isHistory) ...[
-             Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+             Wrap(
+                alignment: WrapAlignment.end,
+                spacing: 12,
+                runSpacing: 12,
                 children: [
                   OutlinedButton.icon(
                     onPressed: onReject,
@@ -369,11 +634,10 @@ class _ReservaCard extends StatelessWidget {
                     label: const Text("Rechazar"),
                     style: OutlinedButton.styleFrom(foregroundColor: Colors.red, side: BorderSide(color: Colors.red.withOpacity(0.5))),
                   ),
-                  const SizedBox(width: 12),
                   ElevatedButton.icon(
                     onPressed: onAprove,
                     icon: const Icon(Icons.check_rounded, size: 18),
-                    label: const Text("Aprobar"),
+                    label: const Text("Aprobar"), // Changed to verify Hot Reload
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, elevation: 0),
                   ),
                 ],

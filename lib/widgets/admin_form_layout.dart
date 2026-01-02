@@ -24,25 +24,30 @@ class AdminFormLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = isDark ? Colors.black : Colors.white;
+    final textColor = isDark ? Colors.white : const Color(0xFF1E293B);
+
     return MouseTrackerFix(
       child: Scaffold(
-        backgroundColor: Colors.transparent,
+        backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.transparent,
         body: Stack(
           children: [
             // Elegant Background Gradient
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    primaryColor.withOpacity(0.05),
-                    Colors.white,
-                    primaryColor.withOpacity(0.02),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+            if (!isDark)
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      primaryColor.withOpacity(0.05),
+                      Colors.white,
+                      primaryColor.withOpacity(0.02),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                 ),
               ),
-            ),
             
             // Back Button (Added for consistency)
             Positioned(
@@ -56,9 +61,9 @@ class AdminFormLayout extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
+                        color: (isDark ? const Color(0xFF1E293B) : Colors.white).withOpacity(0.9),
                         borderRadius: BorderRadius.circular(30),
-                        border: Border.all(color: Colors.grey.shade200),
+                        border: Border.all(color: isDark ? Colors.grey.shade700 : Colors.grey.shade200),
                         boxShadow: [
                            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
                         ],
@@ -94,10 +99,10 @@ class AdminFormLayout extends StatelessWidget {
                       filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.85),
+                          color: surfaceColor.withOpacity(0.85),
                           borderRadius: BorderRadius.circular(32),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.5),
+                            color: surfaceColor.withOpacity(0.5),
                             width: 1.5,
                           ),
                           boxShadow: [
@@ -113,7 +118,7 @@ class AdminFormLayout extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             // Header Section
-                            _buildHeader(context),
+                            _buildHeader(context, textColor, isDark),
                             
                             // Form Content
                             Padding(
@@ -151,7 +156,7 @@ class AdminFormLayout extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, Color textColor, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(40),
       child: Column(
@@ -182,10 +187,10 @@ class AdminFormLayout extends StatelessWidget {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF1E293B),
+              color: textColor,
               letterSpacing: -1,
             ),
           ),
@@ -195,7 +200,7 @@ class AdminFormLayout extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 16,
-              color: Colors.grey.shade600,
+              color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
               height: 1.5,
             ),
           ),
@@ -214,6 +219,13 @@ InputDecoration premiumInputDecoration({
   required IconData icon,
   required Color primaryColor,
 }) {
+  // Determine if dark mode is active from context? 
+  // This helper function doesn't have context. 
+  // Best to inject colors or context. But for now let's assume inputs are on white/dark surface.
+  // Actually, standard inputs usually adapt if using Theme defaults, but here we override a lot.
+  // Let's keep it simple: assume this is used in AdminFormLayout which handles background.
+  // But the inputs `fillColor` is hardcoded.
+  
   return InputDecoration(
     labelText: label,
     hintText: hint,
@@ -221,23 +233,24 @@ InputDecoration premiumInputDecoration({
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Icon(icon, color: primaryColor),
     ),
-    labelStyle: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.w500),
-    hintStyle: TextStyle(color: Colors.grey.shade400),
+    // labelStyle: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+    // hintStyle: TextStyle(color: Colors.grey.shade400),
     floatingLabelStyle: TextStyle(color: primaryColor, fontWeight: FontWeight.bold),
     contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(16),
-      borderSide: BorderSide(color: Colors.grey.shade200),
+      // borderSide: BorderSide(color: Colors.grey.shade200),
     ),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(16),
-      borderSide: BorderSide(color: Colors.grey.shade100),
+      borderSide: BorderSide(color: Colors.grey.withOpacity(0.2)),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(16),
       borderSide: BorderSide(color: primaryColor, width: 2),
     ),
     filled: true,
-    fillColor: Colors.grey.shade50.withOpacity(0.5),
+    // fillColor: Colors.grey.shade50.withOpacity(0.5), 
+    // Let theme handle fillColor if possible, or use transparent/neutral
   );
 }

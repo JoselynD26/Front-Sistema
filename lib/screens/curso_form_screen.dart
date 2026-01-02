@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../widgets/admin_form_layout.dart';
+import '../widgets/custom_dialog.dart';
 
 class CursoFormScreen extends StatefulWidget {
   final int idSede;
@@ -71,6 +72,18 @@ class _CursoFormScreenState extends State<CursoFormScreen> {
 
     setState(() => guardando = true);
 
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (loadingCtx) => CustomDialog(
+        title: widget.curso == null ? "Creando Curso..." : "Actualizando...",
+        description: "Por favor espera un momento",
+        type: DialogType.info,
+        isLoading: true,
+      ),
+    );
+
     final datos = {
       "nombre": _nombreController.text.trim(),
       "nivel": _nivelController.text.trim(),
@@ -89,20 +102,49 @@ class _CursoFormScreenState extends State<CursoFormScreen> {
       }
 
       if (mounted) {
-        setState(() => guardando = false);
+        Navigator.of(context).pop(); // Close loading dialog safely
+        
         if (success) {
-          Navigator.pop(context, true);
+          showDialog(
+            context: context,
+            builder: (successCtx) => CustomDialog(
+              title: "¡Éxito!",
+              description: widget.curso == null 
+                ? "El curso ha sido creado correctamente" 
+                : "El curso ha sido actualizado correctamente",
+              type: DialogType.success,
+              confirmText: "Aceptar",
+              onConfirm: () {
+                Navigator.pop(successCtx); // Close success dialog
+                Navigator.pop(context, true); // Return to list
+              },
+            ),
+          );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Error al guardar curso"), backgroundColor: Colors.redAccent),
+          setState(() => guardando = false);
+          showDialog(
+            context: context,
+            builder: (errorCtx) => const CustomDialog(
+              title: "Error",
+              description: "No se pudo guardar el curso. Intenta nuevamente.",
+              type: DialogType.error,
+              confirmText: "Aceptar",
+            ),
           );
         }
       }
     } catch (e) {
       if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog safely
         setState(() => guardando = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: $e"), backgroundColor: Colors.redAccent),
+        showDialog(
+          context: context,
+          builder: (errorCtx) => CustomDialog(
+            title: "Error",
+            description: "Ocurrió un error inesperado: $e",
+            type: DialogType.error,
+            confirmText: "Aceptar",
+          ),
         );
       }
     }
@@ -134,34 +176,65 @@ class _CursoFormScreenState extends State<CursoFormScreen> {
                 validator: (v) => v!.trim().isEmpty ? "Requerido" : null,
               ),
               const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _nivelController,
-                      decoration: premiumInputDecoration(
-                        label: "Nivel",
-                        hint: "Ej. 5",
-                        icon: Icons.layers_rounded,
-                        primaryColor: _primaryColor,
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  if (constraints.maxWidth < 600) {
+                    return Column(
+                      children: [
+                        TextFormField(
+                          controller: _nivelController,
+                          decoration: premiumInputDecoration(
+                            label: "Nivel",
+                            hint: "Ej. 5",
+                            icon: Icons.layers_rounded,
+                            primaryColor: _primaryColor,
+                          ),
+                          validator: (v) => v!.trim().isEmpty ? "Requerido" : null,
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _paraleloController,
+                          decoration: premiumInputDecoration(
+                            label: "Paralelo",
+                            hint: "Ej. A",
+                            icon: Icons.grid_view_rounded,
+                            primaryColor: _primaryColor,
+                          ),
+                          validator: (v) => v!.trim().isEmpty ? "Requerido" : null,
+                        ),
+                      ],
+                    );
+                  }
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _nivelController,
+                          decoration: premiumInputDecoration(
+                            label: "Nivel",
+                            hint: "Ej. 5",
+                            icon: Icons.layers_rounded,
+                            primaryColor: _primaryColor,
+                          ),
+                          validator: (v) => v!.trim().isEmpty ? "Requerido" : null,
+                        ),
                       ),
-                      validator: (v) => v!.trim().isEmpty ? "Requerido" : null,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _paraleloController,
-                      decoration: premiumInputDecoration(
-                        label: "Paralelo",
-                        hint: "Ej. A",
-                        icon: Icons.grid_view_rounded,
-                        primaryColor: _primaryColor,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _paraleloController,
+                          decoration: premiumInputDecoration(
+                            label: "Paralelo",
+                            hint: "Ej. A",
+                            icon: Icons.grid_view_rounded,
+                            primaryColor: _primaryColor,
+                          ),
+                          validator: (v) => v!.trim().isEmpty ? "Requerido" : null,
+                        ),
                       ),
-                      validator: (v) => v!.trim().isEmpty ? "Requerido" : null,
-                    ),
-                  ),
-                ],
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 24),
               DropdownButtonFormField<int>(

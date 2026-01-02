@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../widgets/admin_form_layout.dart';
+import '../widgets/conflict_dialog.dart';
 
 class HorarioSemanalForm extends StatefulWidget {
   final int idSede;
@@ -147,23 +148,104 @@ class _HorarioSemanalFormState extends State<HorarioSemanalForm> {
     }
   }
 
+  // --- HELPERS PARA VALIDACIÓN ---
+  int _parseHora(String h) {
+    if (h.isEmpty) return 0;
+    try {
+      final parts = h.split(":");
+      final val = int.parse(parts[0]) * 100 + int.parse(parts[1]);
+      return val;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  String _normalize(String s) {
+    return s.toLowerCase()
+        .replaceAll('á', 'a')
+        .replaceAll('é', 'e')
+        .replaceAll('í', 'i')
+        .replaceAll('ó', 'o')
+        .replaceAll('ú', 'u')
+        .trim();
+  }
+  // -------------------------------
+
   Future<void> _guardar() async {
     setState(() => cargando = true);
     
+    // 1. Cargar horario actual del docente para validar
+    List<dynamic> horarioActual = [];
+    try {
+       final res = await _apiService.obtenerHorarioDocente(docenteSeleccionado!);
+       if (res is List) {
+          horarioActual = res;
+       }
+    } catch (e) {
+       print("Error loading schedule for validation: $e");
+    }
+
     int creados = 0;
     int fallidos = 0;
-
+    
+    // VALIDACIÓN PREVIA PARA CADA DÍA
     for (String dia in (diasSeleccionados ?? [])) {
-      final ok = await _apiService.crearHorarioAdmin(
-        docenteId: docenteSeleccionado!,
-        cursoId: cursoSeleccionado!,
-        materiaId: materiaSeleccionada!,
-        aulaId: aulaSeleccionada!,
-        dia: dia,
-        horaInicio: _horaInicioController.text,
-        horaFin: _horaFinController.text,
-      );
-      if (ok) creados++; else fallidos++;
+        bool proceed = true;
+
+        // Check conflicto
+        final inicioNuevo = _parseHora(_horaInicioController.text);
+        final finNuevo = _parseHora(_horaFinController.text);
+
+        final conflictivo = horarioActual.firstWhere((h) {
+             final hDia = h['dia']?.toString() ?? "";
+             final start = _parseHora(h['hora_inicio'] ?? "");
+             final end = _parseHora(h['hora_fin'] ?? "");
+             
+             if (_normalize(hDia) != _normalize(dia)) return false;
+             
+             // Solapamiento
+             return (inicioNuevo < end && finNuevo > start);
+        }, orElse: () => null);
+
+        if (conflictivo != null) {
+            // MOSTRAR DIÁLOGO
+            final confirm = await showDialog<bool>(
+              context: context,
+              barrierDismissible: false,
+              builder: (ctx) => ConflictDialog(
+                aulaNombre: conflictivo['aula_nombre'] ?? "Aula Desconocida",
+                horario: "${conflictivo['hora_inicio']} - ${conflictivo['hora_fin']}",
+                dia: dia,
+                docenteNombre: "${conflictivo['docente_nombre'] ?? 'Este docente'}",
+                onCancel: () => Navigator.pop(ctx, false),
+                onLiberar: () => Navigator.pop(ctx, true),
+              )
+            );
+
+            if (confirm == true) {
+               // CANCELAR CLASE ANTERIOR (Eliminar definición recurrente)
+               try {
+                 await _apiService.eliminarHorarioDocente(conflictivo['id']);
+               } catch (e) {
+                 print("Error liberando horario anterior: $e");
+               }
+            } else {
+               proceed = false; // Canceló la operación para este día
+            }
+        }
+
+        if (proceed) {
+           final ok = await _apiService.crearHorarioAdmin(
+             docenteId: docenteSeleccionado!,
+             cursoId: cursoSeleccionado!,
+             materiaId: materiaSeleccionada!,
+             aulaId: aulaSeleccionada!,
+             dia: dia,
+             horaInicio: _horaInicioController.text,
+             horaFin: _horaFinController.text,
+           );
+           if (ok) creados++; else fallidos++;
+        }
     }
 
     if (mounted) {
@@ -339,22 +421,41 @@ class _HorarioSemanalFormState extends State<HorarioSemanalForm> {
         const SizedBox(height: 20),
 
         // 6. Horas
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _horaInicioController,
-                decoration: premiumInputDecoration(label: "Hora Inicio", hint: "07:00", icon: Icons.access_time, primaryColor: _primaryColor),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: TextField(
-                controller: _horaFinController,
-                decoration: premiumInputDecoration(label: "Hora Fin", hint: "09:00", icon: Icons.access_time_filled, primaryColor: _primaryColor),
-              ),
-            ),
-          ],
+        LayoutBuilder(
+          builder: (context, constraints) {
+            if (constraints.maxWidth < 600) {
+              return Column(
+                children: [
+                  TextField(
+                    controller: _horaInicioController,
+                    decoration: premiumInputDecoration(label: "Hora Inicio", hint: "07:00", icon: Icons.access_time, primaryColor: _primaryColor),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _horaFinController,
+                    decoration: premiumInputDecoration(label: "Hora Fin", hint: "09:00", icon: Icons.access_time_filled, primaryColor: _primaryColor),
+                  ),
+                ],
+              );
+            }
+            return Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _horaInicioController,
+                    decoration: premiumInputDecoration(label: "Hora Inicio", hint: "07:00", icon: Icons.access_time, primaryColor: _primaryColor),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: TextField(
+                    controller: _horaFinController,
+                    decoration: premiumInputDecoration(label: "Hora Fin", hint: "09:00", icon: Icons.access_time_filled, primaryColor: _primaryColor),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
 
         const SizedBox(height: 30),

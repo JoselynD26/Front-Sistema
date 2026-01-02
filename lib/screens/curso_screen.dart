@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../widgets/admin_crud_layout.dart';
 import '../widgets/admin_table.dart';
+import '../widgets/custom_dialog.dart';
 import 'curso_form_screen.dart';
 
 class CursosScreen extends StatefulWidget {
@@ -89,11 +90,69 @@ class _CursosScreenState extends State<CursosScreen> {
     }
   }
 
-  Future<void> _eliminarCurso(int id) async {
-    final ok = await _apiService.eliminarCurso(id);
-    if (ok) {
-      _cargarCursos();
+  String _formatearNivel(dynamic nivel) {
+    final n = nivel.toString().replaceAll(RegExp(r'[^0-9]'), '');
+    if (n.isEmpty) return nivel.toString();
+    
+    switch (n) {
+      case '1': return "1er Semestre";
+      case '2': return "2do Semestre";
+      case '3': return "3er Semestre";
+      case '4': return "4to Semestre";
+      case '5': return "5to Semestre";
+      default: return "$n Semestre";
     }
+  }
+
+  Future<void> _eliminarCurso(int id) async {
+    showDialog(
+      context: context,
+      builder: (confirmCtx) => CustomDialog(
+        title: "Confirmar Eliminación",
+        description: "¿Estás seguro de que deseas eliminar este curso? Se eliminarán también las asignaciones asociadas.",
+        type: DialogType.warning,
+        confirmText: "Eliminar",
+        showCancel: true,
+        onConfirm: () async {
+          Navigator.pop(confirmCtx); // Close confirm dialog
+          
+          // Show loading
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (loadingCtx) => const CustomDialog(
+              title: "Eliminando Curso...",
+              description: "Por favor espera",
+              type: DialogType.info,
+              isLoading: true,
+            ),
+          );
+
+          final ok = await _apiService.eliminarCurso(id);
+          
+          if (mounted) {
+            Navigator.of(context).pop(); // Close loading dialog safely using state context
+            
+            // Show result
+            showDialog(
+              context: context,
+              builder: (resultCtx) => CustomDialog(
+                title: ok ? "¡Éxito!" : "Error",
+                description: ok 
+                  ? "El curso ha sido eliminado correctamente" 
+                  : "No se pudo eliminar el curso. Intenta nuevamente.",
+                type: ok ? DialogType.success : DialogType.error,
+                confirmText: "Aceptar",
+                onConfirm: () {
+                  Navigator.pop(resultCtx);
+                  if (ok) _cargarCursos();
+                },
+              ),
+            );
+          }
+        },
+      ),
+    );
   }
 
   void _abrirFormulario({Map<String, dynamic>? curso}) async {
@@ -231,7 +290,7 @@ class _CursosScreenState extends State<CursosScreen> {
                                       const Icon(Icons.grade, color: Colors.blue, size: 20),
                                       const SizedBox(width: 8),
                                       Text(
-                                        nivel,
+                                        _formatearNivel(nivel),
                                         style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,

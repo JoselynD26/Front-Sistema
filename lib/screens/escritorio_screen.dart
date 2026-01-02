@@ -3,6 +3,7 @@ import '../services/api_service.dart';
 import '../utils/mouse_tracker_fix.dart';
 import '../widgets/admin_crud_layout.dart';
 import '../widgets/admin_table.dart';
+import '../widgets/custom_dialog.dart';
 import 'escritorio_form.dart';
 
 class EscritoriosScreen extends StatefulWidget {
@@ -37,8 +38,62 @@ class _EscritoriosScreenState extends State<EscritoriosScreen> with SafeStateMix
   }
 
   Future<void> _eliminarEscritorio(int id) async {
-    final ok = await _apiService.eliminarEscritorio(id);
-    if (ok) _cargarEscritorios();
+    // Show confirmation dialog
+    showDialog(
+      context: context,
+      builder: (dialogContext) => CustomDialog(
+        title: "Eliminar Escritorio",
+        description: "¿Estás seguro de que deseas eliminar este escritorio? Esta acción no se puede deshacer.",
+        type: DialogType.warning,
+        confirmText: "Eliminar",
+        showCancel: true,
+        onConfirm: () async {
+          Navigator.pop(dialogContext); // Close confirmation
+
+          // Show loading dialog
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (loadingContext) => const CustomDialog(
+              title: "Eliminando...",
+              description: "Por favor espera",
+              type: DialogType.info,
+              isLoading: true,
+            ),
+          );
+
+          final ok = await _apiService.eliminarEscritorio(id).catchError((_) => false);
+          
+          if (mounted) {
+            Navigator.pop(context); // Close loading (using stable context)
+
+            if (ok) {
+              _cargarEscritorios();
+              showDialog(
+                context: context,
+                builder: (successContext) => CustomDialog(
+                  title: "¡Éxito!",
+                  description: "El escritorio ha sido eliminado correctamente.",
+                  type: DialogType.success,
+                  confirmText: "Aceptar",
+                  onConfirm: () => Navigator.pop(successContext),
+                ),
+              );
+            } else {
+              showDialog(
+                context: context,
+                builder: (errorContext) => const CustomDialog(
+                  title: "Error",
+                  description: "No se pudo eliminar el escritorio.",
+                  type: DialogType.error,
+                  confirmText: "Aceptar",
+                ),
+              );
+            }
+          }
+        },
+      ),
+    );
   }
 
   void _abrirFormulario({Map<String, dynamic>? escritorio}) async {
