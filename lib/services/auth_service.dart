@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class AuthService {
-  final String baseUrl = "http://10.0.2.2:8000"; // usa tu IP si pruebas en físico
+  final String baseUrl = "https://sistema-de-gestion-act-bj8j.onrender.com";
   final storage = const FlutterSecureStorage();
 
   Future<bool> login(String correo, String contrasena) async {
