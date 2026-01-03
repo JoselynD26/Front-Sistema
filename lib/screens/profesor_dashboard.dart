@@ -6,6 +6,7 @@ import 'croquis_screen.dart';
 import 'docente_croquis_screen.dart';
 import 'croquis_plaza_screen.dart';
 import '../widgets/custom_dialog.dart';
+import 'disponibilidad_aulas_screen.dart';
 
 class ProfesorDashboard extends StatefulWidget {
   final int docenteId;
@@ -23,6 +24,7 @@ class ProfesorDashboard extends StatefulWidget {
 
 class _ProfesorDashboardState extends State<ProfesorDashboard> {
   final _apiService = ApiService();
+  int? idSede; 
   List<dynamic> materias = [];
   List<dynamic> horarios = [];
   List<dynamic> reservas = [];
@@ -39,41 +41,53 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
 
   Future<void> _cargarDatos() async {
     try {
-      final results = await Future.wait([
+      final resultsMain = await Future.wait([
         _apiService.obtenerMisMaterias(widget.docenteId),
-        _apiService.obtenerHorarioDocente(widget.docenteId), // Usar mismo endpoint que admin
+        _apiService.obtenerHorarioDocente(widget.docenteId),
         _apiService.obtenerMisReservas(widget.docenteId),
-        _apiService.listarCursosPorSede(1), // Fetch cursos (Sede 1 fixed for now)
-        _apiService.listarAulasPorSede(1), // Fetch aulas (Sede 1 fixed for now)
       ]);
 
-      setState(() {
-        materias = results[0] as List<dynamic>;
-        
-        // Normalizar horarios para asegurar compatibilidad con la vista
-        final rawHorarios = results[1] as List<dynamic>;
-        horarios = rawHorarios.map((h) {
-          final map = Map<String, dynamic>.from(h);
-          // Asegurar materia_id
-          if (!map.containsKey('materia_id') && map.containsKey('id_materia')) {
-            map['materia_id'] = map['id_materia'];
-          }
-           // Asegurar aula_id
-          if (!map.containsKey('aula_id') && map.containsKey('id_aula')) {
-            map['aula_id'] = map['id_aula'];
-          }
-          // Asegurar curso_id
-          if (!map.containsKey('curso_id') && map.containsKey('id_curso')) {
-            map['curso_id'] = map['id_curso'];
-          }
-          return map;
-        }).toList();
+      final rawHorarios = resultsMain[1] as List<dynamic>;
+      
+      // Intentar inferir la Sede del docente desde su horario
+      int detectedSede = 1; 
+      if (rawHorarios.isNotEmpty) {
+        detectedSede = rawHorarios.first['id_sede'] ?? rawHorarios.first['sede_id'] ?? 1;
+      }
+      
+      idSede = detectedSede;
+      print("DEBUG: Sede detectada para docente ${widget.docenteId}: $idSede");
 
-        reservas = results[2] as List<dynamic>;
-        cursos = results[3] as List<dynamic>;
-        aulas = results[4] as List<dynamic>;
-        cargando = false;
-      });
+      // Cargar el resto de datos específicos de la sede
+      final resultsSede = await Future.wait([
+        _apiService.listarCursosPorSede(idSede!),
+        _apiService.listarAulasPorSede(idSede!),
+      ]);
+
+      if (mounted) {
+        setState(() {
+          materias = resultsMain[0] as List<dynamic>;
+          
+          horarios = rawHorarios.map((h) {
+            final map = Map<String, dynamic>.from(h);
+            if (!map.containsKey('materia_id') && map.containsKey('id_materia')) {
+              map['materia_id'] = map['id_materia'];
+            }
+            if (!map.containsKey('aula_id') && map.containsKey('id_aula')) {
+              map['aula_id'] = map['id_aula'];
+            }
+            if (!map.containsKey('curso_id') && map.containsKey('id_curso')) {
+              map['curso_id'] = map['id_curso'];
+            }
+            return map;
+          }).toList();
+
+          reservas = resultsMain[2] as List<dynamic>;
+          cursos = resultsSede[0] as List<dynamic>;
+          aulas = resultsSede[1] as List<dynamic>;
+          cargando = false;
+        });
+      }
     } catch (e) {
       if (mounted) {
         setState(() => cargando = false);
@@ -722,7 +736,7 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
       barrierLabel: "Cerrar",
       transitionDuration: const Duration(milliseconds: 300),
       pageBuilder: (context, anim1, anim2) {
-        return _FormularioReservaAula(docenteId: widget.docenteId);
+        return _FormularioReservaAula(docenteId: widget.docenteId, idSede: idSede ?? 1);
       },
     ).then((result) {
       if (result == true) {
@@ -747,7 +761,7 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
           subtitle: "Descarga de horarios oficiales",
           icon: Icons.picture_as_pdf_rounded,
           color: const Color(0xFFEF4444),
-          child: PdfHorariosContent(sedeId: 1), // Sede ID fija por ahora o dinámica
+          child: PdfHorariosContent(sedeId: idSede ?? 1), 
         );
       },
     );
@@ -798,7 +812,7 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
       barrierLabel: "Cerrar",
       transitionDuration: const Duration(milliseconds: 300),
       pageBuilder: (context, anim1, anim2) {
-        return _HorarioAulasDialog();
+        return DisponibilidadAulasScreen(idSede: idSede ?? 1);
       },
     );
   }
@@ -1072,6 +1086,13 @@ class _HorarioCalendarioDialog extends StatefulWidget {
 
 class _HorarioCalendarioDialogState extends State<_HorarioCalendarioDialog> {
   DateTime fechaSeleccionada = DateTime.now();
+  int _selectedDayIndex = DateTime.now().weekday - 1;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_selectedDayIndex > 4) _selectedDayIndex = 0; // Default to Monday if weekend
+  }
   
   // Cache de nombres
   String _getMateriaNombre(int? id) {
@@ -1124,10 +1145,12 @@ class _HorarioCalendarioDialogState extends State<_HorarioCalendarioDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isMobile = MediaQuery.of(context).size.width < 650;
+    
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(isMobile ? 16 : 24),
         width: MediaQuery.of(context).size.width > 1000 ? 1000 : MediaQuery.of(context).size.width * 0.95,
         height: MediaQuery.of(context).size.height * 0.9,
         child: Column(
@@ -1135,46 +1158,143 @@ class _HorarioCalendarioDialogState extends State<_HorarioCalendarioDialog> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                     const Text(
-                      "Mi Horario Semanal",
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      _formatearFecha(fechaSeleccionada),
-                      style: TextStyle(color: Colors.grey[600]),
-                    ),
-                  ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                       Text(
+                        "Mi Horario Semanal",
+                        style: TextStyle(fontSize: isMobile ? 20 : 24, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        _formatearFecha(fechaSeleccionada),
+                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      ),
+                    ],
+                  ),
                 ),
-                Row(
-                  children: [
-                    IconButton(
-                        onPressed: () => _cambiarSemana(-1),
-                         icon: const Icon(Icons.chevron_left)),
-                    TextButton.icon(
-                      onPressed: _seleccionarFecha,
-                      icon: const Icon(Icons.calendar_today),
-                      label: const Text("Cambiar Semana"),
-                    ),
-                    IconButton(
-                        onPressed: () => _cambiarSemana(1),
-                        icon: const Icon(Icons.chevron_right)),
-                    const SizedBox(width: 16),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close),
-                    ),
-                  ],
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
                 ),
               ],
             ),
-            const SizedBox(height: 24),
-            Expanded(child: _buildCalendarioSemanal()),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                    onPressed: () => _cambiarSemana(-1),
+                     icon: const Icon(Icons.chevron_left)),
+                TextButton.icon(
+                  onPressed: _seleccionarFecha,
+                  icon: const Icon(Icons.calendar_today, size: 18),
+                  label: const Text("Cambiar Semana"),
+                ),
+                IconButton(
+                    onPressed: () => _cambiarSemana(1),
+                    icon: const Icon(Icons.chevron_right)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: isMobile ? _buildCalendarioMobile() : _buildCalendarioSemanal(),
+            ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildCalendarioMobile() {
+    const dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+    
+    return Column(
+      children: [
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: List.generate(dias.length, (index) {
+              final isSelected = _selectedDayIndex == index;
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: ChoiceChip(
+                  label: Text(dias[index]),
+                  selected: isSelected,
+                  onSelected: (selected) {
+                    if (selected) setState(() => _selectedDayIndex = index);
+                  },
+                  selectedColor: const Color(0xFF1E3A8A),
+                  labelStyle: TextStyle(
+                    color: isSelected ? Colors.white : Colors.black87,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+              );
+            }),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Expanded(
+          child: _buildListaClasesDia(dias[_selectedDayIndex]),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildListaClasesDia(String dia) {
+    final clasesDia = widget.horarios.where((h) {
+        String normalize(String s) => s.toLowerCase()
+            .replaceAll('á', 'a')
+            .replaceAll('é', 'e')
+            .replaceAll('í', 'i')
+            .replaceAll('ó', 'o')
+            .replaceAll('ú', 'u');
+
+        final diaApi = normalize(h['dia']?.toString() ?? "");
+        return diaApi == normalize(dia);
+    }).toList();
+
+    clasesDia.sort((a, b) => _parseHora(a['hora_inicio']).compareTo(_parseHora(b['hora_inicio'])));
+
+    if (clasesDia.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.event_busy_rounded, size: 64, color: Colors.grey[300]),
+            const SizedBox(height: 16),
+            Text("No tienes clases este día", style: TextStyle(color: Colors.grey[500])),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      itemCount: clasesDia.length,
+      itemBuilder: (context, index) {
+        final h = clasesDia[index];
+        final materiaNombre = _getMateriaNombre(h['materia_id']);
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              gradient: _getColorForMateria(materiaNombre),
+            ),
+            child: ListTile(
+              title: Text(materiaNombre, style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("${h['hora_inicio']} - ${h['hora_fin']}", style: const TextStyle(fontWeight: FontWeight.w600)),
+                  Text("${_getCursoNombre(h['curso_id'])} | ${_getAulaNombre(h['aula_id'])}", style: const TextStyle(fontSize: 12)),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
   
@@ -1463,8 +1583,8 @@ class _HorarioCalendarioDialogState extends State<_HorarioCalendarioDialog> {
 
 class _FormularioReservaAula extends StatefulWidget {
   final int docenteId;
-
-  const _FormularioReservaAula({required this.docenteId});
+  final int idSede;
+  const _FormularioReservaAula({required this.docenteId, required this.idSede});
 
   @override
   _FormularioReservaAulaState createState() => _FormularioReservaAulaState();
@@ -2049,12 +2169,12 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
 
       // 1. Obtener datos basicos: Aulas, Eventos y Horario Diario (Reservas + Ocupación) y CANCELACIONES
       final resultsBasicos = await Future.wait([
-        _apiService.listarAulasPorSede(1),
-        _apiService.listarHorariosPorSede(1), // Eventos con fecha especifica
-        _apiService.listarDocentesPorSede(1), // Lista de todos los profes para ver sus recurrentes
-        _apiService.obtenerHorarioAulas(1, _fechaController.text), // Horario diario consolidado
-        _apiService.listarHorariosCancelados(1, _fechaController.text), // NUEVO: Cancelaciones para esta fecha
-        _apiService.listarReservasPorSede(1), // NUEVO: Reservas aprobadas
+        _apiService.listarAulasPorSede(widget.idSede),
+        _apiService.listarHorariosPorSede(widget.idSede), // Eventos con fecha especifica
+        _apiService.listarDocentesPorSede(widget.idSede), // Lista de todos los profes para ver sus recurrentes
+        _apiService.obtenerHorarioAulas(widget.idSede, _fechaController.text), // Horario diario consolidado
+        _apiService.listarHorariosCancelados(widget.idSede, _fechaController.text), // NUEVO: Cancelaciones para esta fecha
+        _apiService.listarReservasPorSede(widget.idSede), // NUEVO: Reservas aprobadas
       ]);
 
       final todasLasAulas = resultsBasicos[0] as List<dynamic>;
@@ -2066,7 +2186,7 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
 
       // 2. Obtener Horarios Recurrentes de TODOS los docentes (Optimizado)
       print("DEBUG: Fetcheando horarios recurrentes (Bulk)...");
-      final horarioRecurrenteTotal = await _apiService.listarHorariosDocentesPorSede(1);
+      final horarioRecurrenteTotal = await _apiService.listarHorariosDocentesPorSede(widget.idSede);
       
       print("DEBUG: Total Recurrentes Globales: ${horarioRecurrenteTotal.length}");
       print("DEBUG: Total Cancelaciones Fecha: ${cancelacionesFecha.length}");
