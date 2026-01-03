@@ -5,6 +5,7 @@ import 'package:excel/excel.dart';
 import 'package:universal_html/html.dart' as html; // For web download
 import '../services/api_service.dart';
 import '../widgets/admin_crud_layout.dart';
+import 'docente_screen.dart';
 
 class DocenteExcelImportScreen extends StatefulWidget {
   final int idSede;
@@ -248,6 +249,14 @@ class _DocenteExcelImportScreenState extends State<DocenteExcelImportScreen> {
       subtitle: "Carga masiva desde archivo Excel",
       idSede: widget.idSede,
       scrollable: false,
+      onBack: () {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DocentesScreen(idSede: widget.idSede),
+          ),
+        );
+      },
       child: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(

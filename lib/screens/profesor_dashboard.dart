@@ -97,158 +97,198 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Modern Header
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(32),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Theme.of(context).primaryColor,
-                        Theme.of(context).primaryColor.withOpacity(0.8),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Theme.of(context).primaryColor.withOpacity(0.3),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final isMobile = constraints.maxWidth < 600;
-                      
-                      if (isMobile) {
-                        return Column(
-                          children: [
-                             CircleAvatar(
-                                radius: 40,
-                                backgroundColor: Colors.white.withOpacity(0.2),
-                                child: Text(
-                                  widget.nombreProfesor.substring(0, 1).toUpperCase(),
-                                  style: const TextStyle(
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                "Hola, ${widget.nombreProfesor}",
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: -0.5,
-                                  decoration: TextDecoration.underline,
-                                  decorationColor: Colors.white70,
-                                ),
-                                textAlign: TextAlign.center,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: const Text(
-                                  "Panel de Gestión Académica",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        );
-                      }
 
-                      return Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 40,
-                            backgroundColor: Colors.white.withOpacity(0.2),
-                            child: Text(
-                              widget.nombreProfesor.substring(0, 1).toUpperCase(),
-                              style: const TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isMobile = constraints.maxWidth < 800;
+                      
+                      return _EnterAnimation(
+                        delay: 0,
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(32),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF2563EB), Color(0xFF1E40AF)], // Premium Blue Gradient
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF2563EB).withOpacity(0.3),
+                                blurRadius: 20,
+                                offset: const Offset(0, 10),
                               ),
-                            ),
+                            ],
                           ),
-                          const SizedBox(width: 24),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                GestureDetector(
-                                  onTap: _editarPerfil,
-                                  child: Text(
-                                    "Hola, ${widget.nombreProfesor}",
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 32,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: -0.5,
-                                      decoration: TextDecoration.underline,
-                                      decorationColor: Colors.white70,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          child: Stack(
+                            children: [
+                              // Decorative Circles
+                              Positioned(
+                                top: -50,
+                                right: -50,
+                                child: Container(
+                                  width: 200,
+                                  height: 200,
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: const Text(
-                                    "Panel de Gestión Académica",
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                                    color: Colors.white.withOpacity(0.05),
+                                    shape: BoxShape.circle,
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                              Positioned(
+                                bottom: -30,
+                                left: -30,
+                                child: Container(
+                                  width: 140,
+                                  height: 140,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.05),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ),
+                              
+                              // Content
+                              isMobile 
+                              ? Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+                                      ),
+                                      child: CircleAvatar(
+                                        radius: 40,
+                                        backgroundColor: Colors.white,
+                                        child: Text(
+                                          widget.nombreProfesor.isNotEmpty ? widget.nombreProfesor[0].toUpperCase() : "P",
+                                          style: const TextStyle(
+                                            fontSize: 32,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF1E40AF),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    const Text(
+                                      "Bienvenido de nuevo,",
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        color: Colors.white70,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      widget.nombreProfesor,
+                                      style: const TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                )
+                              : Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+                                      ),
+                                      child: CircleAvatar(
+                                        radius: 48,
+                                        backgroundColor: Colors.white,
+                                        child: Text(
+                                          widget.nombreProfesor.isNotEmpty ? widget.nombreProfesor[0].toUpperCase() : "P",
+                                          style: const TextStyle(
+                                            fontSize: 40,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF1E40AF),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 32),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            "Bienvenido de nuevo,",
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              color: Colors.white70,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            widget.nombreProfesor,
+                                            style: const TextStyle(
+                                              fontSize: 36,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                              letterSpacing: -0.5,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Row(
+                                            children: [
+                                              Icon(Icons.calendar_today_rounded, color: Colors.white70, size: 14),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                "Panel de Gestión Académica",
+                                                style: TextStyle(
+                                                  color: Colors.white70,
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                            ],
+                                          )
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                            ],
                           ),
-                        ], 
+                        ),
                       );
                     },
                   ), 
-                ), 
+ 
                 
                 const SizedBox(height: 40),
                 
-                Row(
-                  children: [
-                    Icon(
-                      Icons.grid_view_rounded,
-                      size: 28,
-                      color: textColor,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      "Accesos Rápidos",
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+                _EnterAnimation(
+                  delay: 150,
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.grid_view_rounded,
+                        size: 28,
                         color: textColor,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 12),
+                      Text(
+                        "Accesos Rápidos",
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 24),
                 
@@ -262,60 +302,80 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
                           ? 4 
                           : (constraints.maxWidth > 700 
                               ? 3 
-                              : (constraints.maxWidth > 500 ? 2 : 1)),
+                              : (constraints.maxWidth > 350 ? 2 : 1)),
                       crossAxisSpacing: 32,
                       mainAxisSpacing: 32,
                       childAspectRatio: 1.2,
                       children: [
-                        _buildModuleCard(
-                        "Croquis Institucional",
-                        Icons.map_rounded,
-                        "Ubicación general",
-                        const Color(0xFF6366F1),
-                        () => _verCroquisPlazas(),
-                      ),
-
-                        _buildModuleCard(
-                          "Mis Materias",
-                          Icons.menu_book_rounded,
-                          "${materias.length} asignadas",
-                          const Color(0xFF3B82F6), // Blue
-                          () => _mostrarMaterias(),
+                        _EnterAnimation(
+                          delay: 300,
+                          child: _buildModuleCard(
+                            "Croquis Institucional",
+                            Icons.map_rounded,
+                            "Ubicación general",
+                            const Color(0xFF6366F1),
+                            () => _verCroquisPlazas(),
+                          ),
                         ),
-                        _buildModuleCard(
-                          "Mi Horario",
-                          Icons.calendar_month_rounded,
-                          "${horarios.length} clases",
-                          const Color(0xFF10B981), // Emerald
-                          () => _mostrarHorarios(),
+                        _EnterAnimation(
+                          delay: 350,
+                          child: _buildModuleCard(
+                            "Mis Materias",
+                            Icons.menu_book_rounded,
+                            "${materias.length} asignadas",
+                            const Color(0xFF3B82F6), // Blue
+                            () => _mostrarMaterias(),
+                          ),
                         ),
-                        _buildModuleCard(
-                          "Mis Reservas",
-                          Icons.bookmark_rounded,
-                          "${reservas.length} activas",
-                          const Color(0xFF8B5CF6), // Violet
-                          () => _mostrarReservas(),
+                        _EnterAnimation(
+                          delay: 400,
+                          child: _buildModuleCard(
+                            "Mi Horario",
+                            Icons.calendar_month_rounded,
+                            "${horarios.length} clases",
+                            const Color(0xFF10B981), // Emerald
+                            () => _mostrarHorarios(),
+                          ),
                         ),
-                        _buildModuleCard(
-                          "Reservar Aula",
-                          Icons.add_circle_outline_rounded,
-                          "Nueva solicitud",
-                          const Color(0xFFF59E0B), // Amber
-                          () => _crearReserva(),
+                        _EnterAnimation(
+                          delay: 450,
+                          child: _buildModuleCard(
+                            "Mis Reservas",
+                            Icons.bookmark_rounded,
+                            "${reservas.length} activas",
+                            const Color(0xFF8B5CF6), // Violet
+                            () => _mostrarReservas(),
+                          ),
                         ),
-                        _buildModuleCard(
-                          "Horarios PDF",
-                          Icons.picture_as_pdf_rounded,
-                          "Descargar",
-                          const Color(0xFFEF4444), // Red
-                          () => _verHorarios(),
+                        _EnterAnimation(
+                          delay: 500,
+                          child: _buildModuleCard(
+                            "Reservar Aula",
+                            Icons.add_circle_outline_rounded,
+                            "Nueva solicitud",
+                            const Color(0xFFF59E0B), // Amber
+                            () => _crearReserva(),
+                          ),
                         ),
-                        _buildModuleCard(
-                          "Sala de Profesores",
-                          Icons.desk,
-                          "Mi escritorio",
-                          const Color(0xFF10B981),
-                          () => _verCroquis(),
+                        _EnterAnimation(
+                          delay: 550,
+                          child: _buildModuleCard(
+                            "Horarios PDF",
+                            Icons.picture_as_pdf_rounded,
+                            "Descargar",
+                            const Color(0xFFEF4444), // Red
+                            () => _verHorarios(),
+                          ),
+                        ),
+                        _EnterAnimation(
+                          delay: 600,
+                          child: _buildModuleCard(
+                            "Sala de Profesores",
+                            Icons.desk,
+                            "Mi escritorio",
+                            const Color(0xFF10B981),
+                            () => _verCroquis(),
+                          ),
                         ),
                       ],
                     );
@@ -333,97 +393,16 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
     Color color,
     VoidCallback onTap,
   ) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                color.withOpacity(0.06),
-                color.withOpacity(0.02),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: color.withOpacity(0.15), width: 1.5),
-            boxShadow: [
-              BoxShadow(
-                color: color.withOpacity(0.15),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-              BoxShadow(
-                color: Colors.white.withOpacity(0.5),
-                blurRadius: 15,
-                offset: const Offset(0, -8),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [color, color.withOpacity(0.8)],
-                  ),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: color.withOpacity(0.4),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Icon(icon, color: Colors.white, size: 32),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1E293B),
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 6),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w500,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      ),
+    return _HoverableCard(
+      title: title,
+      icon: icon,
+      subtitle: subtitle,
+      color: color,
+      onTap: onTap,
     );
   }
 
-  void _editarPerfil() {
-    showGeneralDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: "Cerrar",
-      transitionDuration: const Duration(milliseconds: 300),
-      pageBuilder: (context, anim1, anim2) {
-        return _EditarPerfilDialog(
-          docenteId: widget.docenteId,
-          nombreActual: widget.nombreProfesor,
-        );
-      },
-    );
-  }
+
 
   void _mostrarMaterias() {
     showGeneralDialog(
@@ -754,10 +733,7 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
 
 
 
-  void _cerrarSesion() async {
-    await _apiService.logout();
-    Navigator.pushReplacementNamed(context, '/');
-  }
+
 
   void _verHorarios() {
     showGeneralDialog(
@@ -892,6 +868,24 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
       )
     );
   }
+
+  Future<void> _cerrarSesion() async {
+    await _apiService.clearStorage();
+    if (mounted) {
+      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+    }
+  }
+
+  void _editarPerfil() {
+    showDialog(
+      context: context,
+      builder: (_) => _EditarPerfilDialog(
+        docenteId: widget.docenteId,
+        nombreActual: widget.nombreProfesor,
+      ),
+    );
+  }
+
 }
 
 class _HorarioAulasDialog extends StatefulWidget {
@@ -2413,7 +2407,6 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
           )
         );
       } else {
-        _showPremiumSnackBar("Error al crear reserva", color: Colors.red, icon: Icons.error_outline_rounded);
       }
     } catch (e) {
       setState(() => cargando = false);
@@ -2439,157 +2432,309 @@ class _EditarPerfilDialog extends StatefulWidget {
 
 class _EditarPerfilDialogState extends State<_EditarPerfilDialog> {
   final _apiService = ApiService();
-  final _nombreController = TextEditingController();
+  
+  // Controladores (Solo Password es editable)
   final _newPassController = TextEditingController();
   final _confirmPassController = TextEditingController();
-  bool cargando = false;
+  
+  // Datos del docente (Solo lectura)
+  String _nombres = "Cargando...";
+  String _apellidos = "";
+  String _correo = "";
+  
+  bool cargando = true;
+  bool guardando = false;
+  bool _obscureNewPass = true;
+  bool _obscureConfirmPass = true;
 
   @override
   void initState() {
     super.initState();
-    _nombreController.text = widget.nombreActual;
+    _cargarDatosDocente();
+  }
+
+  Future<void> _cargarDatosDocente() async {
+    try {
+      final data = await _apiService.obtenerDocente(widget.docenteId);
+      if (data != null) {
+        setState(() {
+          _nombres = data["nombres"] ?? "";
+          _apellidos = data["apellidos"] ?? "";
+          _correo = data["correo"] ?? "";
+          cargando = false;
+        });
+      } else {
+        setState(() {
+          _nombres = "Error al cargar";
+          cargando = false;
+        });
+      }
+    } catch (e) {
+      print("Error cargando perfil: $e");
+      setState(() => cargando = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return _PremiumDialog(
-      title: "Editar Perfil",
-      subtitle: "Actualiza tu información personal",
-      icon: Icons.person_rounded,
-      color: const Color(0xFF1E3A8A),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            TextField(
-              controller: _nombreController,
-              decoration: InputDecoration(
-                labelText: "Nombre Completo",
-                prefixIcon: const Icon(Icons.person_outline),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                filled: true,
-                fillColor: Colors.grey[50],
-              ),
-            ),
-            const SizedBox(height: 24),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.orange.withOpacity(0.2)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
-                    children: [
-                      Icon(Icons.lock_outline, color: Colors.orange),
-                      SizedBox(width: 8),
-                      Text("Seguridad", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _newPassController,
-                    decoration: InputDecoration(
-                      labelText: "Nueva Contraseña",
-                      hintText: "Dejar en blanco para mantener",
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      filled: true,
-                      fillColor: Colors.white,
-                    ),
-                    obscureText: true,
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _confirmPassController,
-                    decoration: InputDecoration(
-                      labelText: "Confirmar Nueva Contraseña",
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      filled: true,
-                      fillColor: Colors.white,
-                    ),
-                    obscureText: true,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                if (constraints.maxWidth < 500) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      ElevatedButton.icon(
-                        onPressed: cargando ? null : _guardarCambios,
-                        icon: cargando
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                              )
-                            : const Icon(Icons.save),
-                        label: Text(cargando ? "Guardando..." : "Guardar Cambios"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1E3A8A),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(16),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 500),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              )
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 1. Header Azul con Avatar
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.only(top: 32, bottom: 24),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF1E3A8A), // Azul Institucional
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                child: Column(
+                  children: [
+                    // Avatar
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: CircleAvatar(
+                        radius: 40,
+                        backgroundColor: Colors.white,
+                        child: Text(
+                          widget.nombreActual.isNotEmpty ? widget.nombreActual[0].toUpperCase() : "D",
+                          style: const TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1E3A8A),
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text("Cancelar"),
+                    ),
+                    const SizedBox(height: 16),
+                    // Nombre
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        widget.nombreActual,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
-                    ],
-                  );
-                }
-                return Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                    ),
+                    const SizedBox(height: 8),
+                    // Badge "DOCENTE"
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Text(
+                        "DOCENTE",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // 2. Cuerpo del Perfil
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: cargando 
+                    ? const Center(child: CircularProgressIndicator()) 
+                    : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Sección: Información Personal (Solo Lectura)
+                        _buildSectionTitle("Información Personal", Icons.person_outline),
+                        const SizedBox(height: 16),
+                        _buildReadOnlyField("Nombres", _nombres, Icons.badge_outlined),
+                        const SizedBox(height: 12),
+                        _buildReadOnlyField("Apellidos", _apellidos, Icons.badge_outlined),
+                        const SizedBox(height: 12),
+                        _buildReadOnlyField("Correo Electrónico", _correo, Icons.email_outlined),
+
+                        const SizedBox(height: 24),
+                        const Divider(),
+                        const SizedBox(height: 24),
+
+                        // Sección: Seguridad (Editable)
+                        _buildSectionTitle("Seguridad", Icons.lock_outline, color: Colors.orange),
+                        const SizedBox(height: 16),
+                        _buildPasswordField(
+                          controller: _newPassController,
+                          label: "Nueva Contraseña",
+                          obscureText: _obscureNewPass,
+                          onToggleVisibility: () => setState(() => _obscureNewPass = !_obscureNewPass),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildPasswordField(
+                          controller: _confirmPassController,
+                          label: "Confirmar Nueva Contraseña",
+                          obscureText: _obscureConfirmPass,
+                          onToggleVisibility: () => setState(() => _obscureConfirmPass = !_obscureConfirmPass),
+                        ),
+                        
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(Icons.info_outline, size: 14, color: Colors.orange[700]),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                "Déjalo en blanco si no deseas cambiar tu contraseña.",
+                                style: TextStyle(fontSize: 12, color: Colors.orange[800]),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                ),
+              ),
+
+              // 3. Footer Botones
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  border: Border(top: BorderSide(color: Colors.grey.shade100)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text("Cancelar"),
+                      child: const Text("Cancelar", style: TextStyle(color: Colors.grey)),
                     ),
-                    const SizedBox(width: 16),
                     ElevatedButton.icon(
-                      onPressed: cargando ? null : _guardarCambios,
-                      icon: cargando
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                            )
-                          : const Icon(Icons.save),
-                      label: Text(cargando ? "Guardando..." : "Guardar Cambios"),
+                      onPressed: guardando ? null : _guardarCambios,
+                      icon: guardando 
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.save_rounded, size: 18),
+                      label: Text(guardando ? "Guardando..." : "Guardar Cambios"),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF1E3A8A),
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
                   ],
-                );
-              },
-            ),
-          ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Future<void> _guardarCambios() async {
-    if (_nombreController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("El nombre no puede estar vacío")),
-      );
-      return;
-    }
+  Widget _buildSectionTitle(String title, IconData icon, {Color color = const Color(0xFF1E3A8A)}) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: color),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ],
+    );
+  }
 
+  Widget _buildReadOnlyField(String label, String value, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.grey[50], // Fondo grisáceo para indicar "disabled"
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.grey[400], size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(fontSize: 11, color: Colors.grey[500], fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: const TextStyle(fontSize: 14, color: Colors.black87, fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.lock, color: Colors.grey, size: 16), // Candadito visual
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPasswordField({
+    required TextEditingController controller, 
+    required String label, 
+    required bool obscureText,
+    required VoidCallback onToggleVisibility,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: obscureText,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: const Icon(Icons.lock_outline_rounded, color: Colors.orange),
+        suffixIcon: IconButton(
+          icon: Icon(obscureText ? Icons.visibility_outlined : Icons.visibility_off_outlined, color: Colors.grey),
+          onPressed: onToggleVisibility,
+        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.orange)),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      ),
+    );
+  }
+
+  Future<void> _guardarCambios() async {
+    // Solo validamos contraseña si se escribió algo
     if (_newPassController.text.isNotEmpty) {
       if (_newPassController.text != _confirmPassController.text) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -2597,37 +2742,39 @@ class _EditarPerfilDialogState extends State<_EditarPerfilDialog> {
         );
         return;
       }
-    }
 
-    setState(() => cargando = true);
+      setState(() => guardando = true);
 
-    try {
-      // Actualizar nombre
-      final successNombre = await _apiService.actualizarDocente(widget.docenteId, {"nombres": _nombreController.text});
+      try {
+        final success = await _apiService.actualizarContrasenaDocente(widget.docenteId, _newPassController.text);
+        
+        setState(() => guardando = false);
 
-      bool successPass = true;
-      if (_newPassController.text.isNotEmpty) {
-        successPass = await _apiService.actualizarContrasenaDocente(widget.docenteId, _newPassController.text);
-      }
-
-      setState(() => cargando = false);
-
-      if (successNombre && successPass) {
-        Navigator.pop(context);
+        if (success) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Contraseña actualizada exitosamente"),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Error al actualizar contraseña"),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } catch (e) {
+        setState(() => guardando = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Perfil actualizado exitosamente")),
-        );
-        // Aquí podrías recargar los datos si es necesario
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Error al actualizar perfil")),
+          SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
         );
       }
-    } catch (e) {
-      setState(() => cargando = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
+    } else {
+      // Si no hay contraseña, solo cerramos el diálogo (pues el resto es read-only)
+      Navigator.pop(context);
     }
   }
 }
@@ -2746,6 +2893,213 @@ class _PremiumDialog extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+
+
+class _EnterAnimation extends StatefulWidget {
+  final Widget child;
+  final int delay;
+
+  const _EnterAnimation({required this.child, this.delay = 0});
+
+  @override
+  State<_EnterAnimation> createState() => _EnterAnimationState();
+}
+
+class _EnterAnimationState extends State<_EnterAnimation> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    
+    _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
+    _slideAnimation = Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
+
+    Future.delayed(Duration(milliseconds: widget.delay), () {
+      if (mounted) _controller.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: SlideTransition(
+        position: _slideAnimation,
+        child: widget.child,
+      ),
+    );
+  }
+}
+
+class _HoverableCard extends StatefulWidget {
+  final String title;
+  final IconData icon;
+  final String subtitle;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _HoverableCard({
+    required this.title,
+    required this.icon,
+    required this.subtitle,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  State<_HoverableCard> createState() => _HoverableCardState();
+}
+
+class _HoverableCardState extends State<_HoverableCard> with SingleTickerProviderStateMixin {
+  bool _isHovered = false;
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _iconScaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.05).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+    _iconScaleAnimation = Tween<double>(begin: 1.0, end: 1.2).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) {
+        setState(() => _isHovered = true);
+        _controller.forward();
+      },
+      onExit: (_) {
+        setState(() => _isHovered = false);
+        _controller.reverse();
+      },
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTapDown: (_) => _controller.forward(),
+        onTapUp: (_) => _controller.reverse(),
+        onTapCancel: () => _controller.reverse(),
+        onTap: widget.onTap,
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return Transform.scale(
+              scale: _scaleAnimation.value,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: _isHovered 
+                    ? [widget.color.withOpacity(0.1), widget.color.withOpacity(0.05)]
+                    : [widget.color.withOpacity(0.06), widget.color.withOpacity(0.02)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: widget.color.withOpacity(_isHovered ? 0.8 : 0.2), // Brighter border on hover
+                    width: _isHovered ? 2.0 : 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: widget.color.withOpacity(_isHovered ? 0.25 : 0.15),
+                      blurRadius: _isHovered ? 30 : 15,
+                      offset: Offset(0, _isHovered ? 15 : 8),
+                    ),
+                    BoxShadow(
+                      color: Colors.white.withOpacity(0.5),
+                      blurRadius: 15,
+                      offset: const Offset(0, -8),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            widget.color,
+                            widget.color.withOpacity(0.8),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: widget.color.withOpacity(0.4),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Transform.scale(
+                        scale: _iconScaleAnimation.value,
+                        child: Icon(widget.icon, color: Colors.white, size: 32),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      widget.title,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: _isHovered ? widget.color : const Color(0xFF1E293B), // Color shift on hover
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      widget.subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
         ),
       ),
     );

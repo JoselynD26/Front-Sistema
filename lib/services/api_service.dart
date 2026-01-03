@@ -10,9 +10,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   // Servidor de Producción (Hardcoded para garantizar conexión)
-  final String baseUrl = "https://sistema-de-gestion-act-bj8j.onrender.com";
+  // final String baseUrl = "https://sistema-de-gestion-act-bj8j.onrender.com";
   // Localhost (Para pruebas locales en Web)
-  // final String baseUrl = "http://localhost:8000";
+  final String baseUrl = "http://localhost:8000";
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
   // 🔒 STORAGE HELPERS (Conditional Web/Mobile)
@@ -57,7 +57,7 @@ class ApiService {
       
       final response = await http.post(url, headers: {
         "Content-Type": "application/json",
-      }, body: body).timeout(Duration(seconds: 30));
+      }, body: body).timeout(Duration(seconds: 90));
 
       print("[LOGIN] ${response.statusCode} -> ${response.body}");
       
@@ -65,25 +65,29 @@ class ApiService {
         final data = jsonDecode(response.body);
         final token = data["access_token"];
         if (token != null) {
-          await _storageWrite(key: "jwt", value: token);
+          final writes = <Future>[];
+          writes.add(_storageWrite(key: "jwt", value: token));
+
           if (data.containsKey("rol")) {
-            await _storageWrite(key: "rol", value: data["rol"].toString());
+            writes.add(_storageWrite(key: "rol", value: data["rol"].toString()));
           }
           if (data.containsKey("id")) {
-            await _storageWrite(key: "usuario_id", value: data["id"].toString());
+            writes.add(_storageWrite(key: "usuario_id", value: data["id"].toString()));
           }
           if (data.containsKey("nombres")) {
-            await _storageWrite(key: "nombres", value: data["nombres"].toString());
+            writes.add(_storageWrite(key: "nombres", value: data["nombres"].toString()));
           }
           if (data.containsKey("apellidos")) {
-            await _storageWrite(key: "apellidos", value: data["apellidos"].toString());
+            writes.add(_storageWrite(key: "apellidos", value: data["apellidos"].toString()));
           }
           if (data.containsKey("docente_id") && data["docente_id"] != null) {
             final dId = data["docente_id"].toString();
-            await _storageWrite(key: "docente_id", value: dId);
+            writes.add(_storageWrite(key: "docente_id", value: dId));
           }
           // Guardar correo
-          await _storageWrite(key: "email", value: username);
+          writes.add(_storageWrite(key: "email", value: username));
+
+          await Future.wait(writes);
           return true;
         }
       }
@@ -430,12 +434,24 @@ Future<bool> eliminarSede(int id) async {
     return _isSuccess(r.statusCode);
   }
 
+  // Eliminar Curso
   Future<bool> eliminarCurso(int id) async {
     final url = Uri.parse("$baseUrl/cursos/$id");
-    final headers = await _headers(json: false);
-    final r = await http.delete(url, headers: headers);
-    print("[CURSOS][DELETE] ${r.statusCode} -> ${r.body}");
-    return _isSuccess(r.statusCode);
+    final headers = await _headers();
+    final response = await http.delete(url, headers: headers);
+    return _isSuccess(response.statusCode);
+  }
+
+  // Obtener Docente por ID
+  Future<Map<String, dynamic>?> obtenerDocente(int id) async {
+    final url = Uri.parse("$baseUrl/docentes/$id");
+    final headers = await _headers();
+    final response = await http.get(url, headers: headers);
+    print("[DOCENTE] Obtener $id: ${response.statusCode}");
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    return null;
   }
 
 // ==============================
@@ -611,7 +627,14 @@ Future<bool> eliminarSede(int id) async {
 
   // ✅ NUEVO: actualizar contraseña del docente
   Future<bool> actualizarContrasenaDocente(int docenteId, String nueva) async {
-    final url = Uri.parse("$baseUrl/usuarios/reset/$docenteId");
+    // FIX: Usar ID de usuario asociado, no ID de docente
+    final usuarioId = await _storageRead(key: "usuario_id");
+    if (usuarioId == null) { 
+        print("[ERROR] No verification user id found");
+        return false; 
+    }
+
+    final url = Uri.parse("$baseUrl/usuarios/reset/$usuarioId");
     final headers = await _headers();
     final body = jsonEncode({"nueva_contrasena": nueva});
 
@@ -761,6 +784,25 @@ Future<bool> eliminarSede(int id) async {
     return null;
   }
 
+
+  Future<bool> solicitarRecuperacion(String correo) async {
+    try {
+      final url = Uri.parse("$baseUrl/usuarios/recuperar-contrasena/");
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"correo": correo}),
+      );
+
+      print("[RECUPERACION] ${response.statusCode} -> ${response.body}");
+      
+      // Aceptamos 200 OK o 201 Created
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (e) {
+      print("[ERROR][RECUPERACION] $e");
+      return false;
+    }
+  }
 
   // --------------------------------------------------
   // 🗓️ HORARIOS - CRUD

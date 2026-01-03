@@ -25,7 +25,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _nombresController = TextEditingController();
   final TextEditingController _apellidosController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController(); // Optional
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
+
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   String _rol = "Cargando...";
   int? _userId;
@@ -58,19 +62,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _guardarCambios() async {
     if (_userId == null) return;
 
+    if (_passwordController.text.isNotEmpty) {
+      if (_passwordController.text != _confirmPasswordController.text) {
+        if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Las contraseñas no coinciden"), backgroundColor: Colors.red),
+          );
+        }
+        return;
+      }
+    }
+
     setState(() => _isSaving = true);
 
+    // 1. Update Personal Info
     final data = {
       "nombres": _nombresController.text.trim(),
       "apellidos": _apellidosController.text.trim(),
       "correo": _emailController.text.trim(),
-      // Add password only if user typed something
-      if (_passwordController.text.isNotEmpty) "contrasena": _passwordController.text,
     };
 
-    final exito = await _api.actualizarUsuario(_userId!, data);
+    final exitoInfo = await _api.actualizarUsuario(_userId!, data);
 
-    if (exito) {
+    bool exitoPassword = true;
+    // 2. Update Password if provided
+    if (_passwordController.text.isNotEmpty && exitoInfo) {
+      // Use logic similar to teacher dashboard
+      exitoPassword = await _api.actualizarContrasenaDocente(0, _passwordController.text); // ID 0 is ignored, uses stored user_id
+    }
+
+    if (exitoInfo && exitoPassword) {
       // Update local storage
       await _api.writeStorage("nombres", data["nombres"]!);
       await _api.writeStorage("apellidos", data["apellidos"]!);
@@ -84,6 +105,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _isEditing = false;
           _isSaving = false;
           _passwordController.clear();
+          _confirmPasswordController.clear();
         });
       }
     } else {
@@ -134,8 +156,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
 
-          // 🔹 3. MAIN CONTENT (Moved behind the button in code, but button needs to be on TOP visually -> Button last in list)
-          // Wait, 'Main Content' goes first if we want button on top.
+          // 🔹 3. MAIN CONTENT
           SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 140, 20, 40),
             child: Center(
@@ -255,7 +276,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             _buildTextField("Correo Electrónico", _emailController, Icons.email_rounded),
                             const SizedBox(height: 20),
                             if (_isEditing) ...[
-                              _buildTextField("Nueva Contraseña", _passwordController, Icons.lock_rounded, isPassword: true),
+                              _buildTextField("Nueva Contraseña", _passwordController, Icons.lock_rounded, isPassword: true, 
+                                obscureText: _obscurePassword, 
+                                onToggleVisibility: () => setState(() => _obscurePassword = !_obscurePassword)
+                              ),
+                              const SizedBox(height: 20),
+                              _buildTextField("Confirmar Contraseña", _confirmPasswordController, Icons.lock_outline_rounded, isPassword: true,
+                                obscureText: _obscureConfirmPassword,
+                                onToggleVisibility: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword)
+                              ),
                               const SizedBox(height: 8),
                               const Row(
                                 children: [
@@ -286,7 +315,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
 
-          // 🔹 4. BACK BUTTON (Moved to LAST to be clickable on top)
+          // 🔹 4. BACK BUTTON
           Positioned(
             top: 40,
             left: 20,
@@ -311,7 +340,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       (route) => false,
                     );
                   } else {
-                    // Redirigir a Selección de Sede con el título correcto
                     Navigator.of(context).pushAndRemoveUntil(
                       MaterialPageRoute(
                         builder: (context) => const SedeScreen()
@@ -333,18 +361,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, IconData icon, {bool isPassword = false}) {
+  Widget _buildTextField(String label, TextEditingController controller, IconData icon, {
+    bool isPassword = false, 
+    bool obscureText = false,
+    VoidCallback? onToggleVisibility
+  }) {
     if (!_isEditing) {
-      if (isPassword) return const SizedBox.shrink(); // Hide password field in view mode
+      if (isPassword) return const SizedBox.shrink();
       return _buildStaticField(label, controller.text, icon);
     }
 
     return TextFormField(
       controller: controller,
-      obscureText: isPassword,
+      obscureText: isPassword ? obscureText : false,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon),
+        suffixIcon: isPassword 
+          ? IconButton(
+              icon: Icon(obscureText ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+              onPressed: onToggleVisibility,
+            )
+          : null,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         filled: true,
         fillColor: Colors.grey.shade50,

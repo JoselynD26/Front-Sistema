@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:universal_html/html.dart' as html; // For web download
 import '../services/api_service.dart';
 import '../widgets/admin_crud_layout.dart';
+import 'aula_screen.dart';
 
 class HorarioAulaExcelImportScreen extends StatefulWidget {
   final int idSede;
@@ -509,6 +510,14 @@ class _HorarioAulaExcelImportScreenState extends State<HorarioAulaExcelImportScr
       subtitle: "Carga horarios de aulas desde Excel",
       idSede: widget.idSede,
       scrollable: false, // Usamos Columna con expanded
+      onBack: () {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AulasScreen(idSede: widget.idSede),
+          ),
+        );
+      },
       child: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(

@@ -301,6 +301,22 @@ class _LoginScreenState extends State<LoginScreen> with SafeStateMixin {
             });
           },
         ),
+        
+        // Forgot password
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: () => _mostrarDialogoRecuperacion(context),
+            child: const Text(
+              "¿Olvidaste tu contraseña?",
+              style: TextStyle(
+                color: Color(0xFF1E3A8A),
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+          ),
+        ),
 
         const SizedBox(height: 16),
         
@@ -383,7 +399,7 @@ class _LoginScreenState extends State<LoginScreen> with SafeStateMixin {
         
         const SizedBox(height: 24),
         Text(
-          "Desarrollado por Joselyn Dicao, María Ortiz y Raul Hidalgo",
+          "Desarrollado por Joselyn Dicao y María Ortiz",
           style: TextStyle(fontSize: 11, color: Colors.grey[400]),
           textAlign: TextAlign.center,
         ),
@@ -440,6 +456,183 @@ class _LoginScreenState extends State<LoginScreen> with SafeStateMixin {
           ),
         ),
       ],
+    );
+  }
+
+  void _mostrarDialogoRecuperacion(BuildContext context) {
+    final _correoController = TextEditingController();
+    bool enviando = false;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              elevation: 0,
+              backgroundColor: const Color(0xffEEEEEE), // Slightly grey to contrast with white cards
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 400),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 10))
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Header with Gradient
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      width: double.infinity,
+                      decoration: const BoxDecoration(
+                        borderRadius: BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF0C2461), Color(0xFF1E3A8A)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.lock_reset_rounded, color: Colors.white, size: 40),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            "Recuperar Acceso",
+                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    // Content
+                    Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        children: [
+                          Text(
+                            "Ingresa tu correo electrónico institucional para recibir una contraseña temporal.",
+                            style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 24),
+                          
+                          // Styled Input
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.grey[50], 
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset:const Offset(0,2))
+                              ]
+                            ),
+                            child: TextField(
+                              controller: _correoController,
+                              style: const TextStyle(fontWeight: FontWeight.w500),
+                              decoration: InputDecoration(
+                                hintText: "ejemplo@yavirac.edu.ec",
+                                hintStyle: TextStyle(color: Colors.grey[400]),
+                                prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFF1E3A8A)),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                                contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                                filled: true,
+                                fillColor: Colors.transparent, 
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 32),
+                          
+                          // Actions
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextButton(
+                                  onPressed: () => Navigator.pop(dialogContext),
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    foregroundColor: Colors.grey[600],
+                                  ),
+                                  child: const Text("Cancelar", style: TextStyle(fontWeight: FontWeight.w600)),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: enviando ? null : () async {
+                                    if (_correoController.text.isEmpty || !_correoController.text.contains("@")) {
+                                       // Simple verification
+                                       return; 
+                                    }
+                                    setStateDialog(() => enviando = true);
+                                    final success = await _apiService.solicitarRecuperacion(_correoController.text.trim());
+                                    setStateDialog(() => enviando = false);
+                                    
+                                    if (mounted) {
+                                      Navigator.pop(dialogContext); // Close dialog
+                                      if (success) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Row(children: const [
+                                              Icon(Icons.check_circle_rounded, color: Colors.white), 
+                                              SizedBox(width: 8), 
+                                              Text("Correo enviado con éxito")
+                                            ]),
+                                            backgroundColor: Colors.green[700],
+                                            behavior: SnackBarBehavior.floating,
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                          )
+                                        );
+                                      } else {
+                                         ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Row(children: const [
+                                              Icon(Icons.error_outline_rounded, color: Colors.white), 
+                                              SizedBox(width: 8), 
+                                              Text("No se encontró el usuario")
+                                            ]),
+                                            backgroundColor: Colors.red[700],
+                                            behavior: SnackBarBehavior.floating,
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                          )
+                                        );
+                                      }
+                                    }
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF1E3A8A),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                  child: enviando 
+                                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                    : const Text("Enviar Instrucciones", style: TextStyle(fontWeight: FontWeight.bold)),
+                                ),
+                              ),
+                            ],
+                          )
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

@@ -5,6 +5,7 @@ import 'package:excel/excel.dart';
 import 'package:universal_html/html.dart' as html;
 import '../services/api_service.dart';
 import '../widgets/admin_crud_layout.dart';
+import 'materia_screen.dart';
 
 class MateriaExcelImportScreen extends StatefulWidget {
   final int idSede;
@@ -305,6 +306,14 @@ class _MateriaExcelImportScreenState extends State<MateriaExcelImportScreen> {
       subtitle: "Carga masiva desde archivo Excel",
       idSede: widget.idSede,
       scrollable: false,
+      onBack: () {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => MateriasScreen(idSede: widget.idSede),
+          ),
+        );
+      },
       child: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
