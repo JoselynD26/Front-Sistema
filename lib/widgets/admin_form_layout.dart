@@ -122,7 +122,12 @@ class AdminFormLayout extends StatelessWidget {
                             
                             // Form Content
                             Padding(
-                              padding: const EdgeInsets.fromLTRB(40, 0, 40, 40),
+                              padding: EdgeInsets.fromLTRB(
+                                MediaQuery.of(context).size.width < 600 ? 20 : 40, 
+                                0, 
+                                MediaQuery.of(context).size.width < 600 ? 20 : 40, 
+                                40
+                              ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
@@ -158,7 +163,7 @@ class AdminFormLayout extends StatelessWidget {
 
   Widget _buildHeader(BuildContext context, Color textColor, bool isDark) {
     return Container(
-      padding: const EdgeInsets.all(40),
+      padding: EdgeInsets.all(MediaQuery.of(context).size.width < 600 ? 24 : 40),
       child: Column(
         children: [
           Hero(

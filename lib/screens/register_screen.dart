@@ -63,7 +63,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     try {
       final url = Uri.parse("${_apiService.baseUrl}/solicitar-codigo-admin/?email=${Uri.encodeComponent(_correoController.text.trim())}&nombres=${Uri.encodeComponent(_nombresController.text.trim())}");
-      final response = await http.post(url);
+      print("DEBUG [REGISTRO]: Solicitando código a $url");
+      final response = await http.post(url).timeout(const Duration(seconds: 90));
 
       setState(() => cargando = false);
 
@@ -73,14 +74,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
           mensaje = "Solicitud enviada. Los administradores recibirán un código de autorización. Contáctalos para obtenerlo.";
         });
       } else {
-        setState(() => error = "Error al enviar código. Intenta nuevamente.");
+        String msg = "Error al enviar código. Intenta nuevamente.";
+        try {
+          final data = jsonDecode(response.body);
+          if (data["detail"] != null) msg = data["detail"];
+        } catch(_) {}
+        setState(() => error = msg);
       }
     } catch (e) {
+      print("DEBUG [REGISTRO ERROR]: $e");
+      String errorMsg = "Error de conexión. Intenta nuevamente.";
+      if (e.toString().contains("Timeout") || e.toString().contains("timed out")) {
+        errorMsg = "El servidor está despertando (Cold Start). Esto puede tardar hasta 1-2 minutos la primera vez. Por favor, espera un momento y presiona 'Continuar' de nuevo.";
+      }
       setState(() {
         cargando = false;
-        error = "Error de conexión. Intenta nuevamente.";
+        error = errorMsg;
       });
     }
+
   }
 
   Future<void> _register() async {
@@ -100,7 +112,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     try {
       final url = Uri.parse("${_apiService.baseUrl}/registro-admin/?correo=${Uri.encodeComponent(_correoController.text.trim())}&contrasena=${Uri.encodeComponent(_contrasenaController.text.trim())}&nombres=${Uri.encodeComponent(_nombresController.text.trim())}&apellidos=${Uri.encodeComponent(_apellidosController.text.trim())}&codigo_verificacion=${Uri.encodeComponent(_codigoController.text.trim())}");
-      final response = await http.post(url);
+      final response = await http.post(url).timeout(const Duration(seconds: 90));
 
       setState(() => cargando = false);
 
@@ -117,11 +129,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
         setState(() => error = data["detail"] ?? "Error al registrar administrador");
       }
     } catch (e) {
+      print("DEBUG [REGISTRO ERROR]: $e");
+      String errorMsg = "Error de conexión. Intenta nuevamente.";
+      if (e.toString().contains("Timeout") || e.toString().contains("timed out")) {
+        errorMsg = "El servidor está despertando. Por favor reintenta en unos segundos.";
+      }
       setState(() {
         cargando = false;
-        error = "Error de conexión. Intenta nuevamente.";
+        error = errorMsg;
       });
     }
+
   }
 
   @override
@@ -151,11 +169,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     Color(0xFF1E3A8A), // Brand Blue
                     Color(0xFF4A69BD), // Lighter "Premium" Blue
                   ],
-                ),
-                image: DecorationImage(
-                  image: NetworkImage("https://www.transparenttextures.com/patterns/cubes.png"),
-                  fit: BoxFit.cover,
-                  opacity: 0.05,
                 ),
               ),
               child: Center(

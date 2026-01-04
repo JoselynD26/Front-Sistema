@@ -11,7 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class ApiService {
   // Servidor de Producción (Hardcoded para garantizar conexión)
   final String baseUrl = "https://sistema-de-gestion-act-bj8j.onrender.com";
-  // Localhost (Para pruebas locales en Web)
+  // Servidor Local (Pruebas Web)
   // final String baseUrl = "http://localhost:8000";
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 

@@ -536,6 +536,7 @@ class _HorarioAulaFormState extends State<HorarioAulaForm> {
             value: d['id'],
             child: Text("${d['apellidos']} ${d['nombres']}"),
           )).toList(),
+          isExpanded: true,
           onChanged: (v) {
              setState(() {
                 docenteSeleccionado = v;
@@ -559,6 +560,7 @@ class _HorarioAulaFormState extends State<HorarioAulaForm> {
             value: c['id'],
             child: Text(c['nombre']),
           )).toList(),
+          isExpanded: true,
           onChanged: (v) {
             setState(() {
               carreraSeleccionada = v;
@@ -584,6 +586,7 @@ class _HorarioAulaFormState extends State<HorarioAulaForm> {
             value: c['id'],
             child: Text("${c['nombre']} ${c['paralelo']??''} (${c['jornada']??''})"),
           )).toList(),
+          isExpanded: true,
           onChanged: (v) => setState(() => cursoSeleccionado = v),
         ),
 
@@ -596,6 +599,7 @@ class _HorarioAulaFormState extends State<HorarioAulaForm> {
             value: m['id'],
             child: Text(m['nombre']),
           )).toList(),
+          isExpanded: true,
           onChanged: (v) => setState(() => materiaSeleccionada = v),
         ),
 

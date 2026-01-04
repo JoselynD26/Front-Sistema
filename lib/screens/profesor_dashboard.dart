@@ -41,32 +41,40 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
 
   Future<void> _cargarDatos() async {
     try {
-      final resultsMain = await Future.wait([
+      // 1. Obtener el perfil del docente para detectar su SEDE de forma robusta
+      final docenteProfile = await _apiService.obtenerDocente(widget.docenteId);
+      int detectedSede = 1;
+      
+      if (docenteProfile != null) {
+        print("DEBUG: Perfil completo del docente: $docenteProfile");
+        detectedSede = docenteProfile['id_sede'] ?? 
+                       docenteProfile['sede_id'] ?? 
+                       (docenteProfile['sedes'] != null && (docenteProfile['sedes'] as List).isNotEmpty ? docenteProfile['sedes'][0]['id'] : 1);
+        
+        print("DEBUG: Sede detectada desde perfil para docente ${widget.docenteId}: $detectedSede");
+        
+        if (detectedSede == 1 && docenteProfile.containsKey('sede_id') == false && docenteProfile.containsKey('id_sede') == false) {
+           print("WARNING: No se encontró campo de Sede en el perfil. Usando Sede 1 por defecto.");
+        }
+      } else {
+        print("ERROR: No se pudo obtener el perfil del docente ${widget.docenteId}");
+      }
+
+      // 2. Cargar datos base y específicos de la sede
+      final results = await Future.wait([
         _apiService.obtenerMisMaterias(widget.docenteId),
         _apiService.obtenerHorarioDocente(widget.docenteId),
         _apiService.obtenerMisReservas(widget.docenteId),
+        _apiService.listarCursosPorSede(detectedSede),
+        _apiService.listarAulasPorSede(detectedSede),
       ]);
 
-      final rawHorarios = resultsMain[1] as List<dynamic>;
-      
-      // Intentar inferir la Sede del docente desde su horario
-      int detectedSede = 1; 
-      if (rawHorarios.isNotEmpty) {
-        detectedSede = rawHorarios.first['id_sede'] ?? rawHorarios.first['sede_id'] ?? 1;
-      }
-      
       idSede = detectedSede;
-      print("DEBUG: Sede detectada para docente ${widget.docenteId}: $idSede");
-
-      // Cargar el resto de datos específicos de la sede
-      final resultsSede = await Future.wait([
-        _apiService.listarCursosPorSede(idSede!),
-        _apiService.listarAulasPorSede(idSede!),
-      ]);
+      final rawHorarios = results[1] as List<dynamic>;
 
       if (mounted) {
         setState(() {
-          materias = resultsMain[0] as List<dynamic>;
+          materias = results[0] as List<dynamic>;
           
           horarios = rawHorarios.map((h) {
             final map = Map<String, dynamic>.from(h);
@@ -82,9 +90,9 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
             return map;
           }).toList();
 
-          reservas = resultsMain[2] as List<dynamic>;
-          cursos = resultsSede[0] as List<dynamic>;
-          aulas = resultsSede[1] as List<dynamic>;
+          reservas = results[2] as List<dynamic>;
+          cursos = results[3] as List<dynamic>;
+          aulas = results[4] as List<dynamic>;
           cargando = false;
         });
       }
@@ -779,7 +787,7 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
           subtitle: "Mapas de patios y plazas",
           icon: Icons.map_rounded,
           color: const Color(0xFF6366F1),
-          child: CroquisPlazaContent(sedeId: 1), // Sede ID fija por ahora o dinámica
+          child: CroquisPlazaContent(sedeId: idSede ?? 1), 
         );
       },
     );
@@ -1147,61 +1155,57 @@ class _HorarioCalendarioDialogState extends State<_HorarioCalendarioDialog> {
   Widget build(BuildContext context) {
     final bool isMobile = MediaQuery.of(context).size.width < 650;
     
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Container(
-        padding: EdgeInsets.all(isMobile ? 16 : 24),
-        width: MediaQuery.of(context).size.width > 1000 ? 1000 : MediaQuery.of(context).size.width * 0.95,
-        height: MediaQuery.of(context).size.height * 0.9,
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                       Text(
-                        "Mi Horario Semanal",
-                        style: TextStyle(fontSize: isMobile ? 20 : 24, fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        _formatearFecha(fechaSeleccionada),
-                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
-                ),
-              ],
+    return _PremiumDialog(
+      title: "Mi Horario Semanal",
+      subtitle: _formatearFecha(fechaSeleccionada),
+      icon: Icons.calendar_month_rounded,
+      color: const Color(0xFF1E3A8A),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
             ),
-            const SizedBox(height: 16),
-            Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 IconButton(
-                    onPressed: () => _cambiarSemana(-1),
-                     icon: const Icon(Icons.chevron_left)),
+                  onPressed: () => _cambiarSemana(-1),
+                  icon: const Icon(Icons.chevron_left, color: Color(0xFF1E3A8A)),
+                ),
                 TextButton.icon(
                   onPressed: _seleccionarFecha,
-                  icon: const Icon(Icons.calendar_today, size: 18),
-                  label: const Text("Cambiar Semana"),
+                  icon: const Icon(Icons.calendar_today, size: 16, color: Color(0xFF1E3A8A)),
+                  label: Text(
+                    "Cambiar Semana",
+                    style: TextStyle(
+                      color: const Color(0xFF1E3A8A),
+                      fontWeight: FontWeight.bold,
+                      fontSize: isMobile ? 12 : 14,
+                    ),
+                  ),
+                  style: TextButton.styleFrom(
+                    backgroundColor: const Color(0xFF1E3A8A).withOpacity(0.05),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  ),
                 ),
                 IconButton(
-                    onPressed: () => _cambiarSemana(1),
-                    icon: const Icon(Icons.chevron_right)),
+                  onPressed: () => _cambiarSemana(1),
+                  icon: const Icon(Icons.chevron_right, color: Color(0xFF1E3A8A)),
+                ),
               ],
             ),
-            const SizedBox(height: 16),
-            Expanded(
+          ),
+          Expanded(
+            child: Container(
+              color: Colors.white,
               child: isMobile ? _buildCalendarioMobile() : _buildCalendarioSemanal(),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -1211,27 +1215,46 @@ class _HorarioCalendarioDialogState extends State<_HorarioCalendarioDialog> {
     
     return Column(
       children: [
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: List.generate(dias.length, (index) {
-              final isSelected = _selectedDayIndex == index;
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: ChoiceChip(
-                  label: Text(dias[index]),
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    if (selected) setState(() => _selectedDayIndex = index);
-                  },
-                  selectedColor: const Color(0xFF1E3A8A),
-                  labelStyle: TextStyle(
-                    color: isSelected ? Colors.white : Colors.black87,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: List.generate(dias.length, (index) {
+                final isSelected = _selectedDayIndex == index;
+                return GestureDetector(
+                  onTap: () => setState(() => _selectedDayIndex = index),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isSelected ? const Color(0xFF1E3A8A) : Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isSelected ? const Color(0xFF1E3A8A) : Colors.grey.shade300,
+                      ),
+                      boxShadow: isSelected? [
+                        BoxShadow(
+                          color: const Color(0xFF1E3A8A).withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        )
+                      ] : [],
+                    ),
+                    child: Text(
+                      dias[index],
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : Colors.grey.shade700,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                        fontSize: 13,
+                      ),
+                    ),
                   ),
-                ),
-              );
-            }),
+                );
+              }),
+            ),
           ),
         ),
         const SizedBox(height: 12),
@@ -1271,27 +1294,103 @@ class _HorarioCalendarioDialogState extends State<_HorarioCalendarioDialog> {
     }
 
     return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       itemCount: clasesDia.length,
       itemBuilder: (context, index) {
         final h = clasesDia[index];
         final materiaNombre = _getMateriaNombre(h['materia_id']);
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              gradient: _getColorForMateria(materiaNombre),
-            ),
-            child: ListTile(
-              title: Text(materiaNombre, style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("${h['hora_inicio']} - ${h['hora_fin']}", style: const TextStyle(fontWeight: FontWeight.w600)),
-                  Text("${_getCursoNombre(h['curso_id'])} | ${_getAulaNombre(h['aula_id'])}", style: const TextStyle(fontSize: 12)),
-                ],
+        final colorGradient = _getColorForMateria(materiaNombre);
+        
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
-            ),
+            ],
+            border: Border.all(color: Colors.grey.shade100),
+          ),
+          child: Column(
+            children: [
+              // Barra lateral de color
+              Container(
+                height: 4,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: colorGradient,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            materiaNombre,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1E293B),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1E3A8A).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            h['hora_inicio'].toString().substring(0, 5),
+                            style: const TextStyle(
+                              color: Color(0xFF1E3A8A),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Icon(Icons.access_time_rounded, size: 14, color: Colors.grey.shade400),
+                        const SizedBox(width: 6),
+                        Text(
+                          "${h['hora_inicio']} - ${h['hora_fin']}",
+                          style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(Icons.location_on_outlined, size: 14, color: Colors.grey.shade400),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            "${_getCursoNombre(h['curso_id'])} | ${_getAulaNombre(h['aula_id'])}",
+                            style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         );
       },
@@ -1609,6 +1708,7 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
         .replaceAll('í', 'i')
         .replaceAll('ó', 'o')
         .replaceAll('ú', 'u')
+        .replaceAll('ñ', 'n')
         .trim();
   }
 
@@ -1645,479 +1745,43 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return _PremiumDialog(
-      title: "Reservar Aula",
-      subtitle: "Solicita un espacio físico para actividades adicionales",
-      icon: Icons.add_circle_outline_rounded,
-      color: const Color(0xFFF59E0B),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildCompactPicker({
+    required IconData icon,
+    required String label,
+    required String value,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          border: Border.all(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            
-            // Formulario de búsqueda
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        if (constraints.maxWidth < 600) {
-                          return Column(
-                            children: [
-                              InkWell(
-                                onTap: () async {
-                                  final fecha = await showDatePicker(
-                                    context: context,
-                                    initialDate: DateTime.now(),
-                                    firstDate: DateTime.now(),
-                                    lastDate: DateTime.now().add(const Duration(days: 365)),
-                                  );
-                                  if (fecha != null) {
-                                    setState(() {
-                                      _fechaController.text = fecha.toString().split(' ')[0];
-                                    });
-                                  }
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    border: Border.all(color: Colors.grey),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.calendar_today, color: Colors.blue),
-                                      const SizedBox(width: 12),
-                                      Text(
-                                        _fechaController.text.isEmpty 
-                                            ? "Seleccionar fecha" 
-                                            : _fechaController.text,
-                                        style: TextStyle(
-                                          color: _fechaController.text.isEmpty 
-                                              ? Colors.grey 
-                                              : Colors.black,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: TextField(
-                                      controller: _horaInicioController,
-                                      readOnly: true,
-                                      onTap: () => _seleccionarHora(_horaInicioController),
-                                      decoration: const InputDecoration(
-                                        labelText: "Hora Inicio",
-                                        hintText: "14:00",
-                                        prefixIcon: Icon(Icons.access_time),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: TextField(
-                                      controller: _horaFinController,
-                                      readOnly: true,
-                                      onTap: () => _seleccionarHora(_horaFinController),
-                                      decoration: const InputDecoration(
-                                        labelText: "Hora Fin",
-                                        hintText: "16:00",
-                                        prefixIcon: Icon(Icons.access_time_filled),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          );
-                        }
-                        return Row(
-                          children: [
-                            Expanded(
-                              child: InkWell(
-                                onTap: () async {
-                                  final fecha = await showDatePicker(
-                                    context: context,
-                                    initialDate: DateTime.now(),
-                                    firstDate: DateTime.now(),
-                                    lastDate: DateTime.now().add(const Duration(days: 365)),
-                                  );
-                                  if (fecha != null) {
-                                    setState(() {
-                                      _fechaController.text = fecha.toString().split(' ')[0];
-                                    });
-                                  }
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    border: Border.all(color: Colors.grey),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.calendar_today, color: Colors.blue),
-                                      const SizedBox(width: 12),
-                                      Text(
-                                        _fechaController.text.isEmpty 
-                                            ? "Seleccionar fecha" 
-                                            : _fechaController.text,
-                                        style: TextStyle(
-                                          color: _fechaController.text.isEmpty 
-                                              ? Colors.grey 
-                                              : Colors.black,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: TextField(
-                                controller: _horaInicioController,
-                                readOnly: true,
-                                onTap: () => _seleccionarHora(_horaInicioController),
-                                decoration: const InputDecoration(
-                                  labelText: "Hora Inicio",
-                                  hintText: "14:00",
-                                  prefixIcon: Icon(Icons.access_time),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: TextField(
-                                controller: _horaFinController,
-                                readOnly: true,
-                                onTap: () => _seleccionarHora(_horaFinController),
-                                decoration: const InputDecoration(
-                                  labelText: "Hora Fin",
-                                  hintText: "16:00",
-                                  prefixIcon: Icon(Icons.access_time_filled),
-                                ),
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: buscandoAulas ? null : _buscarAulasDisponibles,
-                        icon: buscandoAulas
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Icon(Icons.search),
-                        label: Text(buscandoAulas ? "Buscando..." : "Buscar Aulas Disponibles"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFFF6B35),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Tabla de aulas disponibles
-            if (aulasDisponibles.isNotEmpty) ...[
-              const Text(
-                "Aulas Disponibles",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Expanded(
-                child: Card(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final isMobile = constraints.maxWidth < 600;
-                      return Column(
-                        children: [
-                          // Header (Only on Desktop)
-                          if (!isMobile)
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF1E3A8A),
-                                borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
-                              ),
-                              child: const Row(
-                                children: [
-                                  Expanded(
-                                    flex: 2,
-                                    child: Text(
-                                      "Aula",
-                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: Text(
-                                      "Capacidad",
-                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: Text(
-                                      "Tipo",
-                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: Text(
-                                      "Seleccionar",
-                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            
-                          // List Body
-                          Expanded(
-                            child: ListView.builder(
-                              itemCount: aulasDisponibles.length,
-                              itemBuilder: (context, index) {
-                                final aula = aulasDisponibles[index];
-                                final isSelected = aulaSeleccionada == aula["id"];
-                                
-                                if (isMobile) {
-                                  // Mobile Layout: Simple ListTile
-                                  return Container(
-                                    decoration: BoxDecoration(
-                                      color: isSelected ? const Color(0xFFFF6B35).withOpacity(0.1) : null,
-                                      border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
-                                    ),
-                                    child: RadioListTile<int>(
-                                      value: aula["id"],
-                                      groupValue: aulaSeleccionada,
-                                      onChanged: (value) => setState(() => aulaSeleccionada = value),
-                                      activeColor: const Color(0xFFFF6B35),
-                                      title: Text(aula["nombre"], style: const TextStyle(fontWeight: FontWeight.bold)),
-                                      subtitle: Text("Cap: ${aula["capacidad"]} | ${aula["tipo"] ?? "Aula"}"),
-                                      secondary: Icon(
-                                        Icons.meeting_room, 
-                                        color: isSelected ? const Color(0xFFFF6B35) : Colors.grey
-                                      ),
-                                    ),
-                                  );
-                                }
-                                
-                                // Desktop Layout: Tabular Row
-                                return Container(
-                                  decoration: BoxDecoration(
-                                    color: isSelected ? const Color(0xFFFF6B35).withOpacity(0.1) : null,
-                                    border: Border(
-                                      bottom: BorderSide(color: Colors.grey.shade300),
-                                    ),
-                                  ),
-                                  child: ListTile(
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                    title: Row(
-                                      children: [
-                                        Expanded(
-                                          flex: 2,
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                Icons.meeting_room,
-                                                color: isSelected ? const Color(0xFFFF6B35) : Colors.grey,
-                                                size: 20,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                aula["nombre"],
-                                                style: TextStyle(
-                                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                                  color: isSelected ? const Color(0xFFFF6B35) : null,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        Expanded(
-                                          child: Text("${aula["capacidad"]} personas"),
-                                        ),
-                                        Expanded(
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                            decoration: BoxDecoration(
-                                              color: Colors.blue.shade100,
-                                              borderRadius: BorderRadius.circular(12),
-                                            ),
-                                            child: Text(
-                                              aula["tipo"] ?? "Aula",
-                                              style: TextStyle(fontSize: 12, color: Colors.blue.shade700),
-                                              textAlign: TextAlign.center,
-                                            ),
-                                          ),
-                                        ),
-                                        Expanded(
-                                          child: Center(
-                                            child: Radio<int>(
-                                              value: aula["id"],
-                                              groupValue: aulaSeleccionada,
-                                              onChanged: (value) => setState(() => aulaSeleccionada = value),
-                                              activeColor: const Color(0xFFFF6B35),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    onTap: () => setState(() => aulaSeleccionada = aula["id"]),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ],
-                      );
-                    },
+            Icon(icon, color: const Color(0xFF1E3A8A), size: 18),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.bold),
                   ),
-                ),
-              ),
-              
-              const SizedBox(height: 16),
-              
-              // Campo de motivo
-              TextField(
-                controller: _motivoController,
-                decoration: const InputDecoration(
-                  labelText: "Motivo de la reserva",
-                  prefixIcon: Icon(Icons.description),
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 2,
-              ),
-              const SizedBox(height: 12),
-              
-              // Opción para liberar aula actual
-              CheckboxListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text("Liberar mi aula actual por falta de capacidad"),
-                subtitle: const Text("Si tienes clase a esta hora, se cancelará para que otro use el aula."),
-                value: _liberarAulaActual, 
-                activeColor: const Color(0xFFFF6B35),
-                onChanged: (val) => setState(() => _liberarAulaActual = val ?? false),
-              ),
-            ] else if (!buscandoAulas && _fechaController.text.isNotEmpty) ...[
-              Expanded(
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.search_off, size: 64, color: Colors.grey.shade400),
-                      const SizedBox(height: 16),
-                      Text(
-                        "No se encontraron aulas disponibles",
-                        style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        "Intenta con otra fecha u horario",
-                        style: TextStyle(color: Colors.grey.shade500),
-                      ),
-                    ],
+                  Text(
+                    value,
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1E293B)),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
+                ],
               ),
-            ] else ...[
-              Expanded(
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.search, size: 64, color: Colors.grey.shade400),
-                      const SizedBox(height: 16),
-                      Text(
-                        "Ingresa fecha y horarios para buscar aulas",
-                        style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-            
-            // Botones de acción
-            const SizedBox(height: 16),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                if (constraints.maxWidth < 500) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      ElevatedButton.icon(
-                        onPressed: (aulaSeleccionada != null && !cargando) ? _crearReserva : null,
-                        icon: cargando
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Icon(Icons.check),
-                        label: Text(cargando ? "Creando..." : "Confirmar Reserva"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1E3A8A),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text("Cancelar"),
-                      ),
-                    ],
-                  );
-                }
-                return Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text("Cancelar"),
-                    ),
-                    const SizedBox(width: 16),
-                    ElevatedButton.icon(
-                      onPressed: (aulaSeleccionada != null && !cargando) ? _crearReserva : null,
-                      icon: cargando
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.check),
-                      label: Text(cargando ? "Creando..." : "Confirmar Reserva"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1E3A8A),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      ),
-                    ),
-                  ],
-                );
-              },
             ),
           ],
         ),
@@ -2125,16 +1789,435 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
     );
   }
 
-  double _parseHora(String hora) {
-    if (hora.isEmpty) return 0.0;
+  @override
+  Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 500;
+    
+    return _PremiumDialog(
+      title: "Reservar Aula",
+      subtitle: "Solicita un espacio para tus actividades",
+      icon: Icons.add_circle_outline_rounded,
+      color: const Color(0xFFF59E0B),
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: isMobile ? 12 : 20, 
+          vertical: isMobile ? 12 : 16
+        ),
+        child: Column(
+          children: [
+            // 1. Selector de Horario (Card superior)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+                ],
+                border: Border.all(color: Colors.grey.shade100),
+              ),
+              child: Column(
+                children: [
+                  if (isMobile) ...[
+                    _buildCompactPicker(
+                      icon: Icons.calendar_today,
+                      label: "FECHA",
+                      value: _fechaController.text.isEmpty ? "Seleccionar" : _fechaController.text,
+                      onTap: () async {
+                        final fecha = await showDatePicker(
+                          context: context,
+                          initialDate: DateTime.now(),
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime.now().add(const Duration(days: 365)),
+                        );
+                        if (fecha != null) setState(() => _fechaController.text = fecha.toString().split(' ')[0]);
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildCompactPicker(
+                            icon: Icons.access_time,
+                            label: "INICIO",
+                            value: _horaInicioController.text.isEmpty ? "14:00" : _horaInicioController.text,
+                            onTap: () => _seleccionarHora(_horaInicioController),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildCompactPicker(
+                            icon: Icons.access_time_filled,
+                            label: "FIN",
+                            value: _horaFinController.text.isEmpty ? "16:00" : _horaFinController.text,
+                            onTap: () => _seleccionarHora(_horaFinController),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ] else ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildCompactPicker(
+                            icon: Icons.calendar_today,
+                            label: "FECHA",
+                            value: _fechaController.text.isEmpty ? "Seleccionar" : _fechaController.text,
+                            onTap: () async {
+                              final fecha = await showDatePicker(
+                                context: context,
+                                initialDate: DateTime.now(),
+                                firstDate: DateTime.now(),
+                                lastDate: DateTime.now().add(const Duration(days: 365)),
+                              );
+                              if (fecha != null) setState(() => _fechaController.text = fecha.toString().split(' ')[0]);
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildCompactPicker(
+                            icon: Icons.access_time,
+                            label: "INICIO",
+                            value: _horaInicioController.text.isEmpty ? "14:00" : _horaInicioController.text,
+                            onTap: () => _seleccionarHora(_horaInicioController),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildCompactPicker(
+                            icon: Icons.access_time_filled,
+                            label: "FIN",
+                            value: _horaFinController.text.isEmpty ? "16:00" : _horaFinController.text,
+                            onTap: () => _seleccionarHora(_horaFinController),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFF6B35), Color(0xFFFE8F33)],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFFF6B35).withOpacity(0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 6),
+                        )
+                      ],
+                    ),
+                    child: ElevatedButton.icon(
+                      onPressed: buscandoAulas ? null : _buscarAulasDisponibles,
+                      icon: buscandoAulas
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Icon(Icons.search_rounded),
+                      label: Text(
+                        buscandoAulas ? "BUSCANDO..." : "BUSCAR AULAS DISPONIBLES",
+                        style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        foregroundColor: Colors.white,
+                        shadowColor: Colors.transparent,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // 2. Resultados o Mensajes
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                   Padding(
+                    padding: const EdgeInsets.only(left: 8, bottom: 12),
+                    child: Text(
+                      aulasDisponibles.isEmpty ? "Disponibilidad" : "Aulas Encontradas (${aulasDisponibles.length})",
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                    ),
+                  ),
+                  
+                  Expanded(
+                    child: Container(
+                      child: _buildMainContent(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // 3. Footer (Motivo y Confirmación) - Solo si hay algo seleccionado o buscado
+            if (buscandoAulas == false && aulasDisponibles.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06), 
+                      blurRadius: 15, 
+                      offset: const Offset(0, -5)
+                    )
+                  ],
+                  border: Border.all(color: Colors.grey.shade100),
+                ),
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _motivoController,
+                      style: const TextStyle(fontSize: 14),
+                      decoration: InputDecoration(
+                        labelText: "Motivo de la reserva",
+                        labelStyle: const TextStyle(fontSize: 13),
+                        prefixIcon: const Icon(Icons.description_rounded, color: Color(0xFF1E3A8A), size: 18),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: Colors.grey.shade200),
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
+                        contentPadding: const EdgeInsets.all(12),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      visualDensity: VisualDensity.compact,
+                      title: const Text("Liberar mi aula actual", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      subtitle: const Text("Si tienes clase programada, la cancelaremos.", style: TextStyle(fontSize: 11)),
+                      value: _liberarAulaActual,
+                      activeColor: const Color(0xFFFF6B35),
+                      onChanged: (v) => setState(() => _liberarAulaActual = v ?? false),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          if (aulaSeleccionada != null && !cargando)
+                          BoxShadow(
+                            color: const Color(0xFF1E3A8A).withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          )
+                        ],
+                      ),
+                      child: ElevatedButton.icon(
+                        onPressed: (aulaSeleccionada != null && !cargando) ? _crearReserva : null,
+                        icon: cargando 
+                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Icon(Icons.check_circle_rounded, size: 20),
+                        label: Text(
+                          cargando ? "PROCESANDO..." : "CONFIRMAR RESERVA",
+                          style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1E3A8A),
+                          disabledBackgroundColor: Colors.grey.shade300,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          elevation: 0,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMainContent() {
+    if (buscandoAulas) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    
+    if (aulasDisponibles.isEmpty) {
+      final hasFilters = _fechaController.text.isNotEmpty;
+      final bool isMobile = MediaQuery.of(context).size.width < 600;
+      
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: EdgeInsets.all(isMobile ? 20 : 24),
+              decoration: BoxDecoration(
+                color: hasFilters ? Colors.orange.shade50 : Colors.blue.shade50,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                hasFilters ? Icons.search_off_rounded : Icons.search_rounded,
+                size: isMobile ? 40 : 48,
+                color: hasFilters ? Colors.orange : const Color(0xFF1E3A8A),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              hasFilters ? "Sin resultados" : "¿Cuándo la necesitas?",
+              style: TextStyle(
+                fontSize: isMobile ? 16 : 18, 
+                fontWeight: FontWeight.bold, 
+                color: const Color(0xFF1E293B)
+              ),
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: isMobile ? 20 : 40),
+              child: Text(
+                hasFilters ? "No hay aulas libres en ese rango de tiempo." : "Selecciona fecha y hora arriba para ver opciones.",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey.shade600, fontSize: isMobile ? 12 : 13),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      itemCount: aulasDisponibles.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final aula = aulasDisponibles[index];
+        final isSelected = aulaSeleccionada == aula["id"];
+        
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFF1E3A8A).withOpacity(0.02) : Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isSelected ? const Color(0xFF1E3A8A) : Colors.grey.shade200,
+              width: isSelected ? 2 : 1,
+            ),
+            boxShadow: isSelected ? [
+              BoxShadow(
+                color: const Color(0xFF1E3A8A).withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              )
+            ] : [],
+          ),
+          child: InkWell(
+            onTap: () => setState(() => aulaSeleccionada = aula["id"]),
+            borderRadius: BorderRadius.circular(20),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isSelected ? const Color(0xFF1E3A8A) : Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: isSelected ? [
+                        BoxShadow(color: const Color(0xFF1E3A8A).withOpacity(0.3), blurRadius: 4, offset: const Offset(0, 2))
+                      ] : [],
+                    ),
+                    child: Icon(
+                      Icons.meeting_room_rounded,
+                      color: isSelected ? Colors.white : Colors.grey.shade400,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          aula["nombre"],
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: isSelected ? const Color(0xFF1E3A8A) : const Color(0xFF1E293B),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            _buildMiniTag(Icons.people_outline_rounded, "${aula["capacidad"]}"),
+                            const SizedBox(width: 8),
+                            _buildMiniTag(Icons.category_outlined, "${aula["tipo"] ?? 'Aula'}"),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  AnimatedScale(
+                    scale: isSelected ? 1.1 : 1.0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Radio<int>(
+                      value: aula["id"],
+                      groupValue: aulaSeleccionada,
+                      activeColor: const Color(0xFF1E3A8A),
+                      onChanged: (v) => setState(() => aulaSeleccionada = v),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMiniTag(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: Colors.grey.shade600),
+          const SizedBox(width: 4),
+          Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade700, fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
+  }
+
+  int _parseHora(String hora) {
+    if (hora.trim().isEmpty) return 0;
     try {
-      final parts = hora.split(':');
+      final parts = hora.trim().split(':');
       final h = int.tryParse(parts[0]) ?? 0;
       final m = (parts.length > 1) ? (int.tryParse(parts[1]) ?? 0) : 0;
-      return h + (m / 60.0);
+      return (h * 60) + m; // Total minutes since midnight
     } catch (e) {
       debugPrint("Error parsing hora '$hora': $e");
-      return 0.0;
+      return 0;
     }
   }
 
@@ -2168,21 +2251,29 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
       print("DEBUG: Iniciando Busqueda Exhaustiva para $diaSemana ${_fechaController.text} ($inicioSolicitado - $finSolicitado)");
 
       // 1. Obtener datos basicos: Aulas, Eventos y Horario Diario (Reservas + Ocupación) y CANCELACIONES
-      final resultsBasicos = await Future.wait([
+      final List<Future<dynamic>> futures = [
         _apiService.listarAulasPorSede(widget.idSede),
-        _apiService.listarHorariosPorSede(widget.idSede), // Eventos con fecha especifica
-        _apiService.listarDocentesPorSede(widget.idSede), // Lista de todos los profes para ver sus recurrentes
-        _apiService.obtenerHorarioAulas(widget.idSede, _fechaController.text), // Horario diario consolidado
-        _apiService.listarHorariosCancelados(widget.idSede, _fechaController.text), // NUEVO: Cancelaciones para esta fecha
-        _apiService.listarReservasPorSede(widget.idSede), // NUEVO: Reservas aprobadas
-      ]);
+        _apiService.listarHorariosPorSede(widget.idSede),
+        _apiService.listarDocentesPorSede(widget.idSede),
+        _apiService.obtenerHorarioAulas(widget.idSede, _fechaController.text),
+        _apiService.listarHorariosCancelados(widget.idSede, _fechaController.text),
+        _apiService.listarReservasPorSede(widget.idSede),
+      ];
+      final resultsBasicos = await Future.wait(futures);
 
       final todasLasAulas = resultsBasicos[0] as List<dynamic>;
       final eventosPorFecha = resultsBasicos[1] as List<dynamic>;
       final docentes = resultsBasicos[2] as List<dynamic>;
       final horarioDiario = resultsBasicos[3] as List<dynamic>;
-      final cancelacionesFecha = resultsBasicos[4] as List<dynamic>; // Lista de cancelados
-      final todasLasReservas = resultsBasicos[5] as List<dynamic>; // Lista reservas
+      final cancelacionesFecha = resultsBasicos[4] as List<dynamic>;
+      final todasLasReservas = resultsBasicos[5] as List<dynamic>;
+
+      if (todasLasAulas.isEmpty) {
+        print("DEBUG: No hay aulas en la sede ${widget.idSede}");
+        _showPremiumSnackBar("Aviso: No hay aulas registradas para tu sede.", color: Colors.orange, icon: Icons.warning_amber_rounded);
+        setState(() => buscandoAulas = false);
+        return;
+      }
 
       // 2. Obtener Horarios Recurrentes de TODOS los docentes (Optimizado)
       print("DEBUG: Fetcheando horarios recurrentes (Bulk)...");
@@ -2367,7 +2458,9 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
     try {
       final inicioNuevo = _parseHora(_horaInicioController.text);
       final finNuevo = _parseHora(_horaFinController.text);
-      final fechaStr = _fechaController.text;
+      final fechaStr = _fechaController.text.trim();
+      
+      print("DEBUG [RESERVA]: Solicitando $fechaStr de $inicioNuevo min a $finNuevo min");
       
       // 0. VALIDACIÓN DE CONFLICTOS
       // A. Verificar clases regulares (Horarios Fijos)
@@ -2392,6 +2485,7 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
       
       // B. Verificar OTRAS RESERVAS (Duplicate Booking Check)
       final misReservas = await _apiService.obtenerMisReservas(widget.docenteId);
+      print("DEBUG [RESERVA]: Mis Reservas Totales: ${misReservas.length}");
       
       // Helper Function for parsing times
       Map<String, String> extraerHoras(Map<String, dynamic> r) {
@@ -2445,7 +2539,11 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
          final rStart = _parseHora(rInicioStr);
          final rEnd = _parseHora(rFinStr);
          
-         return (inicioNuevo < rEnd && finNuevo > rStart);
+         final hayConflicto = (inicioNuevo < rEnd && finNuevo > rStart);
+         if (hayConflicto) {
+            print("   >>> CONFLICTO DETECTADO con reserva ${r['id']} ($rInicioStr - $rFinStr)");
+         }
+         return hayConflicto;
       }).toList();
       
       if (reservasConflictivas.isNotEmpty) {
@@ -2597,181 +2695,102 @@ class _EditarPerfilDialogState extends State<_EditarPerfilDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.all(16),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 500),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              )
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // 1. Header Azul con Avatar
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.only(top: 32, bottom: 24),
-                decoration: const BoxDecoration(
-                  color: Color(0xFF1E3A8A), // Azul Institucional
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                ),
-                child: Column(
+    return _PremiumDialog(
+      title: "Mi Perfil",
+      subtitle: widget.nombreActual,
+      icon: Icons.person_rounded,
+      color: const Color(0xFF1E3A8A),
+      heightFactor: 0.85,
+      child: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: cargando 
+                ? const Center(child: CircularProgressIndicator()) 
+                : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Avatar
-                    Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                      child: CircleAvatar(
-                        radius: 40,
-                        backgroundColor: Colors.white,
-                        child: Text(
-                          widget.nombreActual.isNotEmpty ? widget.nombreActual[0].toUpperCase() : "D",
-                          style: const TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF1E3A8A),
-                          ),
-                        ),
-                      ),
-                    ),
+                    // Sección: Información Personal (Solo Lectura)
+                    _buildSectionTitle("Información Personal", Icons.person_outline),
                     const SizedBox(height: 16),
-                    // Nombre
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        widget.nombreActual,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
+                    _buildReadOnlyField("Nombres", _nombres, Icons.badge_outlined),
+                    const SizedBox(height: 12),
+                    _buildReadOnlyField("Apellidos", _apellidos, Icons.badge_outlined),
+                    const SizedBox(height: 12),
+                    _buildReadOnlyField("Correo Electrónico", _correo, Icons.email_outlined),
+                    
+                    const SizedBox(height: 24),
+                    const Divider(),
+                    const SizedBox(height: 24),
+                    
+                    // Sección: Seguridad (Actualizable)
+                    _buildSectionTitle("Seguridad", Icons.lock_outline, color: Colors.orange),
+                    const SizedBox(height: 16),
+                    _buildPasswordField(
+                      controller: _newPassController, 
+                      label: "Nueva Contraseña",
+                      obscureText: _obscureNewPass,
+                      onToggleVisibility: () => setState(() => _obscureNewPass = !_obscureNewPass),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildPasswordField(
+                      controller: _confirmPassController, 
+                      label: "Confirmar Nueva Contraseña",
+                      obscureText: _obscureConfirmPass,
+                      onToggleVisibility: () => setState(() => _obscureConfirmPass = !_obscureConfirmPass),
                     ),
                     const SizedBox(height: 8),
-                    // Badge "DOCENTE"
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Text(
-                        "DOCENTE",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // 2. Cuerpo del Perfil
-              Flexible(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  child: cargando 
-                    ? const Center(child: CircularProgressIndicator()) 
-                    : Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    Row(
                       children: [
-                        // Sección: Información Personal (Solo Lectura)
-                        _buildSectionTitle("Información Personal", Icons.person_outline),
-                        const SizedBox(height: 16),
-                        _buildReadOnlyField("Nombres", _nombres, Icons.badge_outlined),
-                        const SizedBox(height: 12),
-                        _buildReadOnlyField("Apellidos", _apellidos, Icons.badge_outlined),
-                        const SizedBox(height: 12),
-                        _buildReadOnlyField("Correo Electrónico", _correo, Icons.email_outlined),
-
-                        const SizedBox(height: 24),
-                        const Divider(),
-                        const SizedBox(height: 24),
-
-                        // Sección: Seguridad (Editable)
-                        _buildSectionTitle("Seguridad", Icons.lock_outline, color: Colors.orange),
-                        const SizedBox(height: 16),
-                        _buildPasswordField(
-                          controller: _newPassController,
-                          label: "Nueva Contraseña",
-                          obscureText: _obscureNewPass,
-                          onToggleVisibility: () => setState(() => _obscureNewPass = !_obscureNewPass),
-                        ),
-                        const SizedBox(height: 12),
-                        _buildPasswordField(
-                          controller: _confirmPassController,
-                          label: "Confirmar Nueva Contraseña",
-                          obscureText: _obscureConfirmPass,
-                          onToggleVisibility: () => setState(() => _obscureConfirmPass = !_obscureConfirmPass),
-                        ),
-                        
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Icon(Icons.info_outline, size: 14, color: Colors.orange[700]),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                "Déjalo en blanco si no deseas cambiar tu contraseña.",
-                                style: TextStyle(fontSize: 12, color: Colors.orange[800]),
-                              ),
-                            ),
-                          ],
+                        const Icon(Icons.info_outline, size: 14, color: Colors.orange),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            "Déjalo en blanco si no deseas cambiar tu contraseña.",
+                            style: TextStyle(fontSize: 12, color: Colors.orange[800]),
+                          ),
                         ),
                       ],
                     ),
-                ),
-              ),
-
-              // 3. Footer Botones
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  border: Border(top: BorderSide(color: Colors.grey.shade100)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text("Cancelar", style: TextStyle(color: Colors.grey)),
-                    ),
-                    ElevatedButton.icon(
-                      onPressed: guardando ? null : _guardarCambios,
-                      icon: guardando 
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Icon(Icons.save_rounded, size: 18),
-                      label: Text(guardando ? "Guardando..." : "Guardar Cambios"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1E3A8A),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
                   ],
                 ),
-              ),
-            ],
+            ),
           ),
-        ),
+          
+          // Footer Botones
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border(top: BorderSide(color: Colors.grey.shade100)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Cerrar", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  onPressed: guardando ? null : _guardarCambios,
+                  icon: guardando 
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.check_rounded, size: 18),
+                  label: Text(guardando ? "GUARDANDO..." : "GUARDAR CAMBIOS"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1E3A8A),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    elevation: 0,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -2905,6 +2924,7 @@ class _PremiumDialog extends StatelessWidget {
   final IconData icon;
   final Color color;
   final Widget child;
+  final double? heightFactor;
 
   const _PremiumDialog({
     Key? key,
@@ -2913,106 +2933,149 @@ class _PremiumDialog extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.child,
+    this.heightFactor,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // Gradient lists based on simple mapping from the passed 'color' or hardcoded logic
-    // But since 'color' is passed, we'll try to create a gradient from it.
-    // However, to strictly match Admin style (Gradients), let's map known colors
-    // or just generate a nice gradient from the base color.
-    
-    final gradientColors = [color, color.withOpacity(0.8)];
-
     final size = MediaQuery.of(context).size;
-    final width = size.width > 900 ? 900.0 : size.width * 0.95;
-    final height = size.height > 800 ? 800.0 : size.height * 0.9;
+    final bool isMobile = size.width < 600;
+    
+    // More refined width and height
+    final double width = size.width > 900 ? 900.0 : size.width * (isMobile ? 0.94 : 0.95);
+    final double height = size.height > 800 ? 800.0 : size.height * (heightFactor ?? (isMobile ? 0.85 : 0.9));
+
+    final gradientColors = [
+      color.withOpacity(0.95),
+      color.withOpacity(0.85),
+    ];
 
     return Dialog(
       backgroundColor: Colors.transparent,
-      elevation: 16,
-      child: Container(
-        width: width,
-        height: height,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-             BoxShadow(
-               color: Colors.black.withOpacity(0.25),
-               blurRadius: 32,
-               offset: const Offset(0, 16),
-             )
-          ],
-        ),
-        child: Column(
-          children: [
-            // Premium Gradient Header
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
-              decoration: BoxDecoration(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                gradient: LinearGradient(
-                  colors: gradientColors,
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 12 : 24, 
+        vertical: isMobile ? 24 : 40
+      ),
+      elevation: 0, // We use our own shadow
+      child: Center(
+        child: Container(
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(isMobile ? 28 : 24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 30,
+                offset: const Offset(0, 15),
               ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(icon, color: Colors.white, size: 28),
+              BoxShadow(
+                color: color.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              // Pull bar on mobile
+              if (isMobile)
+                Container(
+                  margin: const EdgeInsets.only(top: 8),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(2),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        if (subtitle.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Text(
-                              subtitle,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.white.withOpacity(0.9),
-                                height: 1.2,
-                              ),
+                ),
+                
+              // Premium Gradient Header
+              Container(
+                padding: EdgeInsets.fromLTRB(24, isMobile ? 12 : 20, 16, 20),
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                  gradient: LinearGradient(
+                    colors: gradientColors,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          )
+                        ]
+                      ),
+                      child: Icon(icon, color: Colors.white, size: isMobile ? 24 : 28),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: TextStyle(
+                              fontSize: isMobile ? 20 : 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              letterSpacing: -0.5,
+                              shadows: [
+                                Shadow(color: Colors.black.withOpacity(0.1), offset: const Offset(0, 1), blurRadius: 2)
+                              ]
                             ),
                           ),
-                      ],
+                          if (subtitle.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(
+                                subtitle,
+                                style: TextStyle(
+                                  fontSize: isMobile ? 11 : 13,
+                                  color: Colors.white.withOpacity(0.9),
+                                  height: 1.2,
+                                  fontWeight: FontWeight.w500
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, color: Colors.white),
-                  ),
-                ],
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.05),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.close, color: Colors.white, size: 20),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            
-            // Body
-            Expanded(
-              child: ClipRRect(
-                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
-                  child: child
+              
+              // Body
+              Expanded(
+                child: ClipRRect(
+                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
+                    child: child
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
