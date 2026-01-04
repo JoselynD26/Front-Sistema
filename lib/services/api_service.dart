@@ -224,7 +224,7 @@ class ApiService {
 
   final response = await http.post(url, headers: {
     "Content-Type": "application/json",
-  }, body: body);
+  }, body: body).timeout(const Duration(seconds: 90));
 
   print("[REGISTER] ${response.statusCode} -> ${response.body}");
   return _isSuccess(response.statusCode);
@@ -234,7 +234,7 @@ class ApiService {
     final url = Uri.parse("$baseUrl/usuarios/$id/");
     final headers = await _headers();
     // Intenta PATCH con slash final
-    final response = await http.patch(url, headers: headers, body: jsonEncode(datos));
+    final response = await http.patch(url, headers: headers, body: jsonEncode(datos)).timeout(const Duration(seconds: 90));
     print("[USUARIO][UPDATE] ${response.statusCode} -> ${response.body}");
     return _isSuccess(response.statusCode);
   }
