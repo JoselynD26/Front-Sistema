@@ -120,11 +120,6 @@ class _LoginScreenState extends State<LoginScreen> with SafeStateMixin {
                       Color(0xFF4A69BD), // Lighter "Premium" Blue
                     ],
                   ),
-                  image: DecorationImage(
-                    image: NetworkImage("https://www.transparenttextures.com/patterns/cubes.png"),
-                    fit: BoxFit.cover,
-                    opacity: 0.05,
-                  ),
                 ),
                 child: Center(
                   child: Column(
