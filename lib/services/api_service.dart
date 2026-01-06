@@ -1320,7 +1320,7 @@ Future<bool> eliminarSede(int id) async {
   Future<bool> eliminarReserva(int reservaId) async {
     try {
       // Usaremos el estándar REST: DELETE /reserva-aulas/{id}/
-      final url = Uri.parse("$baseUrl/reserva-aulas/$reservaId");
+      final url = Uri.parse("$baseUrl/reserva-aulas/$reservaId/");
       final headers = await _headers(json: false);
       
       final res = await http.delete(url, headers: headers);
