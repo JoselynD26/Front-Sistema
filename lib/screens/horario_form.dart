@@ -42,7 +42,7 @@ class _HorarioFormState extends State<HorarioForm> {
   int? cursoSeleccionado;
   String estado = "activo";
 
-  final Color _primaryColor = Colors.indigo;
+  final Color _primaryColor = const Color(0xFFF59E0B); // Amber 500 equivalent
 
   @override
   void initState() {

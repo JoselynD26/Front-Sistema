@@ -364,7 +364,12 @@ class _SidebarContent extends StatelessWidget {
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Theme.of(context).primaryColor, Colors.blue.shade300],
+                    colors: [
+                      const Color(0xFF0F2B46), // Dark
+                      Theme.of(context).primaryColor, // Blue
+                      Theme.of(context).colorScheme.tertiary, // Orange
+                    ],
+                    stops: const [0.0, 0.6, 1.0],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -595,28 +600,38 @@ class _SidebarItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // DeepL Theme colors
+    final primaryColor = Theme.of(context).primaryColor;
+    final activeColor = Theme.of(context).colorScheme.tertiary; // Orange for active selection
+    
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
-        color: isActive ? Theme.of(context).primaryColor.withOpacity(0.1) : Colors.transparent,
+        color: isActive ? primaryColor.withOpacity(0.08) : Colors.transparent, // Subtle Blue BG
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isActive ? primaryColor.withOpacity(0.1) : Colors.transparent,
+        ),
       ),
       child: ListTile(
         leading: Icon(
-          icon,
-          color: isActive ? Theme.of(context).primaryColor : Colors.grey,
+          icon, 
+          color: isActive ? activeColor : Colors.grey.shade500, // Orange icon if active
+          size: 24,
         ),
         title: Text(
           label,
           style: TextStyle(
-            color: isActive ? Theme.of(context).primaryColor : textColor.withOpacity(0.7),
-            fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+            color: isActive ? activeColor : textColor.withOpacity(0.7), // Orange text if active
+            fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
             fontSize: 14,
           ),
         ),
-        onTap: onTap,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        onTap: onTap,
+        hoverColor: primaryColor.withOpacity(0.04), // Very subtle blue on hover
       ),
     );
   }
+
 }

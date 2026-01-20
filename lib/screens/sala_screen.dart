@@ -4,6 +4,7 @@ import '../widgets/admin_crud_layout.dart';
 import '../widgets/admin_table.dart';
 import '../widgets/custom_dialog.dart';
 import 'sala_form_screen.dart';
+import 'dynamic_croquis_screen.dart';
 
 class SalasScreen extends StatefulWidget {
   final int idSede;
@@ -137,6 +138,22 @@ class _SalasScreenState extends State<SalasScreen> {
             DataCell(Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                IconButton(
+                  icon: const Icon(Icons.grid_view_rounded, color: Colors.deepPurple),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => DynamicCroquisScreen(
+                          salaId: s["id"],
+                          salaNombre: s["nombre"],
+                          idSede: widget.idSede,
+                        ),
+                      ),
+                    );
+                  },
+                  tooltip: "Ver Croquis Dinámico",
+                ),
                 IconButton(
                   icon: const Icon(Icons.edit_outlined, color: Colors.blue),
                   onPressed: () => _abrirFormulario(sala: s),

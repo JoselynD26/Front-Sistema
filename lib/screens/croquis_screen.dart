@@ -301,10 +301,11 @@ class _CroquisScreenState extends State<CroquisScreen> {
                                 constraints: const BoxConstraints(),
                                 padding: const EdgeInsets.symmetric(horizontal: 4),
                               ),
+
                             IconButton(
-                              icon: const Icon(Icons.visibility_outlined, color: Colors.green, size: 20),
+                              icon: const Icon(Icons.image_outlined, color: Colors.green, size: 20),
                               onPressed: () => _verCroquisSala(sala),
-                              tooltip: 'Ver pantalla completa',
+                              tooltip: 'Ver Imagen Estática',
                               constraints: const BoxConstraints(),
                               padding: const EdgeInsets.symmetric(horizontal: 4),
                             ),

@@ -46,7 +46,7 @@ class _HorarioSemanalFormState extends State<HorarioSemanalForm> {
     "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"
   ];
 
-  final Color _primaryColor = Colors.indigo;
+  final Color _primaryColor = const Color(0xFFF59E0B); // Amber 500 equivalent
 
   @override
   void initState() {
@@ -387,9 +387,9 @@ class _HorarioSemanalFormState extends State<HorarioSemanalForm> {
         const SizedBox(height: 20),
 
         // 5. Días de la semana (Selección Múltiple)
-        const Padding(
+        Padding(
           padding: EdgeInsets.only(left: 4, bottom: 8),
-          child: Text("Seleccione los días:", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo)),
+          child: Text("Seleccione los días:", style: TextStyle(fontWeight: FontWeight.bold, color: _primaryColor)),
         ),
         Wrap(
           spacing: 8,
@@ -466,7 +466,7 @@ class _HorarioSemanalFormState extends State<HorarioSemanalForm> {
           label: const Text("GUARDAR PARA ESTOS DÍAS"),
           style: ElevatedButton.styleFrom(
             padding: const EdgeInsets.all(20),
-            backgroundColor: Colors.indigo,
+            backgroundColor: _primaryColor,
             foregroundColor: Colors.white, 
           ),
         ),

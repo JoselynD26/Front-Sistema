@@ -23,7 +23,7 @@ class _SalaFormScreenState extends State<SalaFormScreen> {
   
   final _apiService = ApiService();
   bool _isLoading = false;
-  final Color _primaryColor = Colors.teal;
+  final Color _primaryColor = const Color(0xFFF59E0B); // Amber 500 equivalent
 
   @override
   void initState() {

@@ -123,164 +123,202 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
                   LayoutBuilder(
                     builder: (context, constraints) {
                       final isMobile = constraints.maxWidth < 800;
-                      
+                      final isDark = Theme.of(context).brightness == Brightness.dark;
+                      final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+                      final textColorPrimary = isDark ? Colors.white : const Color(0xFF0F2B46);
+                      final textColorSecondary = isDark ? Colors.white70 : const Color(0xFF64748B);
+
                       return _EnterAnimation(
                         delay: 0,
                         child: Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(32),
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF2563EB), Color(0xFF1E40AF)], // Premium Blue Gradient
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
+                            color: cardBg, 
                             borderRadius: BorderRadius.circular(24),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF2563EB).withOpacity(0.3),
+                                color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
                                 blurRadius: 20,
-                                offset: const Offset(0, 10),
+                                offset: const Offset(0, 5),
                               ),
                             ],
+                            // Gradient Accent Border on the Left
+                            image: const DecorationImage(
+                              image: NetworkImage("https://www.transparenttextures.com/patterns/cubes.png"), // Subtle texture if available, else ignored
+                              opacity: 0.0,
+                            ),
                           ),
                           child: Stack(
                             children: [
-                              // Decorative Circles
+                              // Side Gradient Accent (Left Bar)
                               Positioned(
-                                top: -50,
-                                right: -50,
+                                left: 0,
+                                top: 0,
+                                bottom: 0,
                                 child: Container(
-                                  width: 200,
-                                  height: 200,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.05),
-                                    shape: BoxShape.circle,
+                                  width: 6,
+                                  decoration: const BoxDecoration(
+                                    borderRadius: BorderRadius.horizontal(left: Radius.circular(24)),
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Color(0xFF0070C9), // Primary Blue
+                                        Color(0xFFFF6B35), // Orange
+                                      ],
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                    ),
                                   ),
                                 ),
                               ),
-                              Positioned(
-                                bottom: -30,
-                                left: -30,
-                                child: Container(
-                                  width: 140,
-                                  height: 140,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.05),
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                              ),
-                              
+
                               // Content
-                              isMobile 
-                              ? Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(4),
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
-                                      ),
-                                      child: CircleAvatar(
-                                        radius: 40,
-                                        backgroundColor: Colors.white,
-                                        child: Text(
-                                          widget.nombreProfesor.isNotEmpty ? widget.nombreProfesor[0].toUpperCase() : "P",
-                                          style: const TextStyle(
-                                            fontSize: 32,
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(0xFF1E40AF),
+                              Padding(
+                                padding: const EdgeInsets.only(left: 16.0), // Spacing for the border
+                                child: isMobile 
+                                ? Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          gradient: const LinearGradient(
+                                            colors: [Color(0xFF0070C9), Color(0xFF0F2B46)],
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
                                           ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: const Color(0xFF0070C9).withOpacity(0.3),
+                                              blurRadius: 10,
+                                              offset: const Offset(0, 4),
+                                            )
+                                          ]
                                         ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    const Text(
-                                      "Bienvenido de nuevo,",
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.white70,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      widget.nombreProfesor,
-                                      style: const TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ],
-                                )
-                              : Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(4),
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
-                                      ),
-                                      child: CircleAvatar(
-                                        radius: 48,
-                                        backgroundColor: Colors.white,
-                                        child: Text(
-                                          widget.nombreProfesor.isNotEmpty ? widget.nombreProfesor[0].toUpperCase() : "P",
-                                          style: const TextStyle(
-                                            fontSize: 40,
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(0xFF1E40AF),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 32),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          const Text(
-                                            "Bienvenido de nuevo,",
-                                            style: TextStyle(
-                                              fontSize: 18,
-                                              color: Colors.white70,
-                                              fontWeight: FontWeight.w500,
+                                        child: CircleAvatar(
+                                          radius: 40,
+                                          backgroundColor: Colors.transparent, // Transparent to show gradient
+                                          child: Text(
+                                            widget.nombreProfesor.isNotEmpty ? widget.nombreProfesor[0].toUpperCase() : "P",
+                                            style: const TextStyle(
+                                              fontSize: 32,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white, 
                                             ),
                                           ),
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            widget.nombreProfesor,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        "Bienvenido de nuevo,",
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          color: textColorSecondary,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        widget.nombreProfesor,
+                                        style: TextStyle(
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                          color: textColorPrimary,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  )
+                                : Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          gradient: const LinearGradient(
+                                            colors: [Color(0xFF0070C9), Color(0xFF0F2B46)],
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: const Color(0xFF0070C9).withOpacity(0.3),
+                                              blurRadius: 10,
+                                              offset: const Offset(0, 4),
+                                            )
+                                          ]
+                                        ),
+                                        child: CircleAvatar(
+                                          radius: 48,
+                                          backgroundColor: Colors.transparent,
+                                          child: Text(
+                                            widget.nombreProfesor.isNotEmpty ? widget.nombreProfesor[0].toUpperCase() : "P",
                                             style: const TextStyle(
-                                              fontSize: 36,
+                                              fontSize: 40,
                                               fontWeight: FontWeight.bold,
                                               color: Colors.white,
-                                              letterSpacing: -0.5,
                                             ),
                                           ),
-                                          const SizedBox(height: 8),
-                                          Row(
-                                            children: [
-                                              Icon(Icons.calendar_today_rounded, color: Colors.white70, size: 14),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                "Panel de Gestión Académica",
-                                                style: TextStyle(
-                                                  color: Colors.white70,
-                                                  fontSize: 14,
-                                                ),
-                                              ),
-                                            ],
-                                          )
-                                        ],
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                ),
+                                      const SizedBox(width: 32),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              "Bienvenido de nuevo,",
+                                              style: TextStyle(
+                                                fontSize: 18,
+                                                color: textColorSecondary,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              widget.nombreProfesor,
+                                              style: TextStyle(
+                                                fontSize: 36,
+                                                fontWeight: FontWeight.bold,
+                                                color: textColorPrimary,
+                                                letterSpacing: -0.5,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Row(
+                                              children: [
+                                                Container(
+                                                  padding: const EdgeInsets.all(6),
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(0xFFFF6B35).withOpacity(0.1),
+                                                    shape: BoxShape.circle,
+                                                  ),
+                                                  child: const Icon(Icons.calendar_today_rounded, color: Color(0xFFFF6B35), size: 14)
+                                                ),
+                                                const SizedBox(width: 8),
+                                                const Text(
+                                                  "Panel de Gestión Académica",
+                                                  style: TextStyle(
+                                                    color: Color(0xFF0070C9), // Primary Blue
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ],
+                                            )
+                                          ],
+                                        ),
+                                      ),
+                                      // Right side decoration for desktop
+                                      Opacity(
+                                        opacity: 0.1,
+                                        child: Icon(Icons.school_rounded, size: 120, color: const Color(0xFF0070C9)),
+                                      ),
+                                    ],
+                                  ),
+                              ),
                             ],
                           ),
                         ),
@@ -3183,6 +3221,18 @@ class _HoverableCardState extends State<_HoverableCard> with SingleTickerProvide
 
   @override
   Widget build(BuildContext context) {
+    // DeepL / Bonito Theme Colors
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = const Color(0xFF0070C9);
+    final darkBlue = const Color(0xFF0F2B46);
+    final orangeAccent = const Color(0xFFFF6B35);
+    final orangeLight = const Color(0xFFFF9F43);
+    
+    // Dynamic Colors based on Theme
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textColor = isDark ? Colors.white : darkBlue;
+    final subtextColor = isDark ? Colors.white70 : darkBlue.withOpacity(0.6);
+
     return MouseRegion(
       onEnter: (_) {
         setState(() => _isHovered = true);
@@ -3205,49 +3255,41 @@ class _HoverableCardState extends State<_HoverableCard> with SingleTickerProvide
               scale: _scaleAnimation.value,
               child: Container(
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: _isHovered 
-                    ? [widget.color.withOpacity(0.1), widget.color.withOpacity(0.05)]
-                    : [widget.color.withOpacity(0.06), widget.color.withOpacity(0.02)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: cardBg, // Dynamic Background
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: widget.color.withOpacity(_isHovered ? 0.8 : 0.2), // Brighter border on hover
-                    width: _isHovered ? 2.0 : 1.5,
+                    color: _isHovered ? orangeAccent.withOpacity(0.5) : Colors.transparent, // Orange Border on Hover
+                    width: 1.5,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: widget.color.withOpacity(_isHovered ? 0.25 : 0.15),
-                      blurRadius: _isHovered ? 30 : 15,
-                      offset: Offset(0, _isHovered ? 15 : 8),
-                    ),
-                    BoxShadow(
-                      color: Colors.white.withOpacity(0.5),
-                      blurRadius: 15,
-                      offset: const Offset(0, -8),
+                      color: _isHovered 
+                          ? orangeAccent.withOpacity(0.25) // Orange Glow
+                          : Colors.black.withOpacity(isDark ? 0.3 : 0.05), // Subtle Shadow
+                      blurRadius: _isHovered ? 20 : 10,
+                      offset: Offset(0, _isHovered ? 10 : 4),
                     ),
                   ],
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Container(
+                    // Icon Container
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [
-                            widget.color,
-                            widget.color.withOpacity(0.8),
-                          ],
+                          colors: _isHovered 
+                              ? [orangeAccent, orangeLight] // Orange on Hover
+                              : [darkBlue, primaryColor],   // Blue normally
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: widget.color.withOpacity(0.4),
+                            color: (_isHovered ? orangeAccent : primaryColor).withOpacity(0.4),
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                           ),
@@ -3264,20 +3306,21 @@ class _HoverableCardState extends State<_HoverableCard> with SingleTickerProvide
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: _isHovered ? widget.color : const Color(0xFF1E293B), // Color shift on hover
+                        color: textColor, // Dynamic Text Color
                       ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 6),
-                    Text(
-                      widget.subtitle,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
+                    if (widget.subtitle.isNotEmpty)
+                      Text(
+                        widget.subtitle,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: subtextColor, // Dynamic Subtext Color
+                          fontWeight: FontWeight.w500,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      textAlign: TextAlign.center,
-                    ),
                   ],
                 ),
               ),

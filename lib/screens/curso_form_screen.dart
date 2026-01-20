@@ -31,7 +31,7 @@ class _CursoFormScreenState extends State<CursoFormScreen> {
 
   bool cargando = true;
   bool guardando = false;
-  final Color _primaryColor = const Color(0xFF8B5CF6); // Violet 500
+  final Color _primaryColor = const Color(0xFFF59E0B); // Amber 500 equivalent
 
   @override
   void initState() {

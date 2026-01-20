@@ -46,7 +46,9 @@ class _AdminCardState extends State<AdminCard> with SingleTickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final primaryColor = widget.color ?? theme.primaryColor;
+    final primaryColor = theme.primaryColor;
+    final secondaryColor = theme.colorScheme.secondary; 
+    final orangeAccent = theme.colorScheme.tertiary; 
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -67,90 +69,110 @@ class _AdminCardState extends State<AdminCard> with SingleTickerProviderStateMix
               scale: _scaleAnimation.value,
               child: Container(
                 decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor, // Use theme color
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: primaryColor.withOpacity(_isHovering ? 0.2 : 0.05),
-                      blurRadius: _isHovering ? 20 : 10,
-                      offset: const Offset(0, 8),
+                      color: _isHovering 
+                          ? primaryColor.withOpacity(0.15) 
+                          : Colors.black.withOpacity(0.04),
+                      blurRadius: _isHovering ? 20 : 8,
+                      offset: const Offset(0, 4),
                     ),
                   ],
+                  // Subtle border, Blue on hover
                   border: Border.all(
-                    color: _isHovering ? primaryColor.withOpacity(0.3) : Colors.transparent,
-                    width: 2,
+                    color: _isHovering ? primaryColor.withOpacity(0.5) : Colors.transparent,
+                    width: 1.5,
                   ),
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(20),
                   child: Stack(
                     children: [
-                      // Decorative background circle
                       Positioned(
-                        right: -20,
-                        top: -20,
-                        child: Container(
+                        right: -30,
+                        top: -30,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
                           width: 100,
                           height: 100,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: primaryColor.withOpacity(0.05),
+                            // Background circle also reacts gently
+                            color: _isHovering ? orangeAccent.withOpacity(0.05) : primaryColor.withOpacity(0.03),
                           ),
                         ),
                       ),
                       
-                      Positioned.fill(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: primaryColor.withOpacity(0.1),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  widget.icon,
-                                  size: 28,
-                                  color: primaryColor,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Flexible(
-                                child: Text(
-                                  widget.title,
-                                  textAlign: TextAlign.center,
-                                  maxLines: 3,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.grey[800],
-                                    height: 1.2,
-                                  ),
-                                ),
-                              ),
-                              if (widget.subtitle != null) ...[
-                                const SizedBox(height: 8),
-                                Flexible(
-                                  child: Text(
-                                    widget.subtitle!,
-                                    textAlign: TextAlign.center,
-                                    maxLines: 3,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: Colors.grey[600],
-                                      height: 1.3,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                             // ICON: Switches from Blue Gradient to Orange Gradient on Hover
+                             AnimatedContainer(
+                               duration: const Duration(milliseconds: 300),
+                               padding: const EdgeInsets.all(14),
+                               decoration: BoxDecoration(
+                                 shape: BoxShape.circle,
+                                 gradient: LinearGradient(
+                                   colors: _isHovering 
+                                      ? [orangeAccent, Colors.orangeAccent] // Orange on Hover
+                                      : [primaryColor, secondaryColor],    // Blue normally
+                                   begin: Alignment.topLeft,
+                                   end: Alignment.bottomRight,
+                                 ),
+                                 boxShadow: [
+                                   BoxShadow(
+                                     color: (_isHovering ? orangeAccent : primaryColor).withOpacity(0.3),
+                                     blurRadius: 10,
+                                     offset: const Offset(0, 4),
+                                   ),
+                                 ],
+                               ),
+                               child: Icon(
+                                 widget.icon,
+                                 size: 28,
+                                 color: Colors.white, 
+                               ),
+                             ),
+                             const SizedBox(height: 12),
+                             // Title
+                             Flexible(
+                               child: Text(
+                                 widget.title,
+                                 textAlign: TextAlign.center,
+                                 maxLines: 2,
+                                 overflow: TextOverflow.ellipsis,
+                                 style: TextStyle(
+                                   fontSize: 16, // Adjusted font size
+                                   fontWeight: FontWeight.bold,
+                                   color: secondaryColor, // Dark Blue ("Azul más oscuro" requested)
+                                   letterSpacing: -0.3,
+                                   height: 1.1,
+                                 ),
+                               ),
+                             ),
+                             if (widget.subtitle != null) ...[
+                               const SizedBox(height: 6),
+                               // Subtitle
+                               Flexible(
+                                 child: Text(
+                                   widget.subtitle!,
+                                   textAlign: TextAlign.center,
+                                   maxLines: 2,
+                                   overflow: TextOverflow.ellipsis,
+                                   style: TextStyle(
+                                     fontSize: 12,
+                                     color: secondaryColor.withOpacity(0.7), // Lighter version of Dark Blue
+                                     height: 1.2,
+                                     fontWeight: FontWeight.w500,
+                                   ),
+                                 ),
+                               ),
+                             ],
+                          ],
                         ),
                       ),
                     ],

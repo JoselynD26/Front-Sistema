@@ -78,13 +78,13 @@ class _SedeScreenState extends State<SedeScreen> with SafeStateMixin {
         ],
       ),
       child: cargando
-          ? const Center(
+          ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircularProgressIndicator(color: Color(0xFFFF6B35)),
-                  SizedBox(height: 16),
-                  Text(
+                   CircularProgressIndicator(color: Theme.of(context).primaryColor),
+                   const SizedBox(height: 16),
+                   const Text(
                     "Cargando sedes...",
                     style: TextStyle(fontSize: 16, color: Colors.grey),
                   ),
@@ -93,12 +93,12 @@ class _SedeScreenState extends State<SedeScreen> with SafeStateMixin {
             )
           : Column(
               children: [
-                const Text(
+                Text(
                   "Selecciona tu sede",
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1E3A8A),
+                    color: Theme.of(context).primaryColor,
                   ),
                 ),
                 const SizedBox(height: 10),

@@ -5,6 +5,7 @@ import '../widgets/admin_crud_layout.dart';
 import '../widgets/admin_table.dart';
 import '../widgets/custom_dialog.dart';
 import 'escritorio_form.dart';
+import 'dynamic_croquis_screen.dart';
 
 class EscritoriosScreen extends StatefulWidget {
   final int idSede;
@@ -110,6 +111,75 @@ class _EscritoriosScreenState extends State<EscritoriosScreen> with SafeStateMix
     _cargarEscritorios();
   }
 
+  void _mostrarSelectorSala() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final salas = await _apiService.listarSalasPorSede(widget.idSede);
+      if (mounted) Navigator.pop(context); // Close loading
+
+      if (!mounted) return;
+
+      if (salas.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("No hay salas registradas en esta sede")));
+        return;
+      }
+
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text("Ver Croquis de Sala"),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemCount: salas.length,
+              separatorBuilder: (_, __) => const Divider(),
+              itemBuilder: (ctx, i) {
+                final s = salas[i];
+                return ListTile(
+                  leading: Icon(Icons.meeting_room_outlined, color: Theme.of(context).primaryColor),
+                  title: Text(s['nombre'] ?? "Sala sin nombre"),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => DynamicCroquisScreen(
+                          salaId: s['id'],
+                          salaNombre: s['nombre'] ?? "Sala",
+                          idSede: widget.idSede,
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text("Cancelar"),
+            )
+          ],
+        ),
+      );
+    } catch (e) {
+      if (mounted) Navigator.pop(context); // Close loading
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Error al cargar listado de salas")));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AdminCRUDLayout(
@@ -117,6 +187,18 @@ class _EscritoriosScreenState extends State<EscritoriosScreen> with SafeStateMix
       subtitle: "Gestión de espacios de trabajo y escritorios",
       onAdd: () => _abrirFormulario(),
       idSede: widget.idSede,
+      actions: [
+        ElevatedButton.icon(
+          onPressed: _mostrarSelectorSala,
+          icon: const Icon(Icons.map, size: 18),
+          label: const Text("Ver Croquis"),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Theme.of(context).primaryColor,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+        ),
+      ],
       child: AdminTable(
         isLoading: cargando,
         columns: const [
@@ -141,7 +223,7 @@ class _EscritoriosScreenState extends State<EscritoriosScreen> with SafeStateMix
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.edit_outlined, color: Colors.blue),
+                    icon: Icon(Icons.edit_outlined, color: Theme.of(context).primaryColor),
                     onPressed: () => _abrirFormulario(escritorio: e),
                     tooltip: "Editar",
                   ),

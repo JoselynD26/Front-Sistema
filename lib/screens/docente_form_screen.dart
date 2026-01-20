@@ -28,7 +28,7 @@ class _DocenteFormScreenState extends State<DocenteFormScreen> {
   String? _observacion;
 
   bool cargando = false;
-  final Color _primaryColor = const Color(0xFF8B5CF6); // Violet 500
+  final Color _primaryColor = const Color(0xFFF59E0B); // Azul/Naranja Standard (Amber 500 equivalent)
 
   @override
   void initState() {

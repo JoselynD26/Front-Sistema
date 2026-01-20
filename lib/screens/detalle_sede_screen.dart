@@ -156,13 +156,18 @@ class _DetalleSedeScreenState extends State<DetalleSedeScreen> with SingleTicker
                         padding: EdgeInsets.all(isMobile ? 24 : 40),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [const Color(0xFF0F172A), Colors.blue.shade800],
+                            colors: [
+                              const Color(0xFF0F2B46), // DeepL Dark Blue
+                              const Color(0xFF0070C9), // DeepL Primary Blue
+                              const Color(0xFFFF6B35), // Vibrant Orange Accent
+                            ],
+                            stops: const [0.0, 0.6, 1.0], // Blue dominates left/center, Orange hits the corner
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
                           borderRadius: BorderRadius.circular(24),
                           boxShadow: [
-                            BoxShadow(color: Colors.blue.shade900.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10)),
+                            BoxShadow(color: const Color(0xFF0F2B46).withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 10)),
                           ],
                         ),
                         child: Column(

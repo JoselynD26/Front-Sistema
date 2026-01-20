@@ -23,7 +23,7 @@ class _CarreraFormScreenState extends State<CarreraFormScreen> {
   late TextEditingController _nombreCtrl;
   late TextEditingController _codigoCtrl;
   bool cargando = false;
-  final Color _primaryColor = const Color(0xFF4F46E5); // Indigo 600
+  final Color _primaryColor = const Color(0xFFF59E0B); // Amber 500 equivalent
 
   @override
   void initState() {

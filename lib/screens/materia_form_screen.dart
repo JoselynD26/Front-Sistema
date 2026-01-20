@@ -29,7 +29,7 @@ class _MateriaFormScreenState extends State<MateriaFormScreen> {
 
   bool cargando = true;
   bool guardando = false;
-  final Color _primaryColor = const Color(0xFFEC4899); // Pink 500
+  final Color _primaryColor = const Color(0xFFF59E0B); // Amber 500 equivalent
 
   @override
   void initState() {

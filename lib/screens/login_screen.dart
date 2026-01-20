@@ -115,9 +115,9 @@ class _LoginScreenState extends State<LoginScreen> with SafeStateMixin {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      Color(0xFF0C2461), // Darker Deep Blue
-                      Color(0xFF1E3A8A), // Brand Blue
-                      Color(0xFF4A69BD), // Lighter "Premium" Blue
+                      Color(0xFF0F2B46), // DeepL Dark Blue
+                      Color(0xFF0070C9), // DeepL Primary Blue
+                      Color(0xFFFF6B35), // Orange Accent (Restored)
                     ],
                   ),
                 ),
@@ -137,7 +137,7 @@ class _LoginScreenState extends State<LoginScreen> with SafeStateMixin {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      Container(height: 4, width: 60, color: const Color(0xFFFF6B35)), // Orange Accent
+                      Container(height: 4, width: 60, color: Colors.white.withOpacity(0.3)), // Subtle accent
                       const SizedBox(height: 24),
                       Text(
                         "Sistema de Gestión Académica",
@@ -187,9 +187,8 @@ class _LoginScreenState extends State<LoginScreen> with SafeStateMixin {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Color(0xFF0C2461), 
-                    Color(0xFF1E3A8A), 
-                    Color(0xFF4A69BD), 
+                    Color(0xFF0F2B46), 
+                    Color(0xFF0070C9), 
                   ],
                 ),
              ),
@@ -257,12 +256,12 @@ class _LoginScreenState extends State<LoginScreen> with SafeStateMixin {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
+        Text(
           "Bienvenido",
           style: TextStyle(
             fontSize: 32,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF1E3A8A),
+            color: Theme.of(context).colorScheme.secondary,
           ),
           textAlign: TextAlign.center,
         ),
@@ -302,10 +301,10 @@ class _LoginScreenState extends State<LoginScreen> with SafeStateMixin {
           alignment: Alignment.centerRight,
           child: TextButton(
             onPressed: () => _mostrarDialogoRecuperacion(context),
-            child: const Text(
+            child: Text(
               "¿Olvidaste tu contraseña?",
               style: TextStyle(
-                color: Color(0xFF1E3A8A),
+                color: Theme.of(context).primaryColor,
                 fontWeight: FontWeight.bold,
                 fontSize: 13,
               ),
@@ -324,7 +323,7 @@ class _LoginScreenState extends State<LoginScreen> with SafeStateMixin {
               width: 24,
               child: Checkbox(
                 value: _recordarCredenciales,
-                activeColor: const Color(0xFF1E3A8A),
+                activeColor: Theme.of(context).primaryColor,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                 onChanged: (value) {
                   setState(() {
@@ -358,7 +357,7 @@ class _LoginScreenState extends State<LoginScreen> with SafeStateMixin {
           child: ElevatedButton(
             onPressed: cargando ? null : _login,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF6B35), // Orange Action
+              backgroundColor: Theme.of(context).primaryColor,
               foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -381,10 +380,10 @@ class _LoginScreenState extends State<LoginScreen> with SafeStateMixin {
                 context,
                 MaterialPageRoute(builder: (context) => const RegisterScreen()),
               ),
-              child: const Text(
+              child: Text(
                 "Regístrate aquí",
                 style: TextStyle(
-                  color: Color(0xFF1E3A8A),
+                  color: Theme.of(context).primaryColor,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -445,7 +444,7 @@ class _LoginScreenState extends State<LoginScreen> with SafeStateMixin {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF1E3A8A), width: 1.5),
+              borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
             ),
             contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
           ),
@@ -486,7 +485,7 @@ class _LoginScreenState extends State<LoginScreen> with SafeStateMixin {
                       decoration: const BoxDecoration(
                         borderRadius: BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
                         gradient: LinearGradient(
-                          colors: [Color(0xFF0C2461), Color(0xFF1E3A8A)],
+                          colors: [Color(0xFF0F2B46), Color(0xFF0070C9)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -537,7 +536,7 @@ class _LoginScreenState extends State<LoginScreen> with SafeStateMixin {
                               decoration: InputDecoration(
                                 hintText: "ejemplo@yavirac.edu.ec",
                                 hintStyle: TextStyle(color: Colors.grey[400]),
-                                prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFF1E3A8A)),
+                                prefixIcon: Icon(Icons.email_outlined, color: Theme.of(context).primaryColor),
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                                 contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                                 filled: true,
@@ -605,7 +604,7 @@ class _LoginScreenState extends State<LoginScreen> with SafeStateMixin {
                                     }
                                   },
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF1E3A8A),
+                                    backgroundColor: Theme.of(context).primaryColor,
                                     foregroundColor: Colors.white,
                                     padding: const EdgeInsets.symmetric(vertical: 16),
                                     elevation: 0,

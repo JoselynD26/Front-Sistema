@@ -34,7 +34,7 @@ class _EscritorioFormState extends State<EscritorioForm> with SafeStateMixin {
   Map<int, Set<int>> docenteCarrerasMap = {}; // DocenteID -> Set<CarreraID>
   final apiService = ApiService();
   bool cargando = false;
-  final Color _primaryColor = const Color(0xFF06B6D4); // Cyan 500
+  final Color _primaryColor = const Color(0xFFF59E0B); // Amber 500 equivalent
 
   @override
   void initState() {
