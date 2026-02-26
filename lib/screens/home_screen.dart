@@ -25,7 +25,7 @@ class HomeScreen extends StatelessWidget {
           ),
           Divider(),
           ListTile(
-            leading: Icon(Icons.school),
+            leading: const Icon(Icons.school, color: Colors.blue),
             title: Text("Carreras"),
             subtitle: Text("Ver listado de carreras"),
             onTap: () => Navigator.pushNamed(context, '/carreras'),

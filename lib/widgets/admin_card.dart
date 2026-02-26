@@ -134,7 +134,7 @@ class _AdminCardState extends State<AdminCard> with SingleTickerProviderStateMix
                                child: Icon(
                                  widget.icon,
                                  size: 28,
-                                 color: Colors.white, 
+                                 color: Colors.white,
                                ),
                              ),
                              const SizedBox(height: 12),

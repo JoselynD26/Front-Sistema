@@ -20,6 +20,7 @@ import '../screens/escritorio_screen.dart';
 import '../screens/profile_screen.dart';
 import '../screens/profesor_dashboard.dart';
 import '../screens/detalle_sede_screen.dart';
+import '../utils/app_colors.dart';
 
 class WebLayout extends StatefulWidget {
   final String title;
@@ -192,7 +193,7 @@ class _WebLayoutState extends State<WebLayout> with SafeStateMixin {
 
   Widget _buildMobileLayout(BuildContext context) {
      final backgroundColor = _isDarkMode ? const Color(0xFF0F172A) : const Color(0xFFF3F4F6);
-     final surfaceColor = _isDarkMode ? const Color(0xFF1E293B) : Colors.white;
+     final surfaceColor = _isDarkMode ? AppColors.blueDark.withOpacity(0.9) : Colors.white;
 
     return MouseTrackerFix(
       child: Scaffold(
@@ -360,30 +361,11 @@ class _SidebarContent extends StatelessWidget {
           padding: const EdgeInsets.all(32),
           child: Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      const Color(0xFF0F2B46), // Dark
-                      Theme.of(context).primaryColor, // Blue
-                      Theme.of(context).colorScheme.tertiary, // Orange
-                    ],
-                    stops: const [0.0, 0.6, 1.0],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Theme.of(context).primaryColor.withOpacity(0.3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                Image.asset(
+                  "assets/images/logo.png",
+                  height: 55,
+                  fit: BoxFit.contain,
                 ),
-                child: const Icon(Icons.school_rounded, color: Colors.white, size: 28),
-              ),
               const SizedBox(width: 16),
               Text(
                 "YAVIRAC",

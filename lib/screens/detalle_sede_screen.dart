@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import '../utils/app_colors.dart';
 import '../services/api_service.dart';
 import '../widgets/web_layout.dart';
 import '../widgets/admin_card.dart';
@@ -157,9 +158,9 @@ class _DetalleSedeScreenState extends State<DetalleSedeScreen> with SingleTicker
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
-                              const Color(0xFF0F2B46), // DeepL Dark Blue
-                              const Color(0xFF0070C9), // DeepL Primary Blue
-                              const Color(0xFFFF6B35), // Vibrant Orange Accent
+                              AppColors.blueDark,
+                              AppColors.bluePrimary,
+                              AppColors.orangeAccent,
                             ],
                             stops: const [0.0, 0.6, 1.0], // Blue dominates left/center, Orange hits the corner
                             begin: Alignment.topLeft,
@@ -167,7 +168,7 @@ class _DetalleSedeScreenState extends State<DetalleSedeScreen> with SingleTicker
                           ),
                           borderRadius: BorderRadius.circular(24),
                           boxShadow: [
-                            BoxShadow(color: const Color(0xFF0F2B46).withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 10)),
+                            BoxShadow(color: AppColors.blueDark.withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 10)),
                           ],
                         ),
                         child: Column(

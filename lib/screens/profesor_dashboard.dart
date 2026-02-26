@@ -313,9 +313,10 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
                                         ),
                                       ),
                                       // Right side decoration for desktop
-                                      Opacity(
-                                        opacity: 0.1,
-                                        child: Icon(Icons.school_rounded, size: 120, color: AppColors.bluePrimary),
+                                      Image.asset(
+                                        "assets/images/logo.png",
+                                        height: 150,
+                                        fit: BoxFit.contain,
                                       ),
                                     ],
                                   ),
@@ -523,7 +524,7 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
                           const SizedBox(height: 4),
                           Row(
                             children: [
-                              Icon(Icons.school, size: 14, color: Colors.grey[500]),
+                              const Icon(Icons.school, size: 14, color: Colors.grey),
                               const SizedBox(width: 4),
                               Expanded(
                                 child: Text(
@@ -1069,14 +1070,14 @@ class _HorarioAulasDialogState extends State<_HorarioAulasDialog> {
                                 ? [const ListTile(title: Text("Disponible todo el día"))]
                                 : ocupaciones.map<Widget>((ocupacion) {
                                     return ListTile(
-                                      leading: Icon(
-                                        ocupacion["tipo"] == "reserva" 
-                                            ? Icons.event_available 
-                                            : Icons.school,
-                                        color: ocupacion["tipo"] == "reserva" 
-                                            ? Colors.orange 
-                                            : Colors.blue,
-                                      ),
+                                        leading: Icon(
+                                          ocupacion["tipo"] == "reserva" 
+                                              ? Icons.event_available 
+                                              : Icons.school,
+                                          color: ocupacion["tipo"] == "reserva" 
+                                              ? Colors.orange 
+                                              : Colors.blue,
+                                        ),
                                       title: Text(
                                         "${ocupacion["hora_inicio"]} - ${ocupacion["hora_fin"]}",
                                       ),
