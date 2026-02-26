@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../services/api_service.dart';
 import '../utils/mouse_tracker_fix.dart';
+import '../utils/app_colors.dart';
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -165,9 +166,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Color(0xFF0C2461), // Darker Deep Blue
-                    Color(0xFF1E3A8A), // Brand Blue
-                    Color(0xFF4A69BD), // Lighter "Premium" Blue
+                    AppColors.blueDark,
+                    AppColors.bluePrimary,
+                    AppColors.orangeAccent,
                   ],
                 ),
               ),
@@ -175,22 +176,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.school_rounded, size: 80, color: Colors.white.withOpacity(0.9)),
-                    const SizedBox(height: 24),
-                    const Text(
-                      "Yavirac",
-                      style: TextStyle(
-                        fontSize: 64,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        letterSpacing: 2,
-                      ),
+                    Image.asset(
+                      "assets/images/logo.png",
+                      height: 200,
+                      fit: BoxFit.contain,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
                     Container(
                       height: 4,
                       width: 60,
-                      color: const Color(0xFFFF6B35),
+                      color: Colors.white.withOpacity(0.3),
                     ),
                     const SizedBox(height: 24),
                     Text(
@@ -236,17 +231,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
         children: [
           // Global Gradient Background using Container
           Container(
-             decoration: const BoxDecoration(
+              decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Color(0xFF0C2461), 
-                    Color(0xFF1E3A8A), 
-                    Color(0xFF4A69BD), 
+                    AppColors.blueDark,
+                    AppColors.bluePrimary,
                   ],
                 ),
-             ),
+              ),
           ),
           // Header Branding
           Positioned(
@@ -259,16 +253,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
              alignment: Alignment.topCenter,
              child: Column(
                children: [
-                  Icon(Icons.school_rounded, size: 48, color: Colors.white.withOpacity(0.9)),
-                  const SizedBox(height: 16),
-                  const Text(
-                    "Yavirac",
-                    style: TextStyle(
-                      fontSize: 40,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
+                  Image.asset(
+                    "assets/images/logo.png",
+                    height: 80,
+                    fit: BoxFit.contain,
                   ),
+                  const SizedBox(height: 16),
                   Text(
                     "Gestión Académica",
                     style: TextStyle(
@@ -316,7 +306,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           style: const TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF1E3A8A),
+            color: AppColors.blueDark,
           ),
           textAlign: TextAlign.center,
         ),
@@ -350,7 +340,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: const Text(
                 "Inicia sesión",
                 style: TextStyle(
-                  color: Color(0xFF1E3A8A),
+                  color: AppColors.bluePrimary,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -406,7 +396,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: ElevatedButton(
             onPressed: cargando ? null : _solicitarCodigo,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF6B35),
+              backgroundColor: AppColors.orangeAccent,
               foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -454,7 +444,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: ElevatedButton(
             onPressed: cargando ? null : _register,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF6B35),
+              backgroundColor: AppColors.orangeAccent,
               foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -523,7 +513,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF1E3A8A), width: 1.5),
+              borderSide: const BorderSide(color: AppColors.bluePrimary, width: 1.5),
             ),
             contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
           ),

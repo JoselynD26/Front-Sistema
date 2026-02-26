@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../widgets/admin_form_layout.dart';
+import '../utils/app_colors.dart';
 
 class CarreraFormScreen extends StatefulWidget {
   final int idSede;
@@ -23,7 +24,7 @@ class _CarreraFormScreenState extends State<CarreraFormScreen> {
   late TextEditingController _nombreCtrl;
   late TextEditingController _codigoCtrl;
   bool cargando = false;
-  final Color _primaryColor = const Color(0xFFF59E0B); // Amber 500 equivalent
+  final Color _primaryColor = AppColors.bluePrimary;// Amber 500 equivalent
 
   @override
   void initState() {

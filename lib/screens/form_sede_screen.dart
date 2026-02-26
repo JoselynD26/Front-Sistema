@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../widgets/admin_form_layout.dart';
 import '../widgets/custom_dialog.dart';
+import '../utils/app_colors.dart';
 
 class FormSedeScreen extends StatefulWidget {
   final Map<String, dynamic>? sede;
@@ -27,7 +28,7 @@ class _FormSedeScreenState extends State<FormSedeScreen> {
   }
 
   bool cargando = false;
-  final Color _primaryColor = const Color(0xFF6366F1);
+ final Color _primaryColor = AppColors.bluePrimary;
 
   Future<void> _guardarSede() async {
     if (!_formKey.currentState!.validate()) return;

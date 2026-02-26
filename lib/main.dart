@@ -16,6 +16,7 @@ import 'screens/horarios_pdf_screen.dart';
 import 'screens/croquis_screen.dart';
 import 'screens/docente_croquis_screen.dart';
 import 'utils/theme_manager.dart';
+import 'utils/app_colors.dart';
 
 void main() {
   runApp(const GestionAcademicaApp());
@@ -109,11 +110,11 @@ class GestionAcademicaApp extends StatelessWidget {
 
   /// 🔹 THEME ORIGINAL (NO TOCADO)
   ThemeData _buildWebTheme() {
-    // DeepL Inspired Palette
-    const primaryColor = Color(0xFF0070C9); // DeepL Primary Blue
-    const secondaryColor = Color(0xFF0F2B46); // DeepL Dark Blue
-    const tertiaryColor = Color(0xFFFF6B35); // Vibrant Orange (Accent)
-    const backgroundColor = Color(0xFFF5F7F8); // DeepL Background
+    // DeepL Inspired Palette (Institutional)
+    const primaryColor = AppColors.bluePrimary;
+    const secondaryColor = AppColors.blueDark;
+    const tertiaryColor = AppColors.orangeAccent;
+    const backgroundColor = Color(0xFFF5F7F8); 
     const surfaceColor = Colors.white;
     const errorColor = Color(0xFFC34331);
     const warningColor = Color(0xFF622700);
@@ -218,10 +219,10 @@ class GestionAcademicaApp extends StatelessWidget {
   }
 
   ThemeData _buildDarkTheme() {
-    // Adapted DeepL Palette for Dark Mode
-    const primaryColor = Color(0xFF3B82F6); // Lighter blue for better visibility in dark
-    const secondaryColor = Color(0xFF0F2B46); // DeepL Dark Blue used as background base or accent
-    const backgroundColor = Color(0xFF0F172A); // Keeping Slate 900 for proper contrast
+    // Adapted DeepL Palette for Dark Mode (Institutional)
+    const primaryColor = Color(0xFF3B82F6); 
+    const secondaryColor = AppColors.blueDark;
+    const backgroundColor = Color(0xFF0F172A); 
     const surfaceColor = Color(0xFF1E293B); // Slate 800
     const textColor = Colors.white;
     // Note: We might want to use the DeepL Dark Blue (0xFF0F2B46) as the surface or background

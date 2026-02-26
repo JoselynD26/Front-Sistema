@@ -3,6 +3,7 @@ import '../services/api_service.dart';
 import '../widgets/admin_form_layout.dart';
 import '../widgets/conflict_dialog.dart';
 import '../widgets/custom_dialog.dart';
+import '../utils/app_colors.dart';
 
 class HorarioAulaForm extends StatefulWidget {
   final int idSede;
@@ -51,7 +52,7 @@ class _HorarioAulaFormState extends State<HorarioAulaForm> {
     "Lunes", "Martes", "Miércoles", "Jueves", "Viernes"
   ];
 
-  final Color _primaryColor = Colors.indigo;
+  final Color _primaryColor = AppColors.bluePrimary;
 
   @override
   void initState() {

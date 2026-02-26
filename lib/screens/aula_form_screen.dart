@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/api_service.dart';
 import '../widgets/admin_form_layout.dart';
+import '../utils/app_colors.dart';
 
 class AulaFormScreen extends StatefulWidget {
   final int idSede;
@@ -27,7 +28,7 @@ class _AulaFormScreenState extends State<AulaFormScreen> {
   late TextEditingController _descripcionCtrl;
 
   bool cargando = false;
-  final Color _primaryColor = const Color(0xFFF59E0B); // Amber 500
+  final Color _primaryColor = AppColors.bluePrimary;
 
   @override
   void initState() {

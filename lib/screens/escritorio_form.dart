@@ -3,6 +3,7 @@ import '../services/api_service.dart';
 import '../widgets/admin_form_layout.dart';
 import '../widgets/custom_dialog.dart';
 import '../utils/mouse_tracker_fix.dart';
+import '../utils/app_colors.dart';
 
 class EscritorioForm extends StatefulWidget {
   final Map? escritorio;
@@ -34,7 +35,7 @@ class _EscritorioFormState extends State<EscritorioForm> with SafeStateMixin {
   Map<int, Set<int>> docenteCarrerasMap = {}; // DocenteID -> Set<CarreraID>
   final apiService = ApiService();
   bool cargando = false;
-  final Color _primaryColor = const Color(0xFFF59E0B); // Amber 500 equivalent
+  final Color _primaryColor = AppColors.bluePrimary;// Amber 500 equivalent
 
   @override
   void initState() {

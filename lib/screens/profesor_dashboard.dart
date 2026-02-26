@@ -7,6 +7,7 @@ import 'docente_croquis_screen.dart';
 import 'croquis_plaza_screen.dart';
 import '../widgets/custom_dialog.dart';
 import 'disponibilidad_aulas_screen.dart';
+import '../utils/app_colors.dart';
 
 class ProfesorDashboard extends StatefulWidget {
   final int docenteId;
@@ -125,7 +126,7 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
                       final isMobile = constraints.maxWidth < 800;
                       final isDark = Theme.of(context).brightness == Brightness.dark;
                       final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
-                      final textColorPrimary = isDark ? Colors.white : const Color(0xFF0F2B46);
+                      final textColorPrimary = isDark ? Colors.white : AppColors.blueDark;
                       final textColorSecondary = isDark ? Colors.white70 : const Color(0xFF64748B);
 
                       return _EnterAnimation(
@@ -191,7 +192,7 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
                                           ),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: const Color(0xFF0070C9).withOpacity(0.3),
+                                              color: AppColors.bluePrimary.withOpacity(0.3),
                                               blurRadius: 10,
                                               offset: const Offset(0, 4),
                                             )
@@ -244,7 +245,7 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
                                           ),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: const Color(0xFF0070C9).withOpacity(0.3),
+                                              color: AppColors.bluePrimary.withOpacity(0.3),
                                               blurRadius: 10,
                                               offset: const Offset(0, 4),
                                             )
@@ -292,7 +293,7 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
                                                 Container(
                                                   padding: const EdgeInsets.all(6),
                                                   decoration: BoxDecoration(
-                                                    color: const Color(0xFFFF6B35).withOpacity(0.1),
+                                                    color: AppColors.orangeAccent.withOpacity(0.1),
                                                     shape: BoxShape.circle,
                                                   ),
                                                   child: const Icon(Icons.calendar_today_rounded, color: Color(0xFFFF6B35), size: 14)
@@ -314,7 +315,7 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
                                       // Right side decoration for desktop
                                       Opacity(
                                         opacity: 0.1,
-                                        child: Icon(Icons.school_rounded, size: 120, color: const Color(0xFF0070C9)),
+                                        child: Icon(Icons.school_rounded, size: 120, color: AppColors.bluePrimary),
                                       ),
                                     ],
                                   ),
@@ -1945,7 +1946,7 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFFFF6B35).withOpacity(0.3),
+                          color: AppColors.orangeAccent.withOpacity(0.3),
                           blurRadius: 12,
                           offset: const Offset(0, 6),
                         )
@@ -2041,7 +2042,7 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
                       title: const Text("Liberar mi aula actual", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                       subtitle: const Text("Si tienes clase programada, la cancelaremos.", style: TextStyle(fontSize: 11)),
                       value: _liberarAulaActual,
-                      activeColor: const Color(0xFFFF6B35),
+                      activeColor: AppColors.orangeAccent,
                       onChanged: (v) => setState(() => _liberarAulaActual = v ?? false),
                     ),
                     const SizedBox(height: 12),

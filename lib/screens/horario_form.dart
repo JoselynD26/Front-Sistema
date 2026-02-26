@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../widgets/admin_form_layout.dart';
+import '../utils/app_colors.dart';
 
 class HorarioForm extends StatefulWidget {
   final Map? horario;
@@ -42,7 +43,7 @@ class _HorarioFormState extends State<HorarioForm> {
   int? cursoSeleccionado;
   String estado = "activo";
 
-  final Color _primaryColor = const Color(0xFFF59E0B); // Amber 500 equivalent
+  final Color _primaryColor = AppColors.bluePrimary;// Amber 500 equivalent
 
   @override
   void initState() {

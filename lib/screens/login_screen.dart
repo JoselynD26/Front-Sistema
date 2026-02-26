@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../services/api_service.dart';
 import '../utils/mouse_tracker_fix.dart';
+import '../utils/app_colors.dart';
 import 'sede_screen.dart';
 import 'register_screen.dart';
 import 'profesor_dashboard.dart';
@@ -115,9 +116,9 @@ class _LoginScreenState extends State<LoginScreen> with SafeStateMixin {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      Color(0xFF0F2B46), // DeepL Dark Blue
-                      Color(0xFF0070C9), // DeepL Primary Blue
-                      Color(0xFFFF6B35), // Orange Accent (Restored)
+                      AppColors.blueDark,
+                      AppColors.bluePrimary,
+                      AppColors.orangeAccent,
                     ],
                   ),
                 ),
@@ -125,18 +126,12 @@ class _LoginScreenState extends State<LoginScreen> with SafeStateMixin {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.school_rounded, size: 80, color: Colors.white.withOpacity(0.9)),
-                      const SizedBox(height: 24),
-                      const Text(
-                        "Yavirac",
-                        style: TextStyle(
-                          fontSize: 64,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: 2,
-                        ),
+                      Image.asset(
+                        "assets/images/logo.png",
+                        height: 200,
+                        fit: BoxFit.contain,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 24),
                       Container(height: 4, width: 60, color: Colors.white.withOpacity(0.3)), // Subtle accent
                       const SizedBox(height: 24),
                       Text(
@@ -182,49 +177,46 @@ class _LoginScreenState extends State<LoginScreen> with SafeStateMixin {
       body: Stack(
         children: [
           Container(
-             decoration: const BoxDecoration(
+              decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Color(0xFF0F2B46), 
-                    Color(0xFF0070C9), 
+                    AppColors.blueDark,
+                    AppColors.bluePrimary,
                   ],
                 ),
-             ),
+              ),
           ),
-          // Header Branding
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: MediaQuery.of(context).size.height * 0.35,
-            child: Container(
-             padding: const EdgeInsets.only(left: 24, right: 24, top: 48),
-             alignment: Alignment.topCenter,
-             child: Column(
-               children: [
-                  Icon(Icons.school_rounded, size: 48, color: Colors.white.withOpacity(0.9)),
-                  const SizedBox(height: 16),
-                  const Text(
-                    "Yavirac",
-                    style: TextStyle(
-                      fontSize: 40,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  Text(
-                    "Gestión Académica",
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white.withOpacity(0.7),
-                    ),
-                  ),
-               ],
-             ),
-            ),
+         // Header Branding
+Positioned(
+  top: 0,
+  left: 0,
+  right: 0,
+  height: MediaQuery.of(context).size.height * 0.35,
+  child: Container(
+    padding: const EdgeInsets.only(left: 24, right: 24, top: 48),
+    alignment: Alignment.topCenter,
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Image.asset(
+          "assets/images/logo.png", 
+          height: 90,
+          fit: BoxFit.contain,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          "Gestión Académica",
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.white.withOpacity(0.8),
           ),
+        ),
+      ],
+    ),
+  ),
+),
           
           // Form Sheet
           Positioned(
@@ -393,7 +385,7 @@ class _LoginScreenState extends State<LoginScreen> with SafeStateMixin {
         
         const SizedBox(height: 24),
         Text(
-          "Desarrollado por Joselyn Dicao y María Ortiz",
+          "Desarrollado por Joselyn Dicao y Cristina Ortiz",
           style: TextStyle(fontSize: 11, color: Colors.grey[400]),
           textAlign: TextAlign.center,
         ),
@@ -485,7 +477,7 @@ class _LoginScreenState extends State<LoginScreen> with SafeStateMixin {
                       decoration: const BoxDecoration(
                         borderRadius: BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
                         gradient: LinearGradient(
-                          colors: [Color(0xFF0F2B46), Color(0xFF0070C9)],
+                          colors: [AppColors.blueDark, AppColors.bluePrimary],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
