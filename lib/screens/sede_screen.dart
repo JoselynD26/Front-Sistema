@@ -7,6 +7,7 @@ import 'detalle_sede_screen.dart';
 import 'form_sede_screen.dart';
 import 'sedes_management_screen.dart';
 import '../widgets/admin_card.dart';
+import '../utils/app_state.dart';
 
 class SedeScreen extends StatefulWidget {
   const SedeScreen({super.key});
@@ -118,34 +119,42 @@ class _SedeScreenState extends State<SedeScreen> with SafeStateMixin {
 
   Widget _buildSedesGrid() {
     return Center(
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 1200),
-        child: Wrap(
-          alignment: WrapAlignment.center,
-          spacing: 32,
-          runSpacing: 32,
-          children: sedes.map((sede) {
-            return SizedBox(
-              width: 300,
-              height: 240,
-              child: AdminCard(
-                title: sede["nombre"],
-                subtitle: sede["ubicacion"] ?? "Campus Principal",
-                icon: Icons.business_rounded,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => DetalleSedeScreen(
-                        idSede: sede["id"],
-                        nombre: sede["nombre"],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            );
-          }).toList(),
+      child: SingleChildScrollView(
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 40,
+            runSpacing: 40,
+            children: sedes.map((sede) {
+              return SizedBox(
+                width: 300,
+                height: 240,
+                child: AdminCard(
+                  title: sede["nombre"],
+                  subtitle: sede["ubicacion"] ?? "Campus Principal",
+                  icon: Icons.business_rounded,
+                 onTap: () {
+
+  AppState.sedeId = sede["id"];
+  AppState.sedeNombre = sede["nombre"];
+
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => DetalleSedeScreen(
+        idSede: sede["id"],
+        nombre: sede["nombre"],
+      ),
+    ),
+  );
+},
+                ),
+              );
+            }).toList(),
+          ),
         ),
       ),
     );

@@ -108,35 +108,38 @@ class _AdminCardState extends State<AdminCard> with SingleTickerProviderStateMix
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                         child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
+  mainAxisAlignment: MainAxisAlignment.center,
+  crossAxisAlignment: CrossAxisAlignment.center,
+  children: [
                              // ICON: Switches from Blue Gradient to Orange Gradient on Hover
-                             AnimatedContainer(
-                               duration: const Duration(milliseconds: 300),
-                               padding: const EdgeInsets.all(14),
-                               decoration: BoxDecoration(
-                                 shape: BoxShape.circle,
-                                 gradient: LinearGradient(
-                                   colors: _isHovering 
-                                      ? [orangeAccent, Colors.orangeAccent] // Orange on Hover
-                                      : [primaryColor, secondaryColor],    // Blue normally
-                                   begin: Alignment.topLeft,
-                                   end: Alignment.bottomRight,
-                                 ),
-                                 boxShadow: [
-                                   BoxShadow(
-                                     color: (_isHovering ? orangeAccent : primaryColor).withOpacity(0.3),
-                                     blurRadius: 10,
-                                     offset: const Offset(0, 4),
-                                   ),
-                                 ],
-                               ),
-                               child: Icon(
-                                 widget.icon,
-                                 size: 28,
-                                 color: Colors.white,
-                               ),
-                             ),
+                            Center(
+  child: AnimatedContainer(
+    duration: const Duration(milliseconds: 300),
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      gradient: LinearGradient(
+        colors: _isHovering 
+          ? [orangeAccent, Colors.orangeAccent]
+          : [primaryColor, secondaryColor],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: (_isHovering ? orangeAccent : primaryColor).withOpacity(0.3),
+          blurRadius: 10,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    ),
+    child: Icon(
+      widget.icon,
+      size: 28,
+      color: Colors.white,
+    ),
+  ),
+),
                              const SizedBox(height: 12),
                              // Title
                              Flexible(

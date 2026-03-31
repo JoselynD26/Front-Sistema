@@ -375,7 +375,7 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
                             "Croquis Institucional",
                             Icons.map_rounded,
                             "Ubicación general",
-                            const Color(0xFF6366F1),
+                            const Color(0xFF1E3A8A),
                             () => _verCroquisPlazas(),
                           ),
                         ),
@@ -385,7 +385,7 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
                             "Mis Materias",
                             Icons.menu_book_rounded,
                             "${materias.length} asignadas",
-                            const Color(0xFF3B82F6), // Blue
+                            const Color(0xFF1E3A8A),
                             () => _mostrarMaterias(),
                           ),
                         ),
@@ -395,7 +395,7 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
                             "Mi Horario",
                             Icons.calendar_month_rounded,
                             "${horarios.length} clases",
-                            const Color(0xFF10B981), // Emerald
+                            AppColors.bluePrimary,
                             () => _mostrarHorarios(),
                           ),
                         ),
@@ -405,7 +405,7 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
                             "Mis Reservas",
                             Icons.bookmark_rounded,
                             "${reservas.length} activas",
-                            const Color(0xFF8B5CF6), // Violet
+                            const Color(0xFF1E3A8A),
                             () => _mostrarReservas(),
                           ),
                         ),
@@ -415,7 +415,7 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
                             "Reservar Aula",
                             Icons.add_circle_outline_rounded,
                             "Nueva solicitud",
-                            const Color(0xFFF59E0B), // Amber
+                            const Color(0xFF1E3A8A),
                             () => _crearReserva(),
                           ),
                         ),
@@ -425,7 +425,7 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
                             "Horarios PDF",
                             Icons.picture_as_pdf_rounded,
                             "Descargar",
-                            const Color(0xFFEF4444), // Red
+                            const Color(0xFF1E3A8A),
                             () => _verHorarios(),
                           ),
                         ),
@@ -435,7 +435,7 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
                             "Sala de Profesores",
                             Icons.desk,
                             "Mi escritorio",
-                            const Color(0xFF10B981),
+                            const Color(0xFF1E3A8A),
                             () => _verCroquis(),
                           ),
                         ),
@@ -477,7 +477,7 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
           title: "Mis Materias",
           subtitle: "Asignaturas impartidas este periodo",
           icon: Icons.menu_book_rounded,
-          color: const Color(0xFF3B82F6),
+          color: const Color(0xFF1E3A8A), 
           child: ListView.separated(
             padding: const EdgeInsets.all(4),
             itemCount: materias.length,
@@ -577,7 +577,7 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
           title: "Mis Reservas",
           subtitle: "Historial de solicitudes de aulas",
           icon: Icons.bookmark_rounded,
-          color: const Color(0xFF8B5CF6),
+          color: const Color(0xFF1E3A8A),
           child: reservas.isEmpty
               ? Center(
                   child: Column(
@@ -808,7 +808,7 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
           title: "Horarios PDF",
           subtitle: "Descarga de horarios oficiales",
           icon: Icons.picture_as_pdf_rounded,
-          color: const Color(0xFFEF4444),
+          color: const Color(0xFF1E3A8A),
           child: PdfHorariosContent(sedeId: idSede ?? 1), 
         );
       },
@@ -826,7 +826,7 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
           title: "Croquis Institucional",
           subtitle: "Mapas de patios y plazas",
           icon: Icons.map_rounded,
-          color: const Color(0xFF6366F1),
+          color: const Color(0xFF1E3A8A),
           child: CroquisPlazaContent(sedeId: idSede ?? 1), 
         );
       },
@@ -844,7 +844,7 @@ class _ProfesorDashboardState extends State<ProfesorDashboard> {
           title: "Sala de Profesores",
           subtitle: "Mi ubicación y escritorio asignado",
           icon: Icons.desk_rounded,
-          color: const Color(0xFF10B981),
+          color: const Color(0xFF1E3A8A),
           child: DocenteCroquisContent(docenteId: widget.docenteId),
         );
       },
@@ -1837,7 +1837,7 @@ class _FormularioReservaAulaState extends State<_FormularioReservaAula> {
       title: "Reservar Aula",
       subtitle: "Solicita un espacio para tus actividades",
       icon: Icons.add_circle_outline_rounded,
-      color: const Color(0xFFF59E0B),
+      color: const Color(0xFF1E3A8A),
       child: Container(
         padding: EdgeInsets.symmetric(
           horizontal: isMobile ? 12 : 20, 

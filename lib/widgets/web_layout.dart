@@ -21,6 +21,7 @@ import '../screens/profile_screen.dart';
 import '../screens/profesor_dashboard.dart';
 import '../screens/detalle_sede_screen.dart';
 import '../utils/app_colors.dart';
+import '../utils/app_state.dart';
 
 class WebLayout extends StatefulWidget {
   final String title;
@@ -105,9 +106,33 @@ class _WebLayoutState extends State<WebLayout> with SafeStateMixin {
   }
 
   void _logout() async {
-    await _apiService.clearStorage();
-    if (mounted) {
-      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Cerrar Sesión"),
+        content: const Text("¿Estás seguro de que deseas cerrar sesión?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancelar"),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text("Cerrar Sesión"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await _apiService.clearStorage();
+      if (mounted) {
+        Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+      }
     }
   }
 
@@ -284,9 +309,9 @@ class _WebLayoutState extends State<WebLayout> with SafeStateMixin {
                         ));
                     } else {
                         _navigateTo(DetalleSedeScreen(
-                          idSede: widget.idSede!,
-                          nombre: "Sede",
-                        ));
+  idSede: widget.idSede!,
+  nombre: AppState.sedeNombre ?? "Sede",
+));
                     }
                   },
                 ),
